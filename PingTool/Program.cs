@@ -125,11 +125,13 @@ namespace PingTool
 
                 string? reportPath = o.ReportPath is null ? null : Path.GetFullPath(o.ReportPath);
                 bool reportFailed = false;
+                var pseudonyms = new List<string>();   // --hide: what the pseudonyms of the last report stand for (never in the report itself)
                 void WriteReport(ReportData data)
                 {
                     if (reportPath is null) return;
                     try
                     {
+                        if (o.Hide is { } hide) data = ReportAnonymizer.Apply(data, hide, out pseudonyms);
                         Directory.CreateDirectory(Path.GetDirectoryName(reportPath)!);
                         File.WriteAllText(reportPath, ReportBuilder.Build(data), new System.Text.UTF8Encoding(false));
                         reportFailed = false;
@@ -168,6 +170,7 @@ namespace PingTool
                     Console.CancelKeyPress -= onInterrupt;
                 }
                 Console.WriteLine(result.Summary + (reportPath is null ? "" : " Report: " + reportPath));
+                if (pseudonyms.Count > 0) Console.Error.WriteLine("What the pseudonyms of the report stand for (keep this: it is not in the report):\r\n" + string.Join("\r\n", pseudonyms));
                 return reportFailed ? HeadlessRunner.ErrorCode : result.ExitCode;
             }
             catch (ArgumentException ex)

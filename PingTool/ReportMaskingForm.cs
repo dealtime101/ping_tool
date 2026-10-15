@@ -4,11 +4,14 @@ namespace PingTool
     internal sealed class ReportMaskingForm : Form
     {
         private readonly CheckBox targets, ips, cards, computer;
+        private readonly ReportData data;
+        private readonly List<string> previews = new();
 
         public ReportMasking Result { get; private set; } = ReportMasking.None;
 
-        public ReportMaskingForm()
+        public ReportMaskingForm(ReportData data)
         {
+            this.data = data;
             // Positions and sizes are written for 96 DPI: the form scales them to the screen (as TargetOptionsForm does).
             AutoScaleDimensions = new SizeF(96F, 96F);
             AutoScaleMode = AutoScaleMode.Dpi;
@@ -46,7 +49,39 @@ namespace PingTool
             CancelButton = cancel;
             Controls.Add(ok);
             Controls.Add(cancel);
-            ok.Click += (_, _) => Result = new ReportMasking(targets.Checked, ips.Checked, cards.Checked, computer.Checked);
+            ok.Click += (_, _) => Result = Current();
+
+            // What the reader will get, before anything is saved: the report with the boxes as they are now, in the browser.
+            var preview = new Button { Text = "&Preview", Location = new Point(12, 214), Size = new Size(96, 28), AccessibleName = "Preview the report with these choices" };
+            preview.Click += (_, _) => ShowPreview();
+            Controls.Add(preview);
+
+            // The previews are temporary files: they go when the box closes (the browser has the page by then).
+            FormClosed += (_, _) =>
+            {
+                foreach (string path in previews)
+                {
+                    try { File.Delete(path); }
+                    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { /* a browser still holding it: the temporary folder keeps it */ }
+                }
+            };
+        }
+
+        private ReportMasking Current() => new(targets.Checked, ips.Checked, cards.Checked, computer.Checked);
+
+        private void ShowPreview()
+        {
+            string path = Path.Combine(Path.GetTempPath(), "pingtool-preview-" + Guid.NewGuid().ToString("N") + ".html");
+            try
+            {
+                File.WriteAllText(path, ReportBuilder.Build(ReportAnonymizer.Mask(data, Current()).Data), new System.Text.UTF8Encoding(false));
+                previews.Add(path);
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(path) { UseShellExecute = true })?.Dispose();
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception or InvalidOperationException)
+            {
+                MessageBox.Show(this, "Could not show the preview: " + ex.Message, "PingTool");
+            }
         }
 
         private CheckBox Box(string text, int y)
@@ -58,9 +93,9 @@ namespace PingTool
         }
 
         // What to hide, or null when the person gives up saving.
-        public static ReportMasking? Ask(IWin32Window owner)
+        public static ReportMasking? Ask(IWin32Window owner, ReportData data)
         {
-            using var dialog = new ReportMaskingForm();
+            using var dialog = new ReportMaskingForm(data);
             return dialog.ShowDialog(owner) == DialogResult.OK ? dialog.Result : null;
         }
 

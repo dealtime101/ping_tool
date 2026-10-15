@@ -11,6 +11,30 @@ namespace PingTool
 
         public bool Any => Targets || Ips || NetworkNames || Computer;
 
+        // The command line's --hide: "targets,ips" or "all" (targets, ips, cards, computer). An empty list or an unknown word is refused.
+        public static bool TryParse(string? text, out ReportMasking masking)
+        {
+            masking = None;
+            if (string.IsNullOrWhiteSpace(text)) return false;
+
+            bool targets = false, ips = false, cards = false, computer = false;
+            foreach (string word in text.Split(',', StringSplitOptions.TrimEntries))
+            {
+                switch (word.ToLowerInvariant())
+                {
+                    case "targets": targets = true; break;
+                    case "ips": ips = true; break;
+                    case "cards": cards = true; break;
+                    case "computer": computer = true; break;
+                    case "all": targets = ips = cards = computer = true; break;
+                    default: return false;
+                }
+            }
+
+            masking = new ReportMasking(targets, ips, cards, computer);
+            return true;
+        }
+
         // The sentence the report carries about it, so that its reader knows "target-1" is not a name that was typed.
         public string Describe()
         {

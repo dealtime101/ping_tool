@@ -1152,7 +1152,7 @@ namespace PingTool
                 incidents.Summary(now), incidents.Incidents.ToList(), NetworkEvents: networkEvents.ToList(), DownAfter: run.DownAfter, DegradedMos: run.DegradedMos);
 
             // What to hide from the reader first: the pseudonyms are worked out on a copy of the data, the window keeps the real ones.
-            if (ReportMaskingForm.Ask(this) is not { } masking) return;
+            if (ReportMaskingForm.Ask(this, data) is not { } masking) return;
             var masked = ReportAnonymizer.Mask(data, masking);
 
             using var dialog = new SaveFileDialog

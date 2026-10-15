@@ -88,7 +88,7 @@ namespace PingTool
                 replay.Incidents.Summary(replay.To), replay.Incidents.Incidents.ToList(),
                 FromLogFile: true, PeriodEnd: replay.To);
 
-            if (ReportMaskingForm.Ask(this) is not { } masking) return;
+            if (ReportMaskingForm.Ask(this, data) is not { } masking) return;
             var masked = ReportAnonymizer.Mask(data, masking);
 
             using var dialog = new SaveFileDialog

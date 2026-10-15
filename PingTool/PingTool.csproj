@@ -360,8 +360,9 @@
          1.21.282 = two hosts that differ only by a character a file name cannot hold get two log files (a short hash is added to a name that had to be changed), not one (PIN472.21)
          1.21.283 = a MOS column in the host list and the report, and a "MOS below" limit next to the slow and loss limits: a window whose voice quality falls under it is degraded, and the alert says so (PIN472.1)
          1.21.284 = before a report is saved, a box asks what to hide from its reader (target names and addresses, IP addresses, network card names, computer name): one pseudonym per thing, used everywhere, said in the report; the key is shown to the sender only (PIN507.1)
-         1.21.285 = the save box offers an archive (zip) of the report, the measures and the probe settings, under the same pseudonyms (PIN507.1) -->
-    <Version>1.21.285</Version>
+         1.21.285 = the save box offers an archive (zip) of the report, the measures and the probe settings, under the same pseudonyms (PIN507.1)
+         1.21.286 = a Preview button in the hiding box shows the report in the browser before saving, and the hide option masks the command-line report the same way (PIN507.1) -->
+    <Version>1.21.286</Version>
   </PropertyGroup>
 
   <ItemGroup>
