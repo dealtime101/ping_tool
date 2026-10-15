@@ -5,8 +5,8 @@ namespace PingTool
 {
     // A change of the PC's own network during a run (a VPN, a cable unplugged, a wake from sleep, a Wi-Fi access point when it changes
     // the address or the gateway), dated, so that a cut seen by the pings can be put next to what happened on this side. A move between
-    // two access points of the same network that keeps the address and the gateway is NOT seen: the SSID and the BSSID come from the
-    // native Wi-Fi interface of Windows, which is not read (PIN472.185, deferred).
+    // two access points of the same network that keeps the address and the gateway is not seen by the cards: the SSID, the BSSID and the
+    // signal come from the native Wi-Fi interface of Windows, read by WifiWatch (PIN507.2), whose sentences join these events.
     internal sealed record NetworkEvent(DateTimeOffset Time, string Text);
 
     // One network card that is up, as far as the events need it. Addresses = its IPv4 addresses, sorted, joined.
@@ -17,8 +17,8 @@ namespace PingTool
         public const int MaxTextLength = 220;
 
         // The cards that are up and have an IPv4 address (loopback and the tunnel pseudo-cards Teredo, 6to4 and ISATAP left out: they change
-        // for no reason that matters; a VPN adapter of type Tunnel is kept - see IsPseudoTunnel). The Wi-Fi name (SSID) is not read: Windows hands it out through a different interface,
-        // and the card name already tells Wi-Fi from Ethernet and from a VPN adapter.
+        // for no reason that matters; a VPN adapter of type Tunnel is kept - see IsPseudoTunnel). The Wi-Fi name (SSID) is not read here: Windows hands it out through a different
+        // interface (WifiWatch reads it); the card name already tells Wi-Fi from Ethernet and from a VPN adapter.
         // null when the cards could not be read (all of them or one: a list with a card missing would be read as that card being
         // unplugged). The caller keeps what it knew and ignores this reading; an EMPTY list means the PC really has no network.
         // read: the reading itself, a parameter so that a failure can be replayed in a test.

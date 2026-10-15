@@ -34,7 +34,7 @@ namespace PingTool
 
             targets = Box("Target &names and addresses (target-1, target-2...)", 82);
             ips = Box("&IP addresses, in the routes and the network changes too", 110);
-            cards = Box("Names of the network &cards of this PC", 138);
+            cards = Box("Names of the network &cards, Wi-Fi networks, access points", 138);
             computer = Box("The &computer name", 166);
 
             Controls.Add(new Label

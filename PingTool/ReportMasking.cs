@@ -41,7 +41,7 @@ namespace PingTool
             var hidden = new List<string>();
             if (Targets) hidden.Add("target names and addresses");
             if (Ips) hidden.Add("IP addresses");
-            if (NetworkNames) hidden.Add("names of the network cards");
+            if (NetworkNames) hidden.Add("names of the network cards, Wi-Fi networks and access points");
             if (Computer) hidden.Add("the computer name");
             return "Hidden by the sender: " + string.Join(", ", hidden) + ". The same pseudonym (target-1, public-ip-2, local-ip-1, network-card-1) stands for the same "
                 + "target, address or card everywhere in this report, so incidents and routes stay linked.";
@@ -115,6 +115,7 @@ namespace PingTool
 
         private sealed class Scrubber
         {
+            private static readonly Regex WifiSentence = new(@"^Wi-Fi (?:connected to|disconnected from|moved from|roamed to another access point of|signal (?:weak|back to)) ", RegexOptions.CultureInvariant);
             private static readonly Regex Ipv4 = new(@"(?<![\d.])(?:\d{1,3}\.){3}\d{1,3}(?!\d)", RegexOptions.CultureInvariant);
             private static readonly Regex Ipv6 = new(@"(?<![\w:.])(?:[0-9A-Fa-f]{0,4}:){2,7}[0-9A-Fa-f]{0,4}(?![\w:])", RegexOptions.CultureInvariant);
 
@@ -124,6 +125,8 @@ namespace PingTool
             private readonly Dictionary<string, string> replacements = new(StringComparer.OrdinalIgnoreCase);   // what to find in a text -> pseudonym
             private readonly Dictionary<string, string> ipNames = new(StringComparer.Ordinal);   // normalised address -> pseudonym
             private readonly Dictionary<string, string> cardNames = new(StringComparer.Ordinal);
+            private readonly Dictionary<string, string> ssidNames = new(StringComparer.Ordinal);
+            private readonly Dictionary<string, string> accessPoints = new(StringComparer.Ordinal);
             private int localIps, publicIps;
             private Regex? targets;
 
@@ -203,6 +206,9 @@ namespace PingTool
             // start of each part of the sentence NetworkWatch.Describe writes. Sentences that are not about one card are left alone.
             public string Cards(string text)
             {
+                // A card is often called "Wi-Fi" too: only the sentences WifiTracker writes are about a Wi-Fi network.
+                if (WifiSentence.IsMatch(text)) return Wifi(text);
+
                 var parts = text.Split("; ");
                 for (int p = 0; p < parts.Length; p++)
                 {
@@ -222,10 +228,28 @@ namespace PingTool
                 return string.Join("; ", parts);
             }
 
+            // "Wi-Fi roamed to another access point of "Home" (aa:bb:cc:dd:ee:01 -> aa:bb:cc:dd:ee:02, ...)" -> the names of the Wi-Fi networks
+            // (between quotes, see WifiWatch) and the access points (their addresses) become wifi-network-N and access-point-N.
+            private string Wifi(string text)
+            {
+                text = Regex.Replace(text, "\"(?<n>[^\"]*)\"", m => "\"" + Pseudonym(ssidNames, m.Groups["n"].Value, "wifi-network-") + "\"", RegexOptions.CultureInvariant);
+                return Regex.Replace(text, @"(?<![0-9A-Fa-f:])(?:[0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}(?![0-9A-Fa-f:])",
+                    m => Pseudonym(accessPoints, m.Value.ToLowerInvariant(), "access-point-"), RegexOptions.CultureInvariant);
+            }
+
+            private static string Pseudonym(Dictionary<string, string> names, string real, string prefix)
+            {
+                if (!names.TryGetValue(real, out var name))
+                    names[real] = name = prefix + (names.Count + 1).ToString(System.Globalization.CultureInfo.InvariantCulture);
+                return name;
+            }
+
             public void AddAddressesAndCardsToKey()
             {
                 foreach (var (real, name) in ipNames) key.Add(name + " = " + real);
                 foreach (var (real, name) in cardNames) key.Add(name + " = " + real);
+                foreach (var (real, name) in ssidNames) key.Add(name + " = " + real);
+                foreach (var (real, name) in accessPoints) key.Add(name + " = " + real);
             }
         }
     }

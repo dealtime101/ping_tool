@@ -37,6 +37,11 @@ namespace PingTool
         private List<NicState>? lastNetwork;   // the cards as last read; null = not read yet, or the last reading failed at the start
         private bool networkReadFailureSaid;   // a failed reading has been written among the events: not again until one works
         private readonly System.Windows.Forms.Timer networkTimer = new() { Interval = 1500 };
+        // The Wi-Fi (network name, access point, signal) is read every 5 s while running: a move to another access point changes neither the
+        // address nor the gateway, so no system event announces it (see WifiWatch).
+        private readonly System.Windows.Forms.Timer wifiTimer = new() { Interval = 5000 };
+        private WifiTracker wifi = new();
+        private bool wifiReading;   // a reading is under way (it runs off the window's thread): not a second one on top of it
         // Alerts also go to the webhooks of settings.json, in the background (see WebhookSender); null when none.
         private WebhookSender? webhooks;
         private readonly HashSet<string> webhookWarned = new();
@@ -107,6 +112,7 @@ namespace PingTool
             // The system says "something changed" several times for one real change (address, then availability, then
             // the gateway): a short wait lets them settle, and only then the cards are compared with what they were.
             networkTimer.Tick += (_, _) => ReadNetworkChange();
+            wifiTimer.Tick += (_, _) => PollWifi();
             System.Net.NetworkInformation.NetworkChange.NetworkAddressChanged += OnNetworkAddressChanged;
             System.Net.NetworkInformation.NetworkChange.NetworkAvailabilityChanged += OnNetworkAvailabilityChanged;
 
@@ -179,6 +185,7 @@ namespace PingTool
                 autoLogTimer.Stop();
                 trayIconTimer.Stop();
                 networkTimer.Stop();
+                wifiTimer.Stop();
                 System.Net.NetworkInformation.NetworkChange.NetworkAddressChanged -= OnNetworkAddressChanged;
                 System.Net.NetworkInformation.NetworkChange.NetworkAvailabilityChanged -= OnNetworkAvailabilityChanged;
                 webhooks?.Dispose();
@@ -784,6 +791,9 @@ namespace PingTool
                 networkEvents.Clear();
                 networkReadFailureSaid = false;
                 lastNetwork = NetworkWatch.Snapshot();
+                wifi = new WifiTracker();
+                wifiTimer.Start();
+                PollWifi();
                 incidents.Clear();
                 UpdateIncidentButton();
                 foreach (ListViewItem item in lstHosts.Items) RenderRow(item);
@@ -948,6 +958,7 @@ namespace PingTool
         {
             if (closing) return;
             isRunning = false;
+            wifiTimer.Stop();
             btnStartStop.Text = "Start";
             SetSettingsEnabled(true);
             ShowRunState();
@@ -1452,6 +1463,24 @@ namespace PingTool
             {
                 // The window is closing: what this was about no longer has anyone to be told.
             }
+        }
+
+        // The reading runs off the window's thread (Windows may take a moment to answer); its sentences are added here, to the same list as
+        // the changes of address and gateway.
+        private void PollWifi()
+        {
+            if (wifiReading || !isRunning || closing) return;
+
+            wifiReading = true;
+            var tracker = wifi;
+            Task.Run(WifiWatch.Read).ContinueWith(task => PostToWindow(() =>
+            {
+                wifiReading = false;
+                if (!isRunning || tracker != wifi) return;
+
+                var reading = task.IsCompletedSuccessfully ? task.Result : new WifiReading(null);
+                foreach (string text in tracker.Observe(reading)) networkEvents.Add(new NetworkEvent(DateTimeOffset.Now, text));
+            }), TaskScheduler.Default);
         }
 
         private void ReadNetworkChange()
