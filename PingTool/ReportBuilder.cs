@@ -29,7 +29,9 @@ namespace PingTool
         // Consecutive failed pings after which a host was reported down (the default when a log does not record it).
         int DownAfter = HostMonitor.DefaultDownAfter,
         // "MOS below" limit the run had (0 = none).
-        double DegradedMos = 0);
+        double DegradedMos = 0,
+        // What the sender hid (see ReportAnonymizer), said in the report so that "target-1" is not taken for a name that was typed.
+        string? MaskedNote = null);
 
     // A self-contained diagnostic report: ONE html file, no script, no external resource, graphs
     // drawn as inline SVG. Meant to be sent to an ISP or an IT team who do not have PingTool.
@@ -89,6 +91,7 @@ namespace PingTool
             if (d.FromLogFile) Row(h, "Source", "rebuilt from PingTool log files (the computer and the probe settings are not recorded in them)", E);
             else Row(h, "Computer", d.Machine, E);
             Row(h, "PingTool version", d.Version, E);
+            if (d.MaskedNote is not null) Row(h, "Privacy", d.MaskedNote, E);
             if (!d.FromLogFile) Row(h, "Probe settings", $"one echo request every {d.IntervalMs} ms, timeout {d.TimeoutMs} ms, {d.PacketSize} bytes", E);
             Row(h, d.FromLogFile ? $"Degraded when (last {HostMonitor.WindowSize} pings; default limits, the log does not record them)" : $"Degraded when (last {HostMonitor.WindowSize} pings)",$"loss at least {d.DegradedLossPercent}% or average latency at least {d.DegradedLatencyMs} ms"
                 + (d.DegradedMos > 0 ? $" or voice quality (MOS) below {d.DegradedMos.ToString("0.0", c)}" : ""), E);

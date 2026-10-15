@@ -1151,6 +1151,10 @@ namespace PingTool
                 Diagnosis.For(sessions.Select(s => s.ToTarget()).ToList()),
                 incidents.Summary(now), incidents.Incidents.ToList(), NetworkEvents: networkEvents.ToList(), DownAfter: run.DownAfter, DegradedMos: run.DegradedMos);
 
+            // What to hide from the reader first: the pseudonyms are worked out on a copy of the data, the window keeps the real ones.
+            if (ReportMaskingForm.Ask(this) is not { } masking) return;
+            data = ReportAnonymizer.Apply(data, masking, out var key);
+
             using var dialog = new SaveFileDialog
             {
                 Filter = "HTML report (*.html)|*.html",
@@ -1161,6 +1165,7 @@ namespace PingTool
             try
             {
                 File.WriteAllText(dialog.FileName, ReportBuilder.Build(data), new System.Text.UTF8Encoding(false));
+                ReportMaskingForm.ShowKey(this, key);
                 FileOpener.OfferToOpen(this, "The report", dialog.FileName);   // where it is, and the offer to open it
             }
             catch (IOException ex)

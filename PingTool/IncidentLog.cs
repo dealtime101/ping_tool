@@ -32,8 +32,11 @@ namespace PingTool
         public PathCapture? Path { get; set; }
         public List<string> PathNotes { get; } = new();
 
+        // What a report shows instead of the real route, when its addresses and names were hidden (see ReportAnonymizer).
+        public string? PathTextOverride { get; init; }
+
         public string PathText() =>
-            Path is null ? "" : Path.Describe() + (PathNotes.Count > 0 ? "\n" + string.Join("\n", PathNotes) : "");
+            PathTextOverride ?? (Path is null ? "" : Path.Describe() + (PathNotes.Count > 0 ? "\n" + string.Join("\n", PathNotes) : ""));
 
         public bool Ongoing => End is null;
         public TimeSpan Duration(DateTimeOffset now) => (End ?? now) - Start;

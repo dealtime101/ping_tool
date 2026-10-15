@@ -88,6 +88,9 @@ namespace PingTool
                 replay.Incidents.Summary(replay.To), replay.Incidents.Incidents.ToList(),
                 FromLogFile: true, PeriodEnd: replay.To);
 
+            if (ReportMaskingForm.Ask(this) is not { } masking) return;
+            data = ReportAnonymizer.Apply(data, masking, out var key);
+
             using var dialog = new SaveFileDialog
             {
                 Filter = "HTML report (*.html)|*.html",
@@ -98,6 +101,7 @@ namespace PingTool
             try
             {
                 File.WriteAllText(dialog.FileName, ReportBuilder.Build(data), new System.Text.UTF8Encoding(false));
+                ReportMaskingForm.ShowKey(this, key);
                 FileOpener.OfferToOpen(this, "The report", dialog.FileName);   // where it is, and the offer to open it
             }
             catch (IOException ex)
