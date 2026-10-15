@@ -56,11 +56,14 @@ namespace PingTool
             // A log that let its oldest pings go says so IN the file (the window said it once, to whoever exported): whoever receives
             // the file cannot tell a whole session from the end of one. A single-field row under the header, which the reader skips
             // (PingLogReader.CommentMark) and a spreadsheet shows as a line of text; the columns stay the same.
-            if (Dropped > 0)
-                writer.Write(Field(CommentMark + " Incomplete: only the latest " + MaxEntries.ToString("N0", CultureInfo.InvariantCulture)
-                    + " pings are in this file, the " + Dropped.ToString("N0", CultureInfo.InvariantCulture) + " older ones were no longer kept.") + "\r\n");
+            if (Dropped > 0) writer.Write(IncompleteRow(Dropped) + "\r\n");
             foreach (var e in entries) writer.Write(CsvLine(e) + "\r\n");
         }
+
+        // The remark row for a log that let `dropped` of its oldest pings go (also the first row of the measures in a report archive).
+        public static string IncompleteRow(long dropped) =>
+            Field(CommentMark + " Incomplete: only the latest " + MaxEntries.ToString("N0", CultureInfo.InvariantCulture)
+                + " pings are in this file, the " + dropped.ToString("N0", CultureInfo.InvariantCulture) + " older ones were no longer kept.");
 
         // The mark of a row that is a remark and not a ping.
         public const string CommentMark = "#";

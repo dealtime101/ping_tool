@@ -72,12 +72,12 @@ namespace PingTool
                 using var dialog = new IncidentsForm(replay.Incidents.Incidents, replay.Incidents.Summary(replay.To), replay.To);
                 dialog.ShowDialog(this);
             };
-            report.Click += (_, _) => SaveReport();
+            report.Click += (_, _) => SaveReport(entries);
 
             Controls.AddRange(new Control[] { info, timeline, incidents, report, close });
         }
 
-        private void SaveReport()
+        private void SaveReport(List<LogEntry> entries)
         {
             var sessions = replay.Sessions.Values.OrderBy(s => s.Address, StringComparer.OrdinalIgnoreCase).ToList();
             var data = new ReportData(DateTimeOffset.Now, replay.From, "", AppVersion.Display, 0, 0, 0,
@@ -89,20 +89,20 @@ namespace PingTool
                 FromLogFile: true, PeriodEnd: replay.To);
 
             if (ReportMaskingForm.Ask(this) is not { } masking) return;
-            data = ReportAnonymizer.Apply(data, masking, out var key);
+            var masked = ReportAnonymizer.Mask(data, masking);
 
             using var dialog = new SaveFileDialog
             {
-                Filter = "HTML report (*.html)|*.html",
+                Filter = "HTML report (*.html)|*.html|Archive: report, measures and probe settings (*.zip)|*.zip",
                 FileName = $"pingtool-report-{replay.From.ToLocalTime():yyyyMMdd-HHmmss}.html",
             };
             if (dialog.ShowDialog(this) != DialogResult.OK) return;
 
             try
             {
-                File.WriteAllText(dialog.FileName, ReportBuilder.Build(data), new System.Text.UTF8Encoding(false));
-                ReportMaskingForm.ShowKey(this, key);
-                FileOpener.OfferToOpen(this, "The report", dialog.FileName);   // where it is, and the offer to open it
+                string saved = ReportArchive.Save(dialog.FileName, dialog.FilterIndex == 2, masked.Data, ReportAnonymizer.MaskEntries(masked, entries));
+                ReportMaskingForm.ShowKey(this, masked.Key);
+                FileOpener.OfferToOpen(this, "The report", saved);   // where it is, and the offer to open it
             }
             catch (IOException ex)
             {

@@ -24,6 +24,9 @@ namespace PingTool
         }
     }
 
+    // The report data with what was hidden, the key (for the sender only) and the two ways to mask any other text.
+    internal sealed record MaskedReport(ReportData Data, List<string> Key, Func<string, string> Host, Func<string, string> Text);
+
     // Replaces what a ReportMasking hides by pseudonyms, in a COPY of the report data (the data of the window is never touched). The pseudonyms
     // follow the order of the targets, so two reports of the same targets read the same; `key` says what each one stands for, for the sender
     // only: it is never put in the report.
@@ -31,8 +34,16 @@ namespace PingTool
     {
         public static ReportData Apply(ReportData d, ReportMasking masking, out List<string> key)
         {
-            key = new List<string>();
-            if (!masking.Any) return d;
+            var masked = Mask(d, masking);
+            key = masked.Key;
+            return masked.Data;
+        }
+
+        // The same, with what is needed to mask more than the report: the measures of an archive go through the same pseudonyms.
+        public static MaskedReport Mask(ReportData d, ReportMasking masking)
+        {
+            var key = new List<string>();
+            if (!masking.Any) return new MaskedReport(d, key, text => text, text => text);
 
             var s = new Scrubber(d, masking, key);
             var hosts = d.Hosts.Select(x => x with
@@ -60,7 +71,7 @@ namespace PingTool
 
             var events = d.NetworkEvents?.Select(n => n with { Text = s.Text(masking.NetworkNames ? s.Cards(n.Text) : n.Text) }).ToList();
 
-            var masked = d with
+            var data = d with
             {
                 Machine = masking.Computer ? "hidden" : d.Machine,
                 Hosts = hosts,
@@ -71,8 +82,12 @@ namespace PingTool
                 MaskedNote = masking.Describe(),
             };
             s.AddAddressesAndCardsToKey();
-            return masked;
+            return new MaskedReport(data, key, s.HostName, s.Text);
         }
+
+        // The pings of a measures file, under the same pseudonyms as the report.
+        public static List<LogEntry> MaskEntries(MaskedReport masked, IEnumerable<LogEntry> entries) =>
+            entries.Select(e => e with { Host = masked.Host(e.Host), Detail = masked.Text(e.Detail) }).ToList();
 
         private sealed class Scrubber
         {
