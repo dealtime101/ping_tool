@@ -79,14 +79,22 @@ namespace PingTool
         // What gets a ' in front of it when written: a value that starts like a formula, and also a value that already starts with ' and
         // would then start like a formula once that ' is taken off ("'=x" written as it is would be read back as "=x": the ' that belongs to
         // the value would be taken for the one the writer added). Read back by PingLogReader.Unprotect with the same rule.
-        internal static bool NeedsProtection(string value) =>
-            StartsLikeFormula(value) || (value.Length > 1 && value[0] == '\'' && NeedsProtection(value[1..]));
+        // Taking the ' off one at a time (a call and a copy of the text for each) is the same as taking all the leading ones off at once and
+        // looking at what follows: a long run of them, which a log file one opens can hold, made that quadratic in time and deep in the stack.
+        internal static bool NeedsProtection(string value)
+        {
+            if (StartsLikeFormula(value)) return true;
+
+            int quotes = 0;
+            while (quotes < value.Length && value[quotes] == '\'') quotes++;
+            return quotes > 0 && quotes < value.Length && StartsLikeFormula(value.AsSpan(quotes));
+        }
 
         // A spreadsheet runs a field as a formula when it begins with = + - @, or with a tab or a CR.
         // Looking at the very first character is not enough: spaces, a no-break space, a line feed, a
         // zero-width space or a byte-order mark in front hide the formula character from a check on
         // value[0] while a spreadsheet may still skip them. So: the first VISIBLE character decides.
-        internal static bool StartsLikeFormula(string value)
+        internal static bool StartsLikeFormula(ReadOnlySpan<char> value)
         {
             if (value.Length > 0 && (value[0] == '\t' || value[0] == '\r')) return true;
 
