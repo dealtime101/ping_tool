@@ -34,11 +34,15 @@ namespace PingTool
 
         // The voice quality of the last RecentStats.Window pings (the figure of the "Last 60" line); null with no reply.
         public double? Mos => RecentStats.From(History).Mos;
-        public Queue<long> History { get; } = new();
 
-        // When each ping of History was made, in the same order (always as many as History): what lets the comparison graph put the
-        // pings of several hosts on ONE time axis, and lets a host that stopped being measured end where it stopped.
-        public Queue<DateTimeOffset> HistoryTimes { get; } = new();
+        // The last HistorySize pings, oldest first, and when each was made (HistoryTimes, always as many as History): what lets the
+        // comparison graph put the pings of several hosts on ONE time axis, and lets a host that stopped being measured end where it
+        // stopped. Read only from outside: the two queues are one fact and only Add and Reset change them, together (a caller that
+        // took one of them for its own would have put the pings at the wrong instants).
+        private readonly Queue<long> history = new();
+        private readonly Queue<DateTimeOffset> historyTimes = new();
+        public IReadOnlyCollection<long> History => history;
+        public IReadOnlyCollection<DateTimeOffset> HistoryTimes => historyTimes;
 
         // null until the first reply or timeout of the current run.
         public long? Last { get; private set; }
@@ -83,8 +87,8 @@ namespace PingTool
             Epoch++;
             Stats.Reset();
             Monitor.Reset();
-            History.Clear();
-            HistoryTimes.Clear();
+            history.Clear();
+            historyTimes.Clear();
             Last = null;
             LastFailure = null;
             Notice = null;
@@ -163,9 +167,9 @@ namespace PingTool
             Last = ping;
             LastFailure = ping < 0 ? failure ?? PingFailure.Timeout : null;
             Stats.Add(ping, at);
-            History.Enqueue(ping);
-            HistoryTimes.Enqueue(at ?? DateTimeOffset.Now);
-            while (History.Count > HistorySize) { History.Dequeue(); HistoryTimes.Dequeue(); }
+            history.Enqueue(ping);
+            historyTimes.Enqueue(at ?? DateTimeOffset.Now);
+            while (history.Count > HistorySize) { history.Dequeue(); historyTimes.Dequeue(); }
         }
     }
 }
