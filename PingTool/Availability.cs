@@ -118,6 +118,13 @@ namespace PingTool
             return rows;
         }
 
+        // The hours of the grid in which pings were lost, one sentence each (the same as the hover text of the square), oldest first: for
+        // whoever has no hover (a touch screen) and no screen reader, and cannot read a colour. Empty when no hour lost a ping.
+        public static string LossHoursText(IEnumerable<(DateTime Day, HourCell?[] Hours)> grid) =>
+            string.Join("; ", grid.SelectMany(row => Enumerable.Range(0, 24)
+                .Where(hour => row.Hours[hour] is { Lost: > 0 })
+                .Select(hour => Title(row.Day, hour, row.Hours[hour]))));
+
         public static string Title(DateTime day, int hour, HourCell? cell) =>
             cell is null || cell.Sent == 0
                 ? string.Create(CultureInfo.InvariantCulture, $"{day:yyyy-MM-dd} {hour:00}:00 - no ping")

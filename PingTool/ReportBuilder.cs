@@ -181,14 +181,15 @@ namespace PingTool
                 h.AppendLine("<p><small>Each square is one clock hour: <span class=\"hn gl\"></span> no ping, <span class=\"h0 gl\"></span> no loss, "
                     + "<span class=\"h1 gl\"></span> up to 5 %, <span class=\"h2 gl\"></span> up to 30 %, <span class=\"h3 gl\"></span> more than 30 %. "
                     + "The stripes say it without the colours: one way, the other way, both ways. "
-                    + $"The {Availability.MaxGridDays.ToString(c)} most recent days are shown. Hover a square for its figures (they are also in the text of each square).</small></p>");
+                    + $"The {Availability.MaxGridDays.ToString(c)} most recent days are shown. Hover a square for its figures, or open the text under the grid (they are also in the text of each square).</small></p>");
                 foreach (var x in grids)
                 {
                     h.AppendLine(c, $"<p><b>{Who(x)}</b></p>");
                     h.Append("<table class=\"grid\"><tr><th></th>");
                     for (int hour = 0; hour < 24; hour++) h.Append(c, $"<th>{hour}</th>");
                     h.AppendLine("</tr>");
-                    foreach (var (day, hours) in Availability.Grid(x.Hours!))
+                    var grid = Availability.Grid(x.Hours!);
+                    foreach (var (day, hours) in grid)
                     {
                         h.Append(c, $"<tr><th>{day:yyyy-MM-dd}</th>");
                         for (int hour = 0; hour < 24; hour++)
@@ -202,6 +203,9 @@ namespace PingTool
                     }
 
                     h.AppendLine("</table>");
+                    // The same figures as plain text, for the person who cannot hover (a phone) and does not use a screen reader.
+                    string lossHours = Availability.LossHoursText(grid);
+                    h.AppendLine(c, $"<details><summary>The hours with lost pings of {Who(x)} as text</summary><p>{(lossHours.Length == 0 ? "No ping was lost in the hours shown." : E(lossHours))}</p></details>");
                 }
             }
 
