@@ -91,13 +91,27 @@ namespace PingTool
         // Every error is written to the log; the box is shown once per run (a loop failing every second must not bury the window in boxes).
         private static void OnWindowThreadError(Exception exception)
         {
-            bool saved = CrashLog.TryAppend(CrashLog.DefaultPath, CrashLog.Entry(exception, DateTimeOffset.Now, AppVersion.Display, fatal: false));
+            // As in OnFatal, nothing here may throw: the handler of Application.ThreadException has nobody above it, so an exception that
+            // leaves it (the log that cannot be written in a way TryAppend did not foresee, a box that cannot be shown) ends the process and
+            // takes the error that was being reported with it, when the whole point of this handler is that PingTool carries on.
+            bool saved = false;
+            try { saved = CrashLog.TryAppend(CrashLog.DefaultPath, CrashLog.Entry(exception, DateTimeOffset.Now, AppVersion.Display, fatal: false)); }
+            catch (Exception) { }
+
             if (windowErrorShown) return;
             windowErrorShown = true;
-            MessageBox.Show("PingTool hit an unexpected error and carries on; the monitoring may be incomplete. Later errors of this kind are only logged.\r\n\r\n"
-                + CrashLog.Summary(exception) + "\r\n\r\n"
-                + (saved ? "Details: " + CrashLog.DefaultPath : "The details could not be saved."),
-                "PingTool - unexpected error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            string what = "an error that could not be described";
+            try { what = CrashLog.Summary(exception); }
+            catch (Exception) { }
+
+            string message = "PingTool hit an unexpected error and carries on; the monitoring may be incomplete. Later errors of this kind are only logged.\r\n\r\n"
+                + what + "\r\n\r\n" + (saved ? "Details: " + CrashLog.DefaultPath : "The details could not be saved.");
+            try { MessageBox.Show(message, "PingTool - unexpected error", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+            catch (Exception)
+            {
+                // The box could not be shown (no desktop to show it on): the line goes to the error output, where a console would read it.
+                try { Console.Error.WriteLine("Unexpected error: " + what); } catch (Exception) { }
+            }
         }
 
         // "PingTool.exe --headless --duration 8h --report night.html [targets]": see HeadlessRunner. Everything it has to say goes to

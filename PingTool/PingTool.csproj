@@ -536,8 +536,9 @@
          1.21.458 = a secure connection refused for a certificate that has ended now says that it expired and on what day, where the expiry sentence could never be reached (PIN507.264)
          1.21.459 = a card whose properties cannot be read for a file that is missing or not allowed, or a socket the system refuses, is left out and said like the others, and no longer takes the whole diagnosis down (PIN507.269)
          1.21.460 = the networks the cards are on are read again when the system says that an address or the availability changed, and no longer kept out of date for up to a minute (PIN507.272)
-         1.21.461 = the cards are listed outside the lock that guards the networks kept for a minute, so no other thread waits for the listing, and a listing that a network change overtook is not kept (PIN507.273) -->
-    <Version>1.21.461</Version>
+         1.21.461 = the cards are listed outside the lock that guards the networks kept for a minute, so no other thread waits for the listing, and a listing that a network change overtook is not kept (PIN507.273)
+         1.21.462 = the handler of the errors of the window's thread cannot itself throw, as the handler of the fatal ones: the log, the summary and the box are each guarded (PIN507.274) -->
+    <Version>1.21.462</Version>
   </PropertyGroup>
 
   <ItemGroup>
