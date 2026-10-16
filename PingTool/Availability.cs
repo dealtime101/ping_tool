@@ -22,8 +22,10 @@ namespace PingTool
         public static AvailabilityRow For(string host, IEnumerable<Incident> incidents, DateTimeOffset from, DateTimeOffset end)
         {
             // Only the part of an outage that lies INSIDE the period counts: one that began before `from` (the log of an earlier day, a
-            // report for a window) is cut at `from`, and one still going on is cut at `end`. An outage wholly outside is not one of this period.
-            var outages = incidents.Where(i => i.Host == host && i.Kind == IncidentKind.Outage && i.Start <= end && (i.End ?? end) >= from).ToList();
+            // report for a window) is cut at `from`, and one still going on is cut at `end`. An outage wholly outside is not one of this period,
+            // and neither is one that only TOUCHES it: ended exactly at `from` or began exactly at `end`, it has no time in the period and would
+            // be a cut counted, with a mean pulled down and a longest of zero, for nothing.
+            var outages = incidents.Where(i => i.Host == host && i.Kind == IncidentKind.Outage && i.Start < end && (i.End ?? end) > from).ToList();
 
             // Outages that cover the same time (two lists of incidents put together, an incident given twice) are one stretch of downtime:
             // added, the same minutes would be counted twice and the availability would fall below the truth, even to 0. The incident log

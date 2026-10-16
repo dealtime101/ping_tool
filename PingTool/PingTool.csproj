@@ -433,8 +433,9 @@
          1.21.355 = the limit of a hole in a log is worked out without overflowing, whatever the dates of the pings (PIN507.105)
          1.21.356 = the summary of the graph in French agrees "perdu" with the number of pings lost, not with the number of pings (PIN507.106)
          1.21.357 = the legend of the graph goes back to the page before also when the last page is incomplete (PIN507.109)
-         1.21.358 = the watch of the network of the PC follows all the IPv4 gateways of a card, not the first one only (PIN507.110) -->
-    <Version>1.21.358</Version>
+         1.21.358 = the watch of the network of the PC follows all the IPv4 gateways of a card, not the first one only (PIN507.110)
+         1.21.359 = an outage that only touches the period (ended at its start, began at its end) is no longer counted as one of it (PIN507.111) -->
+    <Version>1.21.359</Version>
   </PropertyGroup>
 
   <ItemGroup>
