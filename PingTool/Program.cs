@@ -195,10 +195,50 @@ namespace PingTool
             }
         }
 
+        // How long the test of the webhooks goes on before a window says that it is going on (see TestWebhooks).
+        internal const int WaitingShownAfterMs = 500;
+
+        // A small window with a bar that moves, until `work` is over (it closes itself then). No button and no close box: the test is the
+        // only thing this process does, and it ends by itself within the time limits of the sender.
+        private static void ShowWaiting(Task work, int webhookCount)
+        {
+            using var waiting = new Form
+            {
+                Text = "PingTool",
+                AutoScaleDimensions = new SizeF(96F, 96F),
+                AutoScaleMode = AutoScaleMode.Dpi,
+                FormBorderStyle = FormBorderStyle.FixedDialog,
+                ControlBox = false,
+                MinimizeBox = false,
+                MaximizeBox = false,
+                StartPosition = FormStartPosition.CenterScreen,
+                ClientSize = new Size(380, 96),
+            };
+            waiting.Controls.Add(new Label
+            {
+                Text = $"Sending a test alert to {webhookCount} webhook(s)...\r\nA receiver that does not answer can take up to about 20 seconds.",
+                UseMnemonic = false,
+                AutoSize = false,
+                Location = new Point(12, 10),
+                Size = new Size(356, 44),
+            });
+            waiting.Controls.Add(new ProgressBar { Style = ProgressBarStyle.Marquee, Location = new Point(12, 62), Size = new Size(356, 18) });
+            waiting.Shown += (_, _) =>
+            {
+                if (work.IsCompleted) { waiting.Close(); return; }
+                work.ContinueWith(_ =>
+                {
+                    try { waiting.BeginInvoke(waiting.Close); }
+                    catch (InvalidOperationException) { }   // the window is already gone: nothing left to close
+                }, TaskScheduler.Default);
+            };
+            waiting.ShowDialog();
+        }
+
         // "PingTool.exe --test-webhooks": one test alert to every webhook of settings.json, the answer of each
         // in a box. The alert goes out exactly as a real one does (same body, same retries), so a typo in an
         // address or a refused request shows up here and not in the middle of the night. Up to ~20 s when a
-        // receiver does not answer (time limit and retries); the addresses themselves are never shown.
+        // receiver does not answer (time limit and retries), during which a window says so; the addresses themselves are never shown.
         private static (string Text, int Code) TestWebhooks()
         {
             var settings = Settings.Load(Settings.DefaultPath);
@@ -209,7 +249,12 @@ namespace PingTool
             using var sender = new WebhookSender(urls, AppVersion.Number);
             var test = new WebhookEvent("webhook-test", HostChange.None,
                 "PingTool webhook test: if you read this, alerts will reach this channel.", null, DateTimeOffset.Now);
-            var results = sender.SendNowAsync(test).GetAwaiter().GetResult();
+            // The sending runs apart, so that the thread of the window can show that something is going on: a receiver that does not answer
+            // takes up to ~20 s, and a shortcut that shows nothing for that long looks like a program that hung (it is started again, or killed).
+            // The window only comes if the answers are not back after a short while: when all answer at once there is no flash of a window.
+            var sending = Task.Run(() => sender.SendNowAsync(test));
+            if (Task.WaitAny(new Task[] { sending }, WaitingShownAfterMs) < 0) ShowWaiting(sending, settings.Webhooks.Count);
+            var results = sending.GetAwaiter().GetResult();
             return (WebhookTest.Summary(settings.LoadProblem, settings.WebhooksIgnored, settings.Webhooks.Count, results, Settings.DefaultPath),
                 WebhookTest.ExitCode(settings.WebhooksIgnored, settings.Webhooks.Count, results));
         }
