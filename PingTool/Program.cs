@@ -140,7 +140,19 @@ namespace PingTool
                     : new WebhookSender(settings.Webhooks.Select(w => WebhookPayload.TryParseUrl(w, out var url) ? url : null).OfType<Uri>(), AppVersion.Number);
                 if (webhooks is not null) webhooks.Failed += (label, reason) => Console.Error.WriteLine($"Alert not delivered to the webhook {label}: {reason}");
 
-                string? reportPath = o.ReportPath is null ? null : Path.GetFullPath(ScheduledMeasure.ExpandReportPath(o.ReportPath, DateTimeOffset.Now));
+                // Before anything is probed: a night of measures must not end without a report because the path was never writable.
+                string? reportPath = null;
+                if (o.ReportPath is not null)
+                {
+                    if (!HeadlessRunner.TryPrepareReportPath(o.ReportPath, DateTimeOffset.Now, out string prepared, out string reportProblem))
+                    {
+                        Console.Error.WriteLine(reportProblem);
+                        return HeadlessRunner.ErrorCode;
+                    }
+
+                    reportPath = prepared;
+                }
+
                 bool reportFailed = false;
                 var pseudonyms = new List<string>();   // --hide: what the pseudonyms of the last report stand for (never in the report itself)
                 void WriteReport(ReportData data)

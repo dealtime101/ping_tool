@@ -38,6 +38,37 @@ namespace PingTool
         // What the end of the summary says of the report: where it is, or that it is not there. The writer of the command line catches its
         // own errors (and says them on the error output), so the run does not know that the last write failed: the caller does, and a path
         // given as "Report: ..." after a failure would send a script to a file that is not there (or is the one of an earlier checkpoint).
+        // The report file of a run, made absolute NOW and tried at once: a relative path is relative to where the program was started (a
+        // shortcut's folder, System32), and a path that cannot be written (a drive that is not there, a folder without the right, a name
+        // that is a folder, a path too long) used to show itself at the first checkpoint, ten minutes into the run, or never until the end
+        // of a night that then had no report. The folder is created, a file is made in it and removed again; the report itself is
+        // written the way it always was. problem: what to tell the person, when false.
+        public static bool TryPrepareReportPath(string rawPath, DateTimeOffset start, out string path, out string problem)
+        {
+            path = "";
+            problem = "";
+            try
+            {
+                path = Path.GetFullPath(ScheduledMeasure.ExpandReportPath(rawPath, start));
+                if (Directory.Exists(path) || Path.GetFileName(path).Length == 0)
+                {
+                    problem = $"--report needs the file to write, and {path} is a folder.";
+                    return false;
+                }
+
+                string folder = Path.GetDirectoryName(path)!;
+                Directory.CreateDirectory(folder);
+                string trial = Path.Combine(folder, ".pingtool-" + Guid.NewGuid().ToString("N") + ".tmp");
+                using (new FileStream(trial, FileMode.CreateNew, FileAccess.Write, FileShare.None, 1, FileOptions.DeleteOnClose)) { }
+                return true;
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException or ArgumentException)
+            {
+                problem = $"The report cannot be written to {(path.Length > 0 ? path : rawPath)}: {ex.Message} Nothing was probed.";
+                return false;
+            }
+        }
+
         public static string ReportNote(string? reportPath, bool lastWriteFailed) =>
             reportPath is null ? "" : lastWriteFailed ? " The report could not be written to " + reportPath + "." : " Report: " + reportPath;
 
