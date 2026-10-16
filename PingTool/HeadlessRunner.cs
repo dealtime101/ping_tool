@@ -153,12 +153,15 @@ namespace PingTool
             // ended the periodic saves for the rest of the night and then took the final report and the exit code down with it.
             int checkpointProblemSaid = 0;
             // False when the callback threw: for a checkpoint of the night the next one will try again; for the final one nobody will.
-            bool SafeCheckpoint(ReportData data)
+            bool SafeCheckpoint(ReportData data, bool final = false)
             {
                 try { checkpoint!(data); return true; }
                 catch (Exception ex)   // an OperationCanceledException of the callback's own too: it is a report that was not written
                 {
-                    if (Interlocked.Exchange(ref checkpointProblemSaid, 1) == 0)
+                    // A checkpoint of the night is told once (the next one tries again); the final report is always told, whatever was said
+                    // before about the checkpoints: nobody tries again, and it is the one a scheduled task is waiting for.
+                    if (final) Console.Error.WriteLine("The final report could not be written: " + ex.GetType().Name + ": " + ex.Message);
+                    else if (Interlocked.Exchange(ref checkpointProblemSaid, 1) == 0)
                         Console.Error.WriteLine("A report checkpoint could not be written, the next one will be tried: " + ex.GetType().Name + ": " + ex.Message);
                     return false;
                 }
@@ -185,7 +188,7 @@ namespace PingTool
             var report = Build();
             // The last report is the one that was asked for: when it cannot be written the run did not do its job, whatever it saw - a
             // scheduled task must not read "no incident" and take an old report, or none, for the night's.
-            bool finalWritten = checkpoint is null || SafeCheckpoint(report);
+            bool finalWritten = checkpoint is null || SafeCheckpoint(report, final: true);
 
             long sent = sessions.Sum(s => s.Stats.Sent);
             string summary = sent == 0
