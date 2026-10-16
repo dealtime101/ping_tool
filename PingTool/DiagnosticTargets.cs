@@ -52,7 +52,7 @@ namespace PingTool
             {
                 gatewayFound = true;
                 targets.Add(nic.Gateways.First(IsUsableIPv4).ToString());
-                foreach (var dns in nic.DnsServers.Where(IsUsableIPv4).Take(MaxDnsServers)) targets.Add(dns.ToString());
+                foreach (var dns in DnsOf(nic).Take(MaxDnsServers)) targets.Add(dns.ToString());
             }
             else if (V6Card(nics, routedFrom6) is { } v6)
             {
@@ -71,16 +71,21 @@ namespace PingTool
                 // No IPv4 gateway on a real card (an IPv6-only gateway, or none seen): the DNS servers of the active real card are
                 // still worth testing, or the report can no longer tell a fault of the provider's DNS from the rest. gatewayFound stays
                 // false: there is no router in the list, and the caller says so.
-                var realUp = nics.Where(n => n.IsUp && !n.IsVirtualOrLoopback && n.DnsServers.Any(IsUsableIPv4)).ToList();
+                var realUp = nics.Where(n => n.IsUp && !n.IsVirtualOrLoopback && DnsOf(n).Any()).ToList();
                 var dnsCard = (routedFrom is null ? null : realUp.FirstOrDefault(n => n.Addresses is not null && n.Addresses.Any(a => a.Equals(routedFrom))))
                     ?? realUp.FirstOrDefault();
                 if (dnsCard is not null)
-                    foreach (var dns in dnsCard.DnsServers.Where(IsUsableIPv4).Take(MaxDnsServers)) targets.Add(dns.ToString());
+                    foreach (var dns in DnsOf(dnsCard).Take(MaxDnsServers)) targets.Add(dns.ToString());
             }
 
             targets.AddRange(InternetReferences);
             return targets.Distinct(TargetKey.Comparer).ToList();
         }
+
+        // The usable DNS servers of a card of both families, the IPv4 ones first (what the diagnosis always tested), the IPv6 ones after: a
+        // connection whose DNS servers are IPv6 only is tested too. The limit is applied by the caller on this whole list, not per family.
+        private static IEnumerable<IPAddress> DnsOf(NicSnapshot n) =>
+            n.DnsServers.Where(IsUsableIPv4).Concat(n.DnsServers.Where(IsUsableIPv6)).Distinct();
 
         // The real card with an IPv6 gateway: the one that holds the address the system sends the Internet traffic from (routedFrom6) when
         // there are several, else the first, as it was.
