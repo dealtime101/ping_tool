@@ -33,6 +33,15 @@ namespace PingTool
         private readonly double mosBelow;
         // The way back from a MOS alarm must be above the way in, or a host at the limit would flap.
         public const double RecoverMosMargin = 0.1;
+
+        // What the model gives a perfect link (RecentStats.MosOf with no delay, no jitter, no loss): the most any host can reach, about 4.40.
+        public static readonly double BestMos = RecentStats.MosOf(0, 0, 0);
+
+        // The MOS from which a host that the limit degraded is recovered: the limit plus the margin, but never more than halfway from the
+        // limit to the best the model gives. Near the top of the scale (a limit of 4.4, when the best is 4.40) limit + 0.1 is a MOS that NO
+        // link has: the host would stay "degraded" for ever on a perfect link, with no word of recovery. It is above the limit all the same
+        // (the way back is above the way in); a limit that the model never reaches is the user's, and keeps its way back at the limit.
+        internal static double RecoverMosAt(double mosBelow) => Math.Max(mosBelow, Math.Min(mosBelow + RecoverMosMargin, (mosBelow + BestMos) / 2));
         private readonly Queue<long> window = new();
         private HostState state;
         private int failures;
@@ -156,7 +165,7 @@ namespace PingTool
             // true at the limit itself and the state flipped on every ping.
             if (state == HostState.Degraded && loss <= RecoverLossPercent && loss < lossPercent
                 && avg is double a && a <= latencyMs * RecoverLatencyFactor
-                && (mosBelow <= 0 || WindowMos is not double mos || mos >= mosBelow + RecoverMosMargin))
+                && (mosBelow <= 0 || WindowMos is not double mos || mos >= RecoverMosAt(mosBelow)))
             {
                 state = HostState.Up;
                 return HostChange.Recovered;
