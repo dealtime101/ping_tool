@@ -130,6 +130,14 @@ namespace PingTool
                         return false;
                     }
 
+                    // As for tcp://: a port is from 1 to 65535. Uri accepts :0 (and the address would only fail at the connection, with an
+                    // error that does not say the port was never one); above 65535 it refuses the address itself, above.
+                    if (url.Port is < 1 or > 65535)
+                    {
+                        error = scheme + "://: the port must be from 1 to 65535, for example https://example.com:8443/";
+                        return false;
+                    }
+
                     if (!TryHttpOptions(url.Fragment, url.Scheme == Uri.UriSchemeHttps, out var o, out error)) return false;
 
                     // The host as tcp:// gives it: an IPv6 literal without its URI brackets ("[2001:db8::1]" is how a URI writes it, the
