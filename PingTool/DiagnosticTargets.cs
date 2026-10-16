@@ -52,14 +52,15 @@ namespace PingTool
                 targets.Add(nic.Gateways.First(IsUsableIPv4).ToString());
                 foreach (var dns in nic.DnsServers.Where(IsUsableIPv4).Take(MaxDnsServers)) targets.Add(dns.ToString());
             }
-            else if (nics.FirstOrDefault(n => n.IsUp && !n.IsVirtualOrLoopback && n.Gateways.Any(IsUsableIPv6) && !n.DnsServers.Any(IsUsableIPv4)) is { } v6)
+            else if (nics.FirstOrDefault(n => n.IsUp && !n.IsVirtualOrLoopback && n.Gateways.Any(IsUsableIPv6)) is { } v6)
             {
-                // An IPv6-only connection: no IPv4 gateway anywhere, a real card with an IPv6 one and no IPv4 DNS server (one that has
-                // IPv4 DNS servers is handled below: those are tested). The gateway is the router; its address keeps its zone
-                // (fe80::1%4: a link-local address means nothing without it), and the card's IPv6 DNS servers follow.
+                // An IPv6-only connection: no IPv4 gateway anywhere, a real card with an IPv6 one. That the card also has IPv4 DNS servers
+                // (handed out by DHCPv4, or by a router that does both) does not make its IPv6 router any less there: the gateway family
+                // is told by the gateways, not by the DNS servers. The gateway is the router; its address keeps its zone (fe80::1%4: a
+                // link-local address means nothing without it); the DNS servers of the card follow, the IPv6 ones first.
                 gatewayFound = true;
                 targets.Add(v6.Gateways.First(IsUsableIPv6).ToString());
-                foreach (var dns in v6.DnsServers.Where(IsUsableIPv6).Take(MaxDnsServers)) targets.Add(dns.ToString());
+                foreach (var dns in v6.DnsServers.Where(IsUsableIPv6).Concat(v6.DnsServers.Where(IsUsableIPv4)).Take(MaxDnsServers)) targets.Add(dns.ToString());
                 targets.AddRange(InternetReferencesIPv6);
                 return targets.Distinct(TargetKey.Comparer).ToList();
             }
