@@ -1787,7 +1787,7 @@ namespace PingTool
             if (series.Count > rows)
             {
                 using var grey = new SolidBrush(palette.Text);
-                string more = $"{first + 1}-{first + rows} of {series.Count}: click or press Page Down for more";
+                string more = Loc.T("graph.legend.more", first + 1, first + rows, series.Count);
                 float x = Width - g.MeasureString(more, Font).Width - 2;
                 g.DrawString(more, Font, grey, x, y);
                 legendLeft = Math.Min(legendLeft, x);

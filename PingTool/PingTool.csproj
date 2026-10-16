@@ -464,8 +464,9 @@
          1.21.386 = the contrast of a colour with an alpha channel is worked out on the colour as it looks over its background; one formula for the window and the graph (PIN507.147)
          1.21.387 = the first failure of the automatic log with pings lost gives one balloon with the cause and the drops, not two of which the second replaced the first (PIN507.151)
          1.21.388 = the cut of a long name (the legend of the graph, at every paint) measures O(log n) beginnings by halving, not one per character (PIN507.154)
-         1.21.389 = a click on the legend that turns its page tells a screen reader, as the Page Down and Page Up keys did: one method turns the page for both (PIN507.155) -->
-    <Version>1.21.389</Version>
+         1.21.389 = a click on the legend that turns its page tells a screen reader, as the Page Down and Page Up keys did: one method turns the page for both (PIN507.155)
+         1.21.390 = the line under a legend of more hosts than it shows is in the language of the interface, from the table of texts (PIN507.156) -->
+    <Version>1.21.390</Version>
   </PropertyGroup>
 
   <ItemGroup>

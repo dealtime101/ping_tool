@@ -62,6 +62,7 @@ namespace PingTool
             ["graph.trend.nodata"] = ("not measured", "non mesuré"),   // a stretch of the window in which no ping was made (a silence)
             ["graph.noreply"] = ("no reply", "aucune réponse"),
             ["graph.ms"] = ("{0} ms", "{0} ms"),
+            ["graph.legend.more"] = ("{0}-{1} of {2}: click or press Page Down for more", "{0}-{1} sur {2} : cliquez ou appuyez sur Page suivante pour voir la suite"),   // the line under a legend of more hosts than it shows
             ["stats.waiting"] =("Last pings: waiting for data", "Derniers pings : en attente de données"),
             ["stats.need"] = ("Last {0}: need {1} replies for percentiles", "Derniers {0} : il faut {1} réponses pour les percentiles"),
             ["stats.last"] = ("Last {0}: p50 {1}", "Derniers {0} : p50 {1}"),
