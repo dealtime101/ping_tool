@@ -96,7 +96,7 @@ namespace PingTool
             Cursor = Cursors.WaitCursor;
             try
             {
-                var (other, otherEntries, error) = await Task.Run(() => Form1.LoadLogs(paths));
+                var (other, otherEntries, error) = await Task.Run(() => MainForm.LoadLogs(paths));
                 if (other is null || otherEntries is null) { MessageBox.Show(error, "PingTool"); return; }
 
                 string otherName = paths.Length == 1 ? Path.GetFileName(paths[0]) : paths.Length.ToString(CultureInfo.CurrentCulture) + " log files";
