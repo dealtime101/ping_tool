@@ -445,8 +445,9 @@
          1.21.367 = a text of the user (a legend name, a note, a name quoted in a message, a log file name) is never cut through a character: one cut, TextCut (PIN507.119)
          1.21.368 = only the left button turns the page of the legend of the graph (PIN507.120)
          1.21.369 = a notice of the report is ended with a full stop only when it has no mark of its own (PIN507.122)
-         1.21.370 = the window of the timeline copies the pings, incidents and network changes it is given, so that it is a real snapshot (PIN507.124) -->
-    <Version>1.21.370</Version>
+         1.21.370 = the window of the timeline copies the pings, incidents and network changes it is given, so that it is a real snapshot (PIN507.124)
+         1.21.371 = two webhooks on the same host and port carry their place in the list in the results and in the failures, so the one that failed is named (PIN507.125) -->
+    <Version>1.21.371</Version>
   </PropertyGroup>
 
   <ItemGroup>

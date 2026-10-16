@@ -76,6 +76,16 @@ namespace PingTool
         public static string Label(Uri url) =>
             url.IsDefaultPort ? $"{url.Scheme}://{url.Host}" : $"{url.Scheme}://{url.Host}:{url.Port.ToString(CultureInfo.InvariantCulture)}";
 
+        // The labels of a LIST of webhooks. Two of them on the same host and port (two channels of one chat service) would have the same
+        // label, and a failure could not be told from the other's: those, and only those, carry their place in the list ("(webhook 2)").
+        // The place is not a secret, and the path and the query that are stay out of it.
+        public static string[] Labels(IReadOnlyList<Uri> urls)
+        {
+            var plain = urls.Select(Label).ToArray();
+            return plain.Select((label, i) => plain.Count(other => string.Equals(other, label, StringComparison.Ordinal)) > 1
+                ? $"{label} (webhook {(i + 1).ToString(CultureInfo.InvariantCulture)})" : label).ToArray();
+        }
+
         public static string EventName(HostChange change) => change switch
         {
             HostChange.Down => "down",
@@ -144,6 +154,7 @@ namespace PingTool
         private sealed class Target
         {
             public required Uri Url { get; init; }
+            public required string Label { get; init; }   // what a failure says (see WebhookPayload.Labels)
             public required Channel<WebhookEvent> Queue { get; init; }
         }
 
@@ -170,15 +181,19 @@ namespace PingTool
             // No redirects: a POST that is redirected is turned into a GET by some servers, and the alert would be lost silently.
             http = new HttpClient(handler ?? new SocketsHttpHandler { AllowAutoRedirect = false }) { Timeout = Timeout.InfiniteTimeSpan };
 
-            foreach (var url in urls)
+            var all = urls.ToList();
+            var labels = WebhookPayload.Labels(all);
+            for (int n = 0; n < all.Count; n++)
             {
+                var url = all[n];
                 // A receiver that stays out of reach fills the queue and the oldest alerts are dropped: it is said (once per webhook and
                 // run in the window, see MainForm), with the number so far, so that nobody reads a webhook history as complete.
                 int dropped = 0, telling = 0;
-                string label = WebhookPayload.Label(url);
+                string label = labels[n];
                 var target = new Target
                 {
                     Url = url,
+                    Label = label,
                     Queue = Channel.CreateBounded<WebhookEvent>(new BoundedChannelOptions(MaxQueued)
                     {
                         FullMode = BoundedChannelFullMode.DropOldest,
@@ -212,7 +227,7 @@ namespace PingTool
         // One alert to every webhook, waiting for the answers (the "--test-webhooks" check). Same retries.
         public async Task<IReadOnlyList<WebhookResult>> SendNowAsync(WebhookEvent e, CancellationToken token = default)
         {
-            var results = await Task.WhenAll(targets.Select(t => DeliverAsync(t.Url, e, token)));
+            var results = await Task.WhenAll(targets.Select(t => DeliverAsync(t.Label, t.Url, e, token)));
             return results;
         }
 
@@ -222,7 +237,7 @@ namespace PingTool
             {
                 await foreach (var e in target.Queue.Reader.ReadAllAsync(stop.Token))
                 {
-                    var result = await DeliverAsync(target.Url, e, stop.Token);
+                    var result = await DeliverAsync(target.Label, target.Url, e, stop.Token);
                     // A delivery cut short because the sender is being closed did not fail: the user quit, nothing is wrong with the receiver.
                     if (!result.Ok && !stop.IsCancellationRequested) RaiseFailed(result.Label, result.Detail);
                 }
@@ -244,9 +259,8 @@ namespace PingTool
             }
         }
 
-        private async Task<WebhookResult> DeliverAsync(Uri url, WebhookEvent e, CancellationToken token)
+        private async Task<WebhookResult> DeliverAsync(string label, Uri url, WebhookEvent e, CancellationToken token)
         {
-            string label = WebhookPayload.Label(url);
             string last = "";
             var wait = TimeSpan.Zero;
             for (int attempt = 0; attempt <= retryDelays.Length; attempt++)
