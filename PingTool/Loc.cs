@@ -100,12 +100,24 @@ namespace PingTool
         internal static string Window(long n) => T(n >= 2 ? "stats.window.many" : "stats.window.one", n.ToString(CultureInfo.CurrentCulture));
         internal static string Lost(long n) => T(n >= 2 ? "count.lost.many" : "count.lost.one", n.ToString(CultureInfo.CurrentCulture));
 
+        // True when the text has a place to fill, "{0}" or "{3:0.#}": a brace that opens a number. "{{" and "}}" are the braces themselves.
+        internal static bool HasPlace(string text) =>
+            System.Text.RegularExpressions.Regex.IsMatch(text.Replace("{{", "", StringComparison.Ordinal).Replace("}}", "", StringComparison.Ordinal), @"\{\d");
+
         // The text for a key in the current language, with its arguments formatted in the current regional format.
         public static string T(string key, params object[] args)
         {
             if (!Table.TryGetValue(key, out var pair)) return key;   // a missing key shows itself: ugly, and found at once
             string text = Language == "fr" && pair.Fr.Length > 0 ? pair.Fr : pair.En;
-            if (args.Length == 0) return text;
+            if (args.Length == 0)
+            {
+                // A text that is a plain sentence is returned as it is. One with a place to fill ({0}) that is called with nothing to put in
+                // it is a fault of the caller, and is told like the one with too few: the sentence with its key, and a line for the developer.
+                if (!HasPlace(text)) return text;
+                System.Diagnostics.Debug.WriteLine($"Loc.T(\"{key}\"): called with no argument, the text has a place to fill");
+                return text + " [" + key + "]";
+            }
+
             try
             {
                 return string.Format(CultureInfo.CurrentCulture, text, args);
