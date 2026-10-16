@@ -26,6 +26,11 @@ namespace PingTool
             return left + string.Join("\r\n", results.Select(r => (r.Ok ? "OK      " : "FAILED  ") + r.Label + " (" + r.Detail + ")"));
         }
 
+        // The title of the box that shows the result, by what the exit code says: a failure does not look like a success (the box also
+        // has its icon, see Program), and a person who only reads the title bar learns the outcome.
+        public static string Title(int exitCode) =>
+            exitCode == HeadlessRunner.OkCode ? "PingTool - webhook test: every webhook answered" : "PingTool - webhook test: a problem";
+
         // The exit code of "--test-webhooks", for a script or a deployment that checks it: 0 only when there is at least one webhook,
         // none was left out of settings.json (a mistyped address is a fault of the configuration) and every one answered; 2 otherwise.
         public static int ExitCode(int ignored, int webhookCount, IReadOnlyList<WebhookResult> results) =>

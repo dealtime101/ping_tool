@@ -50,7 +50,9 @@ namespace PingTool
             if (startup.TestWebhooks)
             {
                 var (text, code) = TestWebhooks();
-                MessageBox.Show(text, "PingTool");
+                // The icon and the title tell the outcome before the text is read: a webhook that did not answer is an alert that will
+                // not arrive, which the box must not show as it shows a success.
+                MessageBox.Show(text, WebhookTest.Title(code), MessageBoxButtons.OK, code == HeadlessRunner.OkCode ? MessageBoxIcon.Information : MessageBoxIcon.Error);
                 return code;   // 0 only when every webhook answered (a script can rely on it)
             }
 
