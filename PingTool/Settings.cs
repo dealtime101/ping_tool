@@ -101,6 +101,7 @@ namespace PingTool
                 {
                     var s = JsonSerializer.Deserialize<Settings>(text, ReadOptions) ?? new Settings();
                     s.Normalize();
+                    s.stamp = Stamp(path);   // what the file was when it was read: a save finds out whether another window wrote it since
                     return s;
                 }
                 catch (NotSupportedException ex)
@@ -239,8 +240,83 @@ namespace PingTool
             // that a laptop no longer is at), and the replacement question would treat the list as a diagnosis that is still true.
             string active = ActiveProfile;
             if (string.Equals(active, DiagnosticTargets.ProfileName, StringComparison.Ordinal)) ActiveProfile = "";
+
+            // Two PingTool windows share this file. Their saves take turns (a named mutex of the file), and a save that finds the file
+            // changed since this window read or wrote it does not simply replace it: what the other window added is taken in first.
+            using var turn = TakeTurn(Path.GetFullPath(path));
             try { SaveCore(path); }
             finally { ActiveProfile = active; }
+        }
+
+        // (last write, length) of the file, or null when there is none or it cannot be asked.
+        private (long Ticks, long Length)? stamp;
+
+        private static (long Ticks, long Length)? Stamp(string path)
+        {
+            try
+            {
+                var info = new FileInfo(path);
+                return info.Exists ? (info.LastWriteTimeUtc.Ticks, info.Length) : null;
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { return null; }
+        }
+
+        // The other window's profiles, target names and recent addresses that this one does not have are kept; what both have stays as this
+        // window has it (it is the later one). A profile or a name that the other window DELETED cannot be told from one this window
+        // never had, and comes back if this window still holds it: a deletion is not merged.
+        internal int MergeFrom(Settings other)
+        {
+            int added = 0;
+            foreach (var profile in other.Profiles)
+                if (Profiles.Count < ProfileBook.MaxProfiles && ProfileBook.Find(Profiles, profile.Name) is null) { Profiles.Add(profile); added++; }
+            foreach (var (address, options) in other.TargetOptions)
+                if (TargetOptions.TryAdd(address, options)) added++;
+            foreach (string address in other.Recent)
+                if (Recent.Count < MaxRecent && !Recent.Any(a => TargetKey.Same(a, address))) { Recent.Add(address); added++; }
+            return added;
+        }
+
+        private static Settings? ReadOther(string full)
+        {
+            try
+            {
+                var other = JsonSerializer.Deserialize<Settings>(File.ReadAllText(full), ReadOptions);
+                other?.Normalize();
+                return other;
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or NotSupportedException)
+            {
+                return null;
+            }
+        }
+
+        // How many things the last save took from the file because another window had put them there.
+        [JsonIgnore]
+        public int MergedFromOtherWindow { get; private set; }
+
+        private static IDisposable? TakeTurn(string full)
+        {
+            try
+            {
+                string name = "PingTool.Settings." + Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(full.ToLowerInvariant())), 0, 8);
+                var mutex = new Mutex(false, name);
+                try { if (!mutex.WaitOne(TimeSpan.FromSeconds(3))) { mutex.Dispose(); return null; } }
+                catch (AbandonedMutexException) { /* the other window died holding it: ours now */ }
+                return new Turn(mutex);
+            }
+            catch (Exception ex) when (ex is UnauthorizedAccessException or IOException or WaitHandleCannotBeOpenedException or PlatformNotSupportedException)
+            {
+                return null;   // no mutex to be had: save as before rather than not at all
+            }
+        }
+
+        private sealed class Turn(Mutex mutex) : IDisposable
+        {
+            public void Dispose()
+            {
+                try { mutex.ReleaseMutex(); } catch (ApplicationException) { }
+                mutex.Dispose();
+            }
         }
 
         private void SaveCore(string path)
@@ -267,6 +343,12 @@ namespace PingTool
 
             mustKeepCopy = false;   // the original is safe now (or there was none): later saves are ordinary ones
 
+            // Written by another window since this one read or wrote it: take in what it added before replacing the file. A file that cannot
+            // be read as settings is not touched here (the load does the keeping aside of a damaged file, not a save).
+            MergedFromOtherWindow = 0;
+            var onDisk = Stamp(full);
+            if (onDisk is not null && onDisk != stamp && ReadOther(full) is { } other) MergedFromOtherWindow = MergeFrom(other);
+
             // A name of its own for each save: two PingTool windows closing together, or two saves in a row, must not share the file
             // they write (one would delete or move the other's, and its settings would be lost with an exception nobody reads).
             // A crash leaves its temp file behind, and a unique name is never overwritten by the next save: old ones are swept here.
@@ -289,6 +371,7 @@ namespace PingTool
                 }
 
                 File.Move(temp, full, overwrite: true);
+                stamp = Stamp(full);
             }
             catch
             {

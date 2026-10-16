@@ -397,8 +397,9 @@
          1.21.319 = in high contrast the first four lines of the graph differ by pattern too, not only by the colours of the theme (PIN507.40)
          1.21.320 = in high contrast a line colour of the theme that does not stand out from the window (3 to 1) gives way to the text colour (PIN507.41)
          1.21.321 = the built-in diagnosis is not written as the active profile of settings.json: the next start does not show it as applied with the targets of another network (PIN507.42)
-         1.21.322 = the window of the timeline takes the colours of a high-contrast theme for itself, its summary and its legend, as the chart does (PIN507.44) -->
-    <Version>1.21.322</Version>
+         1.21.322 = the window of the timeline takes the colours of a high-contrast theme for itself, its summary and its legend, as the chart does (PIN507.44)
+         1.21.323 = a save of the settings takes its turn between windows and takes in the profiles, names and recent addresses another window wrote since (PIN507.45) -->
+    <Version>1.21.323</Version>
   </PropertyGroup>
 
   <ItemGroup>
