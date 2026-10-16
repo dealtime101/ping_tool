@@ -405,14 +405,25 @@ namespace PingTool
                 {
                     // The other window died holding it: the lock is ours, and CutPartialLine deals with a row it left half written.
                 }
+                catch
+                {
+                    // Any other failure of the wait: the lock is not ours, and the handle must not be left open.
+                    mutex.Dispose();
+                    throw;
+                }
 
                 return new FileGate(mutex);
             }
 
             public void Dispose()
             {
-                mutex.ReleaseMutex();
-                mutex.Dispose();
+                // The mutex belongs to the thread that took it. Released from another one (the gate is taken and given back in one
+                // method on one thread today), ReleaseMutex throws, and that exception would skip the Dispose below (a handle left open),
+                // leave the flush before the rows it wrote are taken off the queue (they would be written a second time), and hide the
+                // error that was on its way. Closing the handle frees the name when it was the last one, so the lock does not outlive it.
+                try { mutex.ReleaseMutex(); }
+                catch (ApplicationException) { }   // "called from an unsynchronized block of code": not ours to release
+                finally { mutex.Dispose(); }
             }
         }
 
