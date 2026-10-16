@@ -24,12 +24,28 @@ namespace PingTool
             // Only the part of an outage that lies INSIDE the period counts: one that began before `from` (the log of an earlier day, a
             // report for a window) is cut at `from`, and one still going on is cut at `end`. An outage wholly outside is not one of this period.
             var outages = incidents.Where(i => i.Host == host && i.Kind == IncidentKind.Outage && i.Start <= end && (i.End ?? end) >= from).ToList();
-            var durations = outages.Select(i => Clamp(((i.End ?? end) < end ? (i.End ?? end) : end) - (i.Start > from ? i.Start : from))).ToList();
+
+            // Outages that cover the same time (two lists of incidents put together, an incident given twice) are one stretch of downtime:
+            // added, the same minutes would be counted twice and the availability would fall below the truth, even to 0. The incident log
+            // of one host never produces two at once, so this holds the figures right whatever list is handed in.
+            var spans = outages
+                .Select(i => (Start: i.Start > from ? i.Start : from, Stop: (i.End ?? end) < end ? (i.End ?? end) : end))
+                .Select(s => s.Stop < s.Start ? (s.Start, Stop: s.Start) : s)
+                .OrderBy(s => s.Start).ThenBy(s => s.Stop)
+                .ToList();
+            var merged = new List<(DateTimeOffset Start, DateTimeOffset Stop)>();
+            foreach (var s in spans)
+            {
+                if (merged.Count > 0 && s.Start <= merged[^1].Stop) merged[^1] = (merged[^1].Start, s.Stop > merged[^1].Stop ? s.Stop : merged[^1].Stop);
+                else merged.Add(s);
+            }
+
+            var durations = merged.Select(m => Clamp(m.Stop - m.Start)).ToList();
             var down = durations.Aggregate(TimeSpan.Zero, (a, b) => a + b);
             var period = end - from;
 
             double? percent = period <= TimeSpan.Zero ? null : Math.Clamp(100.0 * (1 - down.Ticks / (double)period.Ticks), 0, 100);
-            return new AvailabilityRow(host, percent, outages.Count, down,
+            return new AvailabilityRow(host, percent, merged.Count, down,
                 durations.Count == 0 ? null : TimeSpan.FromTicks(down.Ticks / durations.Count),
                 durations.Count == 0 ? null : durations.Max());
         }
