@@ -1807,9 +1807,16 @@ namespace PingTool
             // The left button turns the page. The others keep their own meaning (a right click is for a context menu, a middle click and a
             // wheel click for the wheel): they must not move the legend.
             if (e.Button != MouseButtons.Left || !InLegend(e.Location) || series.Count <= legendRows) return;
-            legendOffset = GraphLayout.NextLegendOffset(series.Count, legendFirst, legendRows, forward: true);   // the next page, round to the first
+            TurnLegendPage(forward: true);   // the next page, round to the first
+        }
+
+        // One way to change the page, for the mouse and the keyboard alike: a screen reader is told the page changed whichever was used.
+        private void TurnLegendPage(bool forward)
+        {
+            legendOffset = GraphLayout.NextLegendOffset(series.Count, legendFirst, legendRows, forward);
             ForgetLegendTip();
             Invalidate();
+            AccessibilityNotifyClients(AccessibleEvents.DescriptionChange, -1);
         }
 
         // A new page puts other hosts under the pointer: the tip of the row it was on belongs to the page before. It is emptied and hidden;
@@ -1829,11 +1836,8 @@ namespace PingTool
             if (!compare || series.Count <= legendRows || e.Modifiers != Keys.None) return;
             if (e.KeyCode is not (Keys.PageDown or Keys.PageUp)) return;
 
-            legendOffset = GraphLayout.NextLegendOffset(series.Count, legendFirst, legendRows, forward: e.KeyCode == Keys.PageDown);
             e.Handled = true;
-            ForgetLegendTip();
-            Invalidate();
-            AccessibilityNotifyClients(AccessibleEvents.DescriptionChange, -1);   // a screen reader is told the page changed
+            TurnLegendPage(forward: e.KeyCode == Keys.PageDown);
         }
 
         // The focus is shown, as on any control the keyboard can reach.
