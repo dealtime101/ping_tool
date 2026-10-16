@@ -68,11 +68,50 @@ namespace PingTool
             int i = 0;
             foreach (var rune in name.EnumerateRunes())
             {
-                if (Rune.IsControl(rune)) return true;
-                if (Rune.GetUnicodeCategory(rune) == UnicodeCategory.Format && !IsAllowedFormat(name, i, rune)) return true;
+                if (Rune.IsControl(rune) || IsInvisible(name, i, rune)) return true;
                 i += rune.Utf16SequenceLength;
             }
 
+            return false;
+        }
+
+        // A character that draws nothing and that the user cannot tell from its absence: the "format" ones (unless IsAllowedFormat keeps
+        // them) and the other characters Unicode says to ignore when drawing - the combining grapheme joiner (U+034F), the Hangul and
+        // Khmer fillers, the variation selectors, the unassigned places among them. "Home" and "Home" + U+034F look the same and would be
+        // two profiles. A variation selector is kept after the character it belongs to (see IsKeptSelector).
+        private static bool IsInvisible(string text, int index, Rune rune)
+        {
+            if (Rune.GetUnicodeCategory(rune) == UnicodeCategory.Format) return !IsAllowedFormat(text, index, rune);
+            return IsIgnorable(rune) && !IsKeptSelector(text, index, rune);
+        }
+
+        private static bool IsIgnorable(Rune rune)
+        {
+            int v = rune.Value;
+            if (v is 0x034F or 0x115F or 0x1160 or 0x17B4 or 0x17B5 or 0x3164 or 0xFFA0) return true;
+            if (v is >= 0x180B and <= 0x180F or >= 0xFE00 and <= 0xFE0F or >= 0xE0100 and <= 0xE01EF) return true;   // variation selectors
+            return Rune.GetUnicodeCategory(rune) == UnicodeCategory.OtherNotAssigned && (v is >= 0xFFF0 and <= 0xFFF8 or >= 0xE0000 and <= 0xE0FFF);
+        }
+
+        // A variation selector that picks a drawing of the character before it is part of the text: the emoji or text presentation
+        // (U+FE0E/U+FE0F) after a symbol or a keycap digit ("❤️", "1️⃣"), the ideographic ones after a CJK ideograph, the Mongolian ones
+        // after a Mongolian letter. After a letter of an alphabet, after nothing, or after another selector it changes nothing on screen.
+        private static bool IsKeptSelector(string text, int index, Rune rune)
+        {
+            if (index == 0) return false;
+            var before = char.IsLowSurrogate(text[index - 1]) && index > 1 ? Rune.GetRuneAt(text, index - 2) : Rune.GetRuneAt(text, index - 1);
+            int v = rune.Value, b = before.Value;
+            if (v is 0xFE0E or 0xFE0F)
+            {
+                var category = Rune.GetUnicodeCategory(before);
+                if (category is UnicodeCategory.OtherSymbol or UnicodeCategory.MathSymbol or UnicodeCategory.CurrencySymbol or UnicodeCategory.ModifierSymbol
+                    or UnicodeCategory.OtherPunctuation or UnicodeCategory.DashPunctuation) return true;
+                int next = index + rune.Utf16SequenceLength;
+                return (b is >= '0' and <= '9' or '#' or '*') && next < text.Length && text[next] == (char)0x20E3;   // the keycap (combining enclosing keycap)
+            }
+
+            if (v is >= 0xE0100 and <= 0xE01EF) return b is >= 0x3400 and <= 0x4DBF or >= 0x4E00 and <= 0x9FFF or >= 0xF900 and <= 0xFAFF or >= 0x20000 and <= 0x2FA1F;
+            if (v is >= 0x180B and <= 0x180F) return b is >= 0x1820 and <= 0x18AA;
             return false;
         }
 
@@ -113,7 +152,7 @@ namespace PingTool
             int i = 0;
             foreach (var rune in text.EnumerateRunes())
             {
-                if (Rune.GetUnicodeCategory(rune) != UnicodeCategory.Format || IsAllowedFormat(text, i, rune)) kept.Append(rune.ToString());
+                if (!IsInvisible(text, i, rune)) kept.Append(rune.ToString());
                 i += rune.Utf16SequenceLength;
             }
 
