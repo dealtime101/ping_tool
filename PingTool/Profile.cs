@@ -42,6 +42,11 @@ namespace PingTool
         }
         public const int MaxNameLength = 40;
 
+        // The most UTF-16 units of a name, looked at BEFORE the name is cut into characters as they are shown: a flag followed by a
+        // million tag characters is ONE shown character, and would pass the count below while costing the work of the whole text.
+        // 512 is more than 40 of the longest emoji sequences in use.
+        public const int MaxNameUnits = 512;
+
         public static bool TryName(string? input, out string name, out string error)
         {
             name = (input ?? "").Trim();
@@ -50,6 +55,7 @@ namespace PingTool
             if (name.Length == 0) error = "Give the profile a name.";
             else if (string.Equals(name, DiagnosticTargets.ProfileName, StringComparison.OrdinalIgnoreCase))
                 error = "That name is reserved for the built-in diagnosis: choose another.";
+            else if (name.Length > MaxNameUnits) error = $"The name is limited to {MaxNameLength} characters.";
             // The length is what the user sees, in characters as they are shown ("👨‍👩‍👧" is one), not in UTF-16 units (that one is eight).
             else if (new StringInfo(name).LengthInTextElements > MaxNameLength) error = $"The name is limited to {MaxNameLength} characters.";
             else if (HasInvisible(name)) error = "The name cannot contain control or invisible formatting characters.";
@@ -65,10 +71,11 @@ namespace PingTool
         // is two units, and neither half is a format character by itself.
         private static bool HasInvisible(string name)
         {
+            var starts = StringInfo.ParseCombiningCharacters(name);   // once for the name: the borders of its text elements
             int i = 0;
             foreach (var rune in name.EnumerateRunes())
             {
-                if (Rune.IsControl(rune) || IsInvisible(name, i, rune)) return true;
+                if (Rune.IsControl(rune) || IsInvisible(name, starts, i, rune)) return true;
                 i += rune.Utf16SequenceLength;
             }
 
@@ -79,9 +86,9 @@ namespace PingTool
         // them) and the other characters Unicode says to ignore when drawing - the combining grapheme joiner (U+034F), the Hangul and
         // Khmer fillers, the variation selectors, the unassigned places among them. "Home" and "Home" + U+034F look the same and would be
         // two profiles. A variation selector is kept after the character it belongs to (see IsKeptSelector).
-        private static bool IsInvisible(string text, int index, Rune rune)
+        private static bool IsInvisible(string text, int[] starts, int index, Rune rune)
         {
-            if (Rune.GetUnicodeCategory(rune) == UnicodeCategory.Format) return !IsAllowedFormat(text, index, rune);
+            if (Rune.GetUnicodeCategory(rune) == UnicodeCategory.Format) return !IsAllowedFormat(text, starts, index, rune);
             return IsIgnorable(rune) && !IsKeptSelector(text, index, rune);
         }
 
@@ -118,28 +125,34 @@ namespace PingTool
         // The format characters that hold one drawn character together and are kept: the zero width joiner (see IsJoiner) and the tag
         // characters of an emoji flag sequence (the flag of England, U+1F3F4 followed by tags), when they follow something in the same text
         // element. A tag character on its own, or after a letter that is not a flag, is as invisible as a zero width space.
-        private static bool IsAllowedFormat(string text, int index, Rune rune) =>
-            rune.Value == 0x200D ? IsJoiner(text, index)
-            : rune.Value is >= 0xE0020 and <= 0xE007F && Holds(text, index, rune.Utf16SequenceLength, mayEnd: true) && ElementStartsWithBlackFlag(text, index);
+        private static bool IsAllowedFormat(string text, int[] starts, int index, Rune rune) =>
+            rune.Value == 0x200D ? IsJoiner(text, starts, index)
+            : rune.Value is >= 0xE0020 and <= 0xE007F && Holds(text, starts, index, rune.Utf16SequenceLength, mayEnd: true) && ElementStartsWithBlackFlag(text, starts, index);
+
+        // The text element that holds the unit at `index`: the last border at or before it (the borders are in order, so a bisection:
+        // a name made of many format characters must not cost a pass over the whole text for each of them).
+        private static int ElementOf(int[] starts, int index)
+        {
+            int at = Array.BinarySearch(starts, index);
+            return at >= 0 ? at : ~at - 1;
+        }
 
         // Tags are invisible after a letter too ("Home" + a tag is a second, look-alike name): they are kept only in a flag sequence,
         // whose element begins with U+1F3F4.
-        private static bool ElementStartsWithBlackFlag(string text, int index)
+        private static bool ElementStartsWithBlackFlag(string text, int[] starts, int index)
         {
-            var starts = StringInfo.ParseCombiningCharacters(text);
-            int start = starts[Array.FindLastIndex(starts, s => s <= index)];
+            int start = starts[ElementOf(starts, index)];
             return char.IsHighSurrogate(text[start]) && start + 1 < text.Length && char.ConvertToUtf32(text[start], text[start + 1]) == 0x1F3F4;
         }
 
         // True for a zero width joiner that is inside one text element (neither the first nor the last char of it): the rules of the
         // Unicode text segmentation keep an emoji sequence together across it, and cut after it when it joins nothing.
-        internal static bool IsJoiner(string text, int index) => text[index] == '‍' && Holds(text, index, 1, mayEnd: false);
+        internal static bool IsJoiner(string text, int[] starts, int index) => text[index] == (char)0x200D && Holds(text, starts, index, 1, mayEnd: false);
 
         // The character at `index` (`length` units) is inside a text element, after its first char (and before its last one unless mayEnd).
-        private static bool Holds(string text, int index, int length, bool mayEnd)
+        private static bool Holds(string text, int[] starts, int index, int length, bool mayEnd)
         {
-            var starts = StringInfo.ParseCombiningCharacters(text);
-            int element = Array.FindLastIndex(starts, s => s <= index);
+            int element = ElementOf(starts, index);
             int start = starts[element];
             int end = element + 1 < starts.Length ? starts[element + 1] : text.Length;
             return index > start && (mayEnd || index + length < end);
@@ -149,10 +162,11 @@ namespace PingTool
         internal static string WithoutInvisibleFormat(string text)
         {
             var kept = new StringBuilder(text.Length);
+            var starts = StringInfo.ParseCombiningCharacters(text);   // once for the text, however many format characters it holds
             int i = 0;
             foreach (var rune in text.EnumerateRunes())
             {
-                if (!IsInvisible(text, i, rune)) kept.Append(rune.ToString());
+                if (!IsInvisible(text, starts, i, rune)) kept.Append(rune.ToString());
                 i += rune.Utf16SequenceLength;
             }
 
@@ -206,6 +220,13 @@ namespace PingTool
             foreach (var p in loaded ?? Enumerable.Empty<Profile?>())
             {
                 if (p is null) { leftOut?.Add("an empty entry"); continue; }
+                // A name of a hand-edited file may be of any size: it is refused before any of it is cut into characters (see MaxNameUnits).
+                if ((p.Name?.Length ?? 0) > MaxNameUnits)
+                {
+                    leftOut?.Add($"\"{Clip(p.Name!)}\": the name is limited to {MaxNameLength} characters");
+                    continue;
+                }
+
                 // A profile saved before the format characters were refused keeps its place, under the name as it looked.
                 p.Name = WithoutInvisibleFormat(p.Name ?? "");
                 if (!TryName(p.Name, out string name, out string why))
