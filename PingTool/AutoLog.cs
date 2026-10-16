@@ -62,10 +62,18 @@ namespace PingTool
                 using var stream = new FileStream(path, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite);
                 long after = stream.Length - failed.Start;
                 if (after <= 0) { unrecovered.Remove(path); return true; }   // nothing of it left on disk
-                var tail = new byte[after];
-                stream.Position = failed.Start;
-                stream.ReadExactly(tail);
-                if (after > failed.Written.Length || !failed.Written.AsSpan(0, tail.Length).SequenceEqual(tail))
+                // More after `start` than was written is already proof that someone added to the file: the tail is not read at all (it can be
+                // as large as the file has grown, and a buffer that size is not worth allocating to learn what its length says).
+                bool same = after <= failed.Written.Length;
+                if (same)
+                {
+                    var tail = new byte[after];
+                    stream.Position = failed.Start;
+                    stream.ReadExactly(tail);
+                    same = failed.Written.AsSpan(0, tail.Length).SequenceEqual(tail);
+                }
+
+                if (!same)
                 {
                     unrecovered.Remove(path);
                     note = Loc.T("log.takeback.changed", Path.GetFileName(path));
