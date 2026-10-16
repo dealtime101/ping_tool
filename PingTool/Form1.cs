@@ -960,23 +960,11 @@ namespace PingTool
         // What a flush says to the user. One balloon for a failure, not one per tick.
         private void ReportFlush(AutoLog log, bool written)
         {
-            if (written) autoLogWarned = false;
-            else if (!autoLogWarned && !closing)
-            {
-                autoLogWarned = true;
-                ShowBalloon("Log file not written, will retry: " + log.LastError + (log.DropNote is { } lost ? " " + lost : ""), ToolTipIcon.Warning);
-            }
-
-            // Pings that were thrown away because the folder stayed unwritable too long, never silently: said when it first happens,
-            // and again with the final figures when the folder works again (not at every tick of a long failure).
-            if (log.Dropped > droppedReported && !closing && (written || !dropWarned))
-            {
-                droppedReported = log.Dropped;
-                dropWarned = !written;
-                ShowBalloon(log.DropNote!, ToolTipIcon.Warning);
-            }
-
-            if (written) dropWarned = false;
+            // What there is to say, and the state of the telling afterwards, are worked out by FlushNotices (and tested there).
+            var (state, balloons) = FlushNotices.After(new FlushState(autoLogWarned, droppedReported, dropWarned), written, closing,
+                log.LastError, log.DropNote, log.Dropped);
+            (autoLogWarned, droppedReported, dropWarned) = (state.Warned, state.Reported, state.DropWarned);
+            foreach (string text in balloons) ShowBalloon(text, ToolTipIcon.Warning);
         }
 
         // Back to the idle screen: button, locked settings, state word, stale-value cue.
