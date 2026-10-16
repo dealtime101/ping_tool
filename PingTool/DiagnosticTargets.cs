@@ -6,7 +6,7 @@ using System.Net.Sockets;
 namespace PingTool
 {
     // What the network card says about itself, as far as the diagnosis needs it.
-    // Addresses = the card's own IPv4 addresses: what tells which card the system routes the Internet traffic through.
+    // Addresses = the card's own unicast addresses (IPv4 and IPv6): what tells which card the system routes the Internet traffic through.
     internal sealed record NicSnapshot(string Name, bool IsUp, bool IsVirtualOrLoopback, IReadOnlyList<IPAddress> Gateways, IReadOnlyList<IPAddress> DnsServers,
         IReadOnlyList<IPAddress>? Addresses = null);
 
@@ -28,7 +28,9 @@ namespace PingTool
         public static readonly IReadOnlyList<string> InternetReferencesIPv6 = Array.AsReadOnly(new[] { "2606:4700:4700::1111", "2001:4860:4860::8888", "dns://www.cloudflare.com", "https://www.cloudflare.com/" });
 
         // The list of targets, local ones first, no duplicates. gatewayFound says whether the first one is a real gateway.
-        public static List<string> From(IEnumerable<NicSnapshot> nics, out bool gatewayFound, IPAddress? routedFrom = null)
+        // routedFrom6: the same, for IPv6 (the local IPv6 address the system sends from towards the Internet), used to tell which card carries
+        // an IPv6-only connection when there are several.
+        public static List<string> From(IEnumerable<NicSnapshot> nics, out bool gatewayFound, IPAddress? routedFrom = null, IPAddress? routedFrom6 = null)
         {
             var targets = new List<string>();
             gatewayFound = false;
@@ -52,7 +54,7 @@ namespace PingTool
                 targets.Add(nic.Gateways.First(IsUsableIPv4).ToString());
                 foreach (var dns in nic.DnsServers.Where(IsUsableIPv4).Take(MaxDnsServers)) targets.Add(dns.ToString());
             }
-            else if (nics.FirstOrDefault(n => n.IsUp && !n.IsVirtualOrLoopback && n.Gateways.Any(IsUsableIPv6)) is { } v6)
+            else if (V6Card(nics, routedFrom6) is { } v6)
             {
                 // An IPv6-only connection: no IPv4 gateway anywhere, a real card with an IPv6 one. That the card also has IPv4 DNS servers
                 // (handed out by DHCPv4, or by a router that does both) does not make its IPv6 router any less there: the gateway family
@@ -80,19 +82,29 @@ namespace PingTool
             return targets.Distinct(TargetKey.Comparer).ToList();
         }
 
+        // The real card with an IPv6 gateway: the one that holds the address the system sends the Internet traffic from (routedFrom6) when
+        // there are several, else the first, as it was.
+        private static NicSnapshot? V6Card(IEnumerable<NicSnapshot> nics, IPAddress? routedFrom6)
+        {
+            var candidates = nics.Where(n => n.IsUp && !n.IsVirtualOrLoopback && n.Gateways.Any(IsUsableIPv6)).ToList();
+            return (routedFrom6 is null ? null : candidates.FirstOrDefault(n => n.Addresses is not null && n.Addresses.Any(a => a.Equals(routedFrom6))))
+                ?? candidates.FirstOrDefault();
+        }
+
         // Said wherever the diagnosis targets are built (the profile, --diagnose, --headless --diagnose): one wording.
         public const string NoGatewayMessage = "No network gateway was found (is the PC connected?). Only the Internet references are in the list: without the router in it, the report cannot say whether the fault is on your side.";
 
-        public static List<string> Discover(out bool gatewayFound) => Discover(CardReaders(), out gatewayFound, LocalAddressToInternet());
+        public static List<string> Discover(out bool gatewayFound) =>
+            Discover(CardReaders(), out gatewayFound, LocalAddressToInternet(), LocalAddressToInternet(AddressFamily.InterNetworkV6));
 
-        // The address the system would send from to reach the Internet: a UDP socket "connected" to a public address only asks the
-        // routing table (nothing is sent), and tells the local address it chose. null when there is no route.
-        internal static IPAddress? LocalAddressToInternet()
+        // The address the system would send from to reach the Internet, in the family asked: a UDP socket "connected" to a public address
+        // only asks the routing table (nothing is sent), and tells the local address it chose. null when there is no route.
+        internal static IPAddress? LocalAddressToInternet(AddressFamily family = AddressFamily.InterNetwork)
         {
             try
             {
-                using var socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-                socket.Connect(IPAddress.Parse("1.1.1.1"), 53);
+                using var socket = new Socket(family, SocketType.Dgram, ProtocolType.Udp);
+                socket.Connect(IPAddress.Parse(family == AddressFamily.InterNetworkV6 ? "2606:4700:4700::1111" : "1.1.1.1"), 53);
                 return (socket.LocalEndPoint as IPEndPoint)?.Address;
             }
             catch (SocketException)
@@ -135,8 +147,8 @@ namespace PingTool
         // The message for "no gateway was found", with the reason when part of the cards could not be read.
         public static string NoGatewayText => LastCardProblem is { } problem ? NoGatewayMessage + " " + problem : NoGatewayMessage;
 
-        internal static List<string> Discover(IEnumerable<Func<NicSnapshot>> readers, out bool gatewayFound, IPAddress? routedFrom = null) =>
-            From(ReadCards(readers), out gatewayFound, routedFrom);
+        internal static List<string> Discover(IEnumerable<Func<NicSnapshot>> readers, out bool gatewayFound, IPAddress? routedFrom = null, IPAddress? routedFrom6 = null) =>
+            From(ReadCards(readers), out gatewayFound, routedFrom, routedFrom6);
 
         // Words of a card's description that say it is not a piece of hardware: the virtual switches of Hyper-V, VirtualBox, VMware and
         // Docker, the tunnel adapters of VPNs, the pseudo-interfaces. Most of them declare the type "Ethernet", so the type alone lets them
@@ -178,7 +190,7 @@ namespace PingTool
                             LooksVirtual(card.Name, card.Description, card.NetworkInterfaceType),
                             props.GatewayAddresses.Select(g => g.Address).ToList(),
                             props.DnsAddresses.ToList(),
-                            props.UnicastAddresses.Select(u => u.Address).Where(a => a.AddressFamily == AddressFamily.InterNetwork).ToList());
+                            props.UnicastAddresses.Select(u => u.Address).ToList());   // both families: the route is told by either
                     });
                 }
             }
