@@ -133,6 +133,11 @@ namespace PingTool
             lstHosts.SizeChanged += (_, _) => FitHostColumns();
             Shown += (_, _) => FitHostColumns();
 
+            // The colours of the designer are the dark ones; in a high-contrast theme of Windows the window takes the system's (see ApplyTheme).
+            foreach (Control c in Controls)
+                if (c is Label or CheckBox && c != lblState && c != lblPingResult && c != lblDiagnosis) darkTexts.Add((c, c.ForeColor));
+            if (SystemInformation.HighContrast) ApplyTheme();
+
             // Enter in the address box STARTS the monitoring, and only that. There is no default button any
             // more: Start and Stop are one button, so Enter used to flip the state - and could stop a run
             // from anywhere in the window. (The box is locked while running, so it never stops anything.)
@@ -242,6 +247,29 @@ namespace PingTool
 
         // The size the full window had when it went compact (null otherwise).
         private Size? normalClientSize;
+
+        // The window and its texts in the colours of the theme: the dark ones the designer draws, or the system's in a high-contrast theme, where the
+        // person has chosen the colours they can read (the graph already followed it, and so do the timeline and incidents windows). The labels
+        // and boxes whose colour is fixed by the designer are remembered as they were (darkTexts); the three whose colour is set as the run goes
+        // (the state, the big result, the diagnosis) take the theme at each setting and are drawn again here. In the usual theme nothing is
+        // changed: this runs at the start only for a high-contrast theme, and when the theme changes.
+        private bool highContrast;
+        private readonly List<(Control Control, Color Dark)> darkTexts = new();
+
+        private void ApplyTheme()
+        {
+            highContrast = SystemInformation.HighContrast;
+            BackColor = UiColors.FormBack(highContrast);
+            foreach (var (control, dark) in darkTexts) control.ForeColor = UiColors.Themed(dark, highContrast);
+            ShowRunState();
+            RenderSelected();
+        }
+
+        protected override void OnSystemColorsChanged(EventArgs e)
+        {
+            base.OnSystemColorsChanged(e);
+            if (SystemInformation.HighContrast || highContrast) ApplyTheme();   // in a high-contrast theme (its colours may have changed), or just left it
+        }
 
         // Where the window can grow: the extra width goes to the right column (host list, profile box, buttons), the extra height to the
         // host list and the graph; what sits at the bottom stays at the bottom. Without this a bigger window is just empty space.
@@ -983,7 +1011,7 @@ namespace PingTool
         private void ShowRunState()
         {
             lblState.Text = isRunning ? "Running" : hasRun ? "Stopped" : "";
-            lblState.ForeColor = isRunning ? Color.LimeGreen : Color.Silver;
+            lblState.ForeColor = UiColors.Themed(isRunning ? Color.LimeGreen : Color.Silver, highContrast);
         }
 
         private void SetSettingsEnabled(bool enabled)
@@ -1408,7 +1436,7 @@ namespace PingTool
         {
             lblDiagnosis.Text = Diagnosis.For(sessions.Select(s => s.ToTarget()).ToList()) ?? "";
             toolTip.SetToolTip(lblDiagnosis, lblDiagnosis.Text);   // the box is small: with the lines about a service, the whole text comes up here
-            lblDiagnosis.ForeColor = sessions.Any(s => s.Monitor.State != HostState.Up) ? UiColors.SmallTextRed : Color.Silver;
+            lblDiagnosis.ForeColor = UiColors.Themed(sessions.Any(s => s.Monitor.State != HostState.Up) ? UiColors.SmallTextRed : Color.Silver, highContrast);
         }
 
         // Big value, stats and graph all follow the host selected in the list.
@@ -1434,7 +1462,7 @@ namespace PingTool
             if (ping is null)
             {
                 lblPingResult.Text = "---";
-                lblPingResult.ForeColor = Color.Silver;
+                lblPingResult.ForeColor = UiColors.Themed(Color.Silver, highContrast);
             }
             else
             {
@@ -1442,7 +1470,7 @@ namespace PingTool
 
                 // Stopped: keep the number but drop the green/orange/red verdict,
                 // which would pass an old reading off as a live one.
-                if (!isRunning && hasRun) lblPingResult.ForeColor = Color.Silver;
+                if (!isRunning && hasRun) lblPingResult.ForeColor = UiColors.Themed(Color.Silver, highContrast);
             }
 
             // The full sentence is on hover (the label only has room for a word); empty when there is no value.
@@ -1456,17 +1484,17 @@ namespace PingTool
                 lblPingResult.Text = ping + " ms";
 
                 // Steps of the host's own "slow" limit (what the state and the report use), not fixed 50 and 100 ms.
-                lblPingResult.ForeColor = HostMonitor.LatencyBand(ping, selected?.Monitor.LatencyMs ?? HostMonitor.DefaultLatencyMs) switch
+                lblPingResult.ForeColor = UiColors.Themed(HostMonitor.LatencyBand(ping, selected?.Monitor.LatencyMs ?? HostMonitor.DefaultLatencyMs) switch
                 {
                     0 => Color.LimeGreen,
                     1 => Color.Orange,
                     _ => Color.Tomato,
-                };
+                }, highContrast);
             }
             else
             {
                 lblPingResult.Text = (failure ?? PingFailure.Timeout).Short;
-                lblPingResult.ForeColor = Color.Tomato;
+                lblPingResult.ForeColor = UiColors.Themed(Color.Tomato, highContrast);
             }
         }
 

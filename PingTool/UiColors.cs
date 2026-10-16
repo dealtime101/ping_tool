@@ -8,6 +8,13 @@ namespace PingTool
     {
         public static readonly Color WindowBack = Color.FromArgb(64, 64, 64);
 
+        // The main window in a high-contrast theme of Windows: the person has chosen the colours they can read, so the window takes the system's
+        // (as the timeline and incidents windows do, see TimelinePalette); otherwise it is dark as the designer draws it. A colour of text that
+        // meant something by its hue (green for live, red for failed) has no hue to give in such a theme, and the system's text colour is used:
+        // the word and the number say the same thing.
+        public static Color FormBack(bool highContrast) => highContrast ? SystemColors.Control : WindowBack;
+        public static Color Themed(Color dark, bool highContrast) => highContrast ? SystemColors.ControlText : dark;
+
         // Tomato is fine for the big result (3.5:1, large text) but too dim for a sentence: this one reaches 4.5:1.
         public static readonly Color SmallTextRed = Color.FromArgb(255, 140, 120);
 
