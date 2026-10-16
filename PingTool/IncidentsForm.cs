@@ -29,6 +29,7 @@ namespace PingTool
             {
                 View = View.Details,
                 FullRowSelect = true,
+                MultiSelect = false,   // the route below is that of ONE incident: with Ctrl or Shift several rows stayed marked and it showed the first of them
                 HideSelection = false,   // the chosen incident stays marked while the route below has the focus (it is what the route belongs to)
                 GridLines = true,
                 Dock = DockStyle.Fill,
