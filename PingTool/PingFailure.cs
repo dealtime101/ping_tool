@@ -116,6 +116,13 @@ namespace PingTool
                 // Raised by SslStream itself, or wrapped by the HTTP layer: both levels, as for the socket error above.
                 _ when Find<System.Security.Authentication.AuthenticationException>(ex) is { } tls
                     => new("TLS", "The secure connection could not be set up: " + tls.Message),
+                // A socket error with no sentence of its own above: its NAME (the same in every language) and the system's NUMBER, not the
+                // message of the system, which is in the language of the machine and made the CSV vary from one PC to another (as for the two
+                // unreachable cases above). The other exceptions are the runtime's, whose messages are English.
+                _ when socket is not null
+                    => new("Error", "Network error " + socket.SocketErrorCode + " (system error " + socket.ErrorCode.ToString(System.Globalization.CultureInfo.InvariantCulture) + ")"),
+                _ when Find<System.ComponentModel.Win32Exception>(ex) is { } system
+                    => new("Error", "System error " + system.NativeErrorCode.ToString(System.Globalization.CultureInfo.InvariantCulture) + " (" + system.GetType().Name + ")"),
                 _ => new("Error", ex.InnerException?.Message ?? ex.Message),
             };
         }
