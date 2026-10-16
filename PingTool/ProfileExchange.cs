@@ -107,6 +107,18 @@ namespace PingTool
                 }
                 else if (root.ValueKind == JsonValueKind.Object)
                 {
+                    // A key that stands twice (the same name, any case): which one counts is not known. The first was taken and the rest left
+                    // unread without a word, so a list pasted twice into a file kept only the first one, and a second "version" could not
+                    // stop a file that the first one let in. Refused, naming the key.
+                    foreach (string key in new[] { "Format", "Version", "Profiles" })
+                    {
+                        if (CountOf(root, key) > 1)
+                        {
+                            error = $"This file has \"{key.ToLowerInvariant()}\" more than once: it is not clear which one counts. Keep one.";
+                            return false;
+                        }
+                    }
+
                     // Absent is fine (a list written by hand); PRESENT, it must be what we write: a number, null or another name there
                     // means a file from somewhere else.
                     if (Find(root, "Format") is { } f && !(f.ValueKind == JsonValueKind.String && f.GetString() == FormatName))
@@ -239,6 +251,9 @@ namespace PingTool
             version = (int)Math.Clamp(Math.Truncate(value), int.MinValue, int.MaxValue);
             return version >= 1;
         }
+
+        private static int CountOf(JsonElement obj, string name) =>
+            obj.EnumerateObject().Count(property => string.Equals(property.Name, name, StringComparison.OrdinalIgnoreCase));
 
         private static JsonElement? Find(JsonElement obj, string name)
         {
