@@ -530,8 +530,9 @@
          1.21.452 = the balloons of the automatic log (the pings that could not be saved, the file not written, the rows that wait, the earlier runs given up) are in the language of the interface, in the table of texts (PIN507.250)
          1.21.453 = the count and the gaps of the pings given up are read under the lock they are written under, so a sentence from another thread cannot meet a list that changes (PIN507.251)
          1.21.454 = the lock between the windows that write the same log file does not leave its handle open when the wait fails, and giving it back from the wrong thread no longer throws before the written rows are taken off the queue (PIN507.252)
-         1.21.455 = the main window has keyboard access keys on its fields, check boxes and main buttons (each letter once, a label hands its key to the field after it), and the address box has an accessible name (PIN507.256) -->
-    <Version>1.21.455</Version>
+         1.21.455 = the main window has keyboard access keys on its fields, check boxes and main buttons (each letter once, a label hands its key to the field after it), and the address box has an accessible name (PIN507.256)
+         1.21.456 = the probes of one hop of a route are sent together, so a silent hop costs one timeout and not one per probe: a dead path takes about a third of the time to be given up (PIN507.258) -->
+    <Version>1.21.456</Version>
   </PropertyGroup>
 
   <ItemGroup>

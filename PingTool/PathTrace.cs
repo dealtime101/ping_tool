@@ -194,6 +194,20 @@ namespace PingTool
             return string.Join(" ", text.Split(LineBreaks, StringSplitOptions.RemoveEmptyEntries)).Trim();
         }
 
+        // One probe, whose failure to be sent comes back as a value (the other probes of the hop are waited for all the same). A Stop is not a
+        // failure of the probe: it goes up as it is.
+        private static async Task<(HopReply? Reply, Exception? Error)> SendAsync(HopProbe probe, IPAddress target, int ttl, CancellationToken token)
+        {
+            try
+            {
+                return (await probe(target, ttl, token), null);
+            }
+            catch (Exception ex) when (!token.IsCancellationRequested)
+            {
+                return (null, ex);
+            }
+        }
+
         public static async Task<PathCapture> RunAsync(string host, IPAddress target, HopProbe probe, DateTimeOffset time,
             int maxHops = MaxHops, int giveUpAfter = GiveUpAfter, int probesPerHop = ProbesPerHop,
             Action<IReadOnlyList<Hop>>? progress = null, CancellationToken token = default)   // the token last (CA1068); callers name it
@@ -206,26 +220,27 @@ namespace PingTool
             {
                 token.ThrowIfCancellationRequested();
 
-                var replies = new List<HopReply>();
+                // The probes of one hop go out together, in order, and are waited for together: a silent hop costs one timeout and not one
+                // per probe (a dead path would cost ProbesPerHop times GiveUpAfter timeouts, nine seconds at one second each, before the
+                // trace gave up). The answers are read in the order the probes were sent, as before.
+                var sent = new List<Task<(HopReply? Reply, Exception? Error)>>();
                 for (int attempt = 0; attempt < Math.Max(1, probesPerHop); attempt++)
                 {
                     token.ThrowIfCancellationRequested();
-                    try
-                    {
-                        replies.Add(await probe(target, ttl, token));
-                    }
-                    catch (Exception ex) when (!token.IsCancellationRequested)
-                    {
-                        // A probe that cannot even be sent is not a silent router: it is said so, and the trace stops (the next
-                        // hops would fail the same way and each look like "nothing answers"). Trying again would not help.
-                        // What an earlier probe of this hop already brought back is kept: one failing probe does not undo a router's answer.
-                        if (!replies.Any(x => x.Status is not (HopStatus.Timeout or HopStatus.Failed)))
-                        {
-                            replies.Clear();
-                            replies.Add(new HopReply(HopStatus.Failed, null, 0, Why(ex)));
-                        }
+                    sent.Add(SendAsync(probe, target, ttl, token));
+                }
 
-                        break;
+                var results = await Task.WhenAll(sent);
+                var replies = results.Where(r => r.Reply is not null).Select(r => r.Reply!).ToList();
+                if (results.FirstOrDefault(r => r.Error is not null).Error is { } failure)
+                {
+                    // A probe that cannot even be sent is not a silent router: it is said so, and the trace stops (the next
+                    // hops would fail the same way and each look like "nothing answers"). Trying again would not help.
+                    // What the other probes of this hop brought back is kept: one failing probe does not undo a router's answer.
+                    if (!replies.Any(x => x.Status is not (HopStatus.Timeout or HopStatus.Failed)))
+                    {
+                        replies.Clear();
+                        replies.Add(new HopReply(HopStatus.Failed, null, 0, Why(failure)));
                     }
                 }
 
