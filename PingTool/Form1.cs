@@ -1377,6 +1377,10 @@ namespace PingTool
             try
             {
                 var (replay, entries, error) = await Task.Run(() => LoadLogs(paths));
+                // The window can be closed while a big file is read: nobody is left to show it to, and a box or a viewer opened over a window
+                // that is gone throws (ShowDialog: InvalidOperationException, MessageBox with that owner: ObjectDisposedException).
+                if (closing || IsDisposed) return;
+
                 if (replay is null || entries is null)
                 {
                     MessageBox.Show(error, "PingTool");
@@ -1389,8 +1393,11 @@ namespace PingTool
             }
             finally
             {
-                Cursor = Cursors.Default;
-                btnOpenLog.Enabled = true;
+                if (!IsDisposed)
+                {
+                    Cursor = Cursors.Default;
+                    btnOpenLog.Enabled = true;
+                }
             }
         }
 

@@ -99,6 +99,9 @@ namespace PingTool
             try
             {
                 var (other, otherEntries, error) = await Task.Run(() => MainForm.LoadLogs(paths));
+                // This window can be closed (and disposed by whoever opened it) while the other log is read: nothing is shown over it then.
+                if (IsDisposed) return;
+
                 if (other is null || otherEntries is null) { ShowError(error ?? "The other log could not be read."); return; }
 
                 string otherName = paths.Length == 1 ? Path.GetFileName(paths[0]) : paths.Length.ToString(CultureInfo.CurrentCulture) + " log files";
@@ -123,7 +126,7 @@ namespace PingTool
             }
             finally
             {
-                Cursor = Cursors.Default;
+                if (!IsDisposed) Cursor = Cursors.Default;
             }
         }
 
