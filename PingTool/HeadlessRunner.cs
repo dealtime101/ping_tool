@@ -198,9 +198,12 @@ namespace PingTool
             // ended the periodic saves for the rest of the night and then took the final report and the exit code down with it.
             int checkpointProblemSaid = 0;
             // False when the callback threw: for a checkpoint of the night the next one will try again; for the final one nobody will.
-            bool SafeCheckpoint(ReportData data, bool final = false)
+            // `make` builds the report INSIDE the guard: a report that cannot be built (a probe state read while it changes, anything the
+            // building did not foresee) loses that checkpoint like a report that cannot be written, and is told in the same way; built before
+            // the guard, its exception ended the task of the checkpoints, and with it the whole run (Task.WhenAll), the final report included.
+            bool SafeCheckpoint(Func<ReportData> make, bool final = false)
             {
-                try { checkpoint!(data); return true; }
+                try { checkpoint!(make()); return true; }
                 catch (Exception ex)   // an OperationCanceledException of the callback's own too: it is a report that was not written
                 {
                     // A checkpoint of the night is told once (the next one tries again); the final report is always told, whatever was said
@@ -220,7 +223,7 @@ namespace PingTool
                     while (true)
                     {
                         await Task.Delay(checkpointEvery ?? CheckpointEvery, run.Token);
-                        SafeCheckpoint(Build());
+                        SafeCheckpoint(Build);
                     }
                 }
                 catch (OperationCanceledException) { /* the end */ }
@@ -233,7 +236,7 @@ namespace PingTool
             var report = Build();
             // The last report is the one that was asked for: when it cannot be written the run did not do its job, whatever it saw - a
             // scheduled task must not read "no incident" and take an old report, or none, for the night's.
-            bool finalWritten = checkpoint is null || SafeCheckpoint(report, final: true);
+            bool finalWritten = checkpoint is null || SafeCheckpoint(() => report, final: true);
 
             long sent = sessions.Sum(s => s.Stats.Sent);
             string summary = sent == 0
