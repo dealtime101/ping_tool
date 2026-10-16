@@ -91,7 +91,11 @@ namespace PingTool
 
             top = Math.Max(1, top);   // Y divides by it: 0 gave NaN and infinity (the form passes at least 50, but this is public)
             float step = (width - 1f) / Math.Max(1, maxSamples - 1);
-            float x0 = width - 1 - (samples.Count - 1) * step;
+            // By rank, the graph holds the NEWEST maxSamples pings: given more, the oldest are not drawn (as a ping older than the graph is not
+            // by time), instead of being put at a negative X, out of the picture. Told by position, not by the X, so that the rounding of a
+            // float at the left edge cannot drop the oldest ping that does fit.
+            int skip = Math.Max(0, samples.Count - Math.Max(1, maxSamples));
+            float x0 = width - 1 - (samples.Count - skip - 1) * step;
             // A ping above the scale is drawn at the top edge (the window takes the highest ping as the scale, so it never happens there;
             // a caller with a fixed or lowered scale would otherwise get a negative Y, a point drawn out of the graph).
             float Y(long v) => height - 1 - (height - 1f) * Math.Min(v, top) / top;
@@ -107,7 +111,11 @@ namespace PingTool
             {
                 int at = i++;
                 float x;
-                if (stamps is null) x = x0 + at * step;
+                if (stamps is null)
+                {
+                    if (at < skip) { prev = null; continue; }   // older than the graph can hold
+                    x = x0 + (at - skip) * step;
+                }
                 else
                 {
                     double age = Math.Max(0, (now!.Value - stamps[at]).TotalSeconds / interval!.Value.TotalSeconds);
