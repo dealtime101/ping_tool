@@ -1687,7 +1687,7 @@ namespace PingTool
                     string text = GraphSummary.Describe(owner.series);
                     if (!owner.compare || owner.series.Count <= owner.legendRows) return text;
                     var (page, pages) = GraphLayout.LegendPage(owner.series.Count, owner.legendFirst, owner.legendRows);
-                    return $"{text}. The legend is on page {page} of {pages}: Page Down shows the next one, Page Up the one before.";
+                    return Loc.T("graph.legend.page", text, page, pages);
                 }
             }
         }

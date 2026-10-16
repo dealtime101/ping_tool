@@ -524,8 +524,9 @@
          1.21.446 = an icon resource that is not found is said (trace and crash log) with the names the build has, instead of the generic icon in silence (PIN507.240)
          1.21.447 = the box that says a saved file could not be opened has a warning icon, like the other boxes that report a problem (PIN507.241)
          1.21.448 = a route capture is not started with the token of a run that is over, so none of an old run can enter the list of the run in progress (PIN507.244)
-         1.21.449 = a ping is shown with the token of the run that made it, not the field that a quick Stop then Start replaces, and the failure of an old loop no longer counts as a ping of the new run (PIN507.245) -->
-    <Version>1.21.449</Version>
+         1.21.449 = a ping is shown with the token of the run that made it, not the field that a quick Stop then Start replaces, and the failure of an old loop no longer counts as a ping of the new run (PIN507.245)
+         1.21.450 = the sentence a screen reader gets about the pages of the legend is in the language of the interface, as the line under the legend already was (PIN507.246) -->
+    <Version>1.21.450</Version>
   </PropertyGroup>
 
   <ItemGroup>

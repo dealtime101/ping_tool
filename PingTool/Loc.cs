@@ -66,6 +66,7 @@ namespace PingTool
             ["graph.noreply"] = ("no reply", "aucune réponse"),
             ["graph.ms"] = ("{0} ms", "{0} ms"),
             ["graph.legend.more"] = ("{0}-{1} of {2}: click or press Page Down for more", "{0}-{1} sur {2} : cliquez ou appuyez sur Page suivante pour voir la suite"),   // the line under a legend of more hosts than it shows
+            ["graph.legend.page"] = ("{0}. The legend is on page {1} of {2}: Page Down shows the next one, Page Up the one before.", "{0}. La légende est à la page {1} sur {2} : Page suivante montre la suivante, Page précédente la précédente."),   // read by a screen reader with the figures of the graph
             ["stats.waiting"] =("Last pings: waiting for data", "Derniers pings : en attente de données"),
             // {0} of the next two is the window (stats.window.*): "Last 60" / "60 derniers pings" (the French puts the number first and agrees).
             ["stats.need"] = ("{0}: need {1} replies for percentiles", "{0} : il faut {1} réponses pour les percentiles"),
