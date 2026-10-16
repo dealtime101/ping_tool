@@ -58,7 +58,11 @@ namespace PingTool
         internal static string MaskProfile(string text, string profileFolder)
         {
             string folder = profileFolder.TrimEnd('\\', '/');
-            return folder.Length < 3 ? text : text.Replace(folder, "%USERPROFILE%", StringComparison.OrdinalIgnoreCase);
+            if (folder.Length < 3) return text;
+            // Only the folder itself, not the beginning of another name: C:\Users\bob must not eat the start of C:\Users\bobby\... (the
+            // report would show "%USERPROFILE%by" and mislead). A letter, a digit, "_" or "-" after it means the name goes on.
+            return System.Text.RegularExpressions.Regex.Replace(text, System.Text.RegularExpressions.Regex.Escape(folder) + @"(?![\p{L}\p{N}_\-])",
+                "%USERPROFILE%", System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant);
         }
 
         // "TypeName: message" for a box or a console line; the type alone when the message cannot be read (a Message that throws), and a

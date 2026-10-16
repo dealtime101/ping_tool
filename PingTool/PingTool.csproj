@@ -499,8 +499,9 @@
          1.21.421 = an invalid packet size or timeout is no longer reported as an invalid address (PIN507.206)
          1.21.422 = the report file of a headless run is made absolute and tried (folder made, a trial file written and removed) before anything is probed, instead of failing ten minutes or a night later (PIN507.207)
          1.21.423 = start, minimized and test-webhooks combined with headless are refused with a message that names them, instead of being dropped in silence (PIN507.208)
-         1.21.424 = the count of an error that came again is written in full when another error arrives and when the process ends, not only at its 2nd, 10th, 100th time (PIN507.209) -->
-    <Version>1.21.424</Version>
+         1.21.424 = the count of an error that came again is written in full when another error arrives and when the process ends, not only at its 2nd, 10th, 100th time (PIN507.209)
+         1.21.425 = the user's profile folder is masked in the crash log as a folder, not as the beginning of another name (bob and bobby) (PIN507.210) -->
+    <Version>1.21.425</Version>
   </PropertyGroup>
 
   <ItemGroup>
