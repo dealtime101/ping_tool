@@ -114,8 +114,10 @@ namespace PingTool
                 // Against the route seen while the host was healthy, when this run has one.
                 var notes = PathCapture.Compare(session.BaselinePath, path);
                 string text = path.Describe() + (notes.Count > 0 ? "\n\n" + string.Join("\n", notes) : "");
-                // A multi-line TextBox only breaks lines on CR LF: a bare LF would run the hops together.
-                output.Text = text.Replace("\r\n", "\n", StringComparison.Ordinal).Replace("\n", "\r\n", StringComparison.Ordinal);
+                // A multi-line TextBox only breaks lines on CR LF: a bare LF would run the hops together. Put in the box the way the progress
+                // is: a reader at the end follows the text down to the notes of the comparison, one who scrolled up or selected something
+                // to copy keeps the selection and the line at the top (setting Text alone sends both back to the start).
+                ReplaceKeepingView(text.Replace("\r\n", "\n", StringComparison.Ordinal).Replace("\n", "\r\n", StringComparison.Ordinal));
             }
             catch (OperationCanceledException)
             {

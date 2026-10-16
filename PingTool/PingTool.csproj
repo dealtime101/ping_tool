@@ -503,8 +503,9 @@
          1.21.425 = the user's profile folder is masked in the crash log as a folder, not as the beginning of another name (bob and bobby) (PIN507.210)
          1.21.426 = the graph by rank draws the newest maxSamples pings when given more, instead of putting the oldest at a negative X outside the picture (PIN507.213)
          1.21.427 = the first good reading of the network cards after a failure that was told says that they can be read again, with what changed meanwhile (PIN507.214)
-         1.21.428 = the way back from a voice quality (MOS) alarm is never above halfway to the best the model gives, so a limit near the top of the scale can be recovered from (PIN507.215) -->
-    <Version>1.21.428</Version>
+         1.21.428 = the way back from a voice quality (MOS) alarm is never above halfway to the best the model gives, so a limit near the top of the scale can be recovered from (PIN507.215)
+         1.21.429 = the final route of the trace window is put in the box keeping the reader's view and selection, as the progress is (PIN507.216) -->
+    <Version>1.21.429</Version>
   </PropertyGroup>
 
   <ItemGroup>
