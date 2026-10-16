@@ -149,13 +149,26 @@ namespace PingTool
 
         // The token goes to the call: Stop or Close cancels a ping in flight, like the other probes (the class promises it). A null buffer
         // is the system's default one.
+        // The timeout of Ping covers the echo only: the lookup of a NAME comes before it and sees the token alone, so a resolver that does not
+        // answer held the probe far past the timeout set (the other probes end in a Timeout). The whole of it, lookup included, now has
+        // to fit in the timeout, like the TCP probe: the deadline cancels the call, wherever it is.
         private static async Task<ProbeOutcome> IcmpAsync(ProbeTarget t, int timeoutMs, Ping ping, byte[]? buffer, CancellationToken token)
         {
-            var reply = await ping.SendPingAsync(t.Host, TimeSpan.FromMilliseconds(timeoutMs), buffer, null, token);
+            var reply = await WithDeadline(timeoutMs, ct => ping.SendPingAsync(t.Host, TimeSpan.FromMilliseconds(timeoutMs), buffer, null, ct), token);
 
             return reply.Status == IPStatus.Success
                 ? new ProbeOutcome(reply.RoundtripTime, null, reply.Address)
                 : new ProbeOutcome(-1, PingFailure.From(reply.Status, reply.Address?.AddressFamily), null);
+        }
+
+        // Runs `work` with a token that is cancelled at the deadline as well as by `token` (Stop, Close). At the deadline it ends with an
+        // OperationCanceledException whose token is not the caller's: RunAsync reads that as the probe's own Timeout, and the caller's
+        // Stop as a cancellation.
+        internal static async Task<T> WithDeadline<T>(int timeoutMs, Func<CancellationToken, Task<T>> work, CancellationToken token)
+        {
+            using var deadline = CancellationTokenSource.CreateLinkedTokenSource(token);
+            deadline.CancelAfter(timeoutMs);
+            return await work(deadline.Token);
         }
 
         internal static AddressFamily FamilyOf(int family) => family == 6 ? AddressFamily.InterNetworkV6 : AddressFamily.InterNetwork;
