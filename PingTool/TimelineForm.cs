@@ -125,7 +125,7 @@ namespace PingTool
                 using Brush band = kind == IncidentKind.Outage
                     ? new System.Drawing.Drawing2D.HatchBrush(System.Drawing.Drawing2D.HatchStyle.WideUpwardDiagonal, hatchFore, hatchBack)
                     : palette.SlowdownIsHatched
-                        ? new System.Drawing.Drawing2D.HatchBrush(System.Drawing.Drawing2D.HatchStyle.Percent25, palette.SlowdownColor, palette.Back)   // dots, not the stripes of an outage
+                        ? new System.Drawing.Drawing2D.HatchBrush(System.Drawing.Drawing2D.HatchStyle.LargeCheckerBoard, palette.SlowdownColor, palette.Back)   // large squares: not the stripes of an outage, not the dotted line of a network change
                         : new SolidBrush(palette.SlowdownColor);
                 g.FillRectangle(band, x0, 0, x1 - x0, plotH);
             }

@@ -51,7 +51,10 @@ namespace PingTool
         // The two colours of the hatching of an outage.
         public (Color Fore, Color Back) OutageHatch => highContrast ? (Fit(SystemColors.HotTrack), SystemColors.Window) : (Color.FromArgb(170, 255, 99, 71), Color.FromArgb(50, 255, 99, 71));
 
-        // A slowdown: a plain tint normally; in high contrast a tint is not legible, a dotted pattern (not the outage's stripes) is.
+        // A slowdown: a plain tint normally; in high contrast a tint is not legible, a pattern is - neither the outage's stripes nor anything
+        // like the dotted line of a change of network, which has the same colour there (a fine dot pattern was taken for it): the window
+        // draws large squares (TimelineForm), a block against a line, so that the two events cannot be mistaken for each other without
+        // the colour.
         public bool SlowdownIsHatched => highContrast;
         public Color SlowdownColor => highContrast ? Fit(SystemColors.Highlight) : Color.FromArgb(60, 255, 165, 0);
     }
