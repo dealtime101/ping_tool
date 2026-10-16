@@ -420,8 +420,9 @@
          1.21.342 = the comparison of routes also tells a hop that was silent when healthy and answers now, without saying that the route changed (PIN507.91)
          1.21.343 = the room under the axis of the time graph follows the height of the font, so a larger font no longer cuts the time labels (PIN507.93)
          1.21.344 = a webhook that asks to wait longer than a minute is not tried again too early: the delivery is given up and the failure says why (PIN507.94)
-         1.21.345 = the copy kept of a settings file that could not be read is never overwritten: a name already taken gives the next name (PIN507.95) -->
-    <Version>1.21.345</Version>
+         1.21.345 = the copy kept of a settings file that could not be read is never overwritten: a name already taken gives the next name (PIN507.95)
+         1.21.346 = the search for the expected text of a page decodes each piece once and keeps the end of the last, so a page sent in tiny pieces costs the work of the page (PIN507.96) -->
+    <Version>1.21.346</Version>
   </PropertyGroup>
 
   <ItemGroup>

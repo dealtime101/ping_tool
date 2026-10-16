@@ -339,20 +339,49 @@ namespace PingTool
         }
 
         // Looks for `expected` in the first MaxBodyBytes of the stream, as the page arrives: it stops at the first read that brings the text
-        // (a page that has already said what we wait for and then sends the rest slowly must not turn into a timeout). What was read is
-        // decoded again whole after each read, so a text cut in two by two reads is found, at the price of a few decodings of 64 KiB.
+        // (a page that has already said what we wait for and then sends the rest slowly must not turn into a timeout). Each read is decoded
+        // ONCE, by a decoder that keeps its state (a character cut in two by two reads is whole in the end), and searched together with the
+        // last characters of the reads before it, so a text cut in two by two reads is found; the work is that of the page, whatever the
+        // size of the pieces it comes in (decoding the whole again after each read took some two billion bytes of work for a page sent
+        // byte by byte). The encoding is chosen once, when the byte order mark can be known (3 bytes, or the end of the page).
         // Truncated: the page goes on beyond the limit, and the text was not in what was read - "not found" then may simply mean
         // "further down", which the message must not call a maintenance page.
         internal static async Task<(bool Found, bool Truncated)> Search(Stream stream, string? charset, string expected, CancellationToken token, long? length = null)
         {
             var buffer = new byte[MaxBodyBytes];
-            int total = 0, read;
+            int total = 0, fed = 0, read;
+            Decoder? decoder = null;
+            Encoding? encoding = null;
+            string tail = "";   // the last characters already seen: all that a text cut in two by a read can need
+            int keep = Math.Max(0, expected.Length - 1);
+
+            bool Feed()
+            {
+                if (decoder is null)
+                {
+                    var (chosen, skip) = EncodingOf(buffer, total, charset);
+                    encoding = chosen;
+                    decoder = chosen.GetDecoder();
+                    fed = skip;
+                }
+
+                var chars = new char[encoding!.GetMaxCharCount(total - fed)];
+                int n = decoder.GetChars(buffer, fed, total - fed, chars, 0, flush: false);
+                fed = total;
+                string text = tail + new string(chars, 0, n);
+                if (text.Contains(expected, StringComparison.OrdinalIgnoreCase)) return true;
+                tail = text.Length > keep ? text[^keep..] : text;
+                return false;
+            }
+
             while (total < buffer.Length && (read = await stream.ReadAsync(buffer.AsMemory(total), token)) > 0)
             {
                 total += read;
-                if (Decode(buffer, total, charset).Contains(expected, StringComparison.OrdinalIgnoreCase)) return (true, false);
+                if (decoder is null && total < 3) continue;   // a byte order mark takes up to 3 bytes: not known yet
+                if (Feed()) return (true, false);
             }
 
+            if (decoder is null && total > 0 && Feed()) return (true, false);   // a page of less than 3 bytes
             return (false, PageGoesOn(total, buffer.Length, length));
         }
 
@@ -366,10 +395,17 @@ namespace PingTool
         // as UTF-8 would not contain an expected text with an accent, and a good answer would count as a failure.
         internal static string Decode(byte[] buffer, int count, string? charset)
         {
+            var (encoding, skip) = EncodingOf(buffer, count, charset);
+            return encoding.GetString(buffer, skip, count - skip);
+        }
+
+        // The encoding of a page and how many bytes of its start are the byte order mark (not text).
+        internal static (Encoding Encoding, int Skip) EncodingOf(byte[] buffer, int count, string? charset)
+        {
             var bom = buffer.AsSpan(0, count);
-            if (bom.StartsWith(new byte[] { 0xEF, 0xBB, 0xBF })) return Encoding.UTF8.GetString(buffer, 3, count - 3);
-            if (bom.StartsWith(new byte[] { 0xFF, 0xFE })) return Encoding.Unicode.GetString(buffer, 2, count - 2);
-            if (bom.StartsWith(new byte[] { 0xFE, 0xFF })) return Encoding.BigEndianUnicode.GetString(buffer, 2, count - 2);
+            if (bom.StartsWith(new byte[] { 0xEF, 0xBB, 0xBF })) return (Encoding.UTF8, 3);
+            if (bom.StartsWith(new byte[] { 0xFF, 0xFE })) return (Encoding.Unicode, 2);
+            if (bom.StartsWith(new byte[] { 0xFE, 0xFF })) return (Encoding.BigEndianUnicode, 2);
 
             Encoding encoding = Encoding.UTF8;
             if (!string.IsNullOrWhiteSpace(charset))
@@ -382,7 +418,7 @@ namespace PingTool
                 catch (ArgumentException) { }   // a name we do not know: UTF-8, as before
             }
 
-            return encoding.GetString(buffer, 0, count);
+            return (encoding, 0);
         }
 
         // Through the operating system's resolver, so its cache applies: a name looked up a moment
