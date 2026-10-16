@@ -107,6 +107,10 @@ namespace PingTool
                 else
                 {
                     if (wasQuoted) problem ??= "there is text after the closing quote of a field (the line is damaged).";
+                    // RFC 4180: a field that does not begin with a quote cannot hold one. The writer (PingLog.Field) always quotes a field that
+                    // holds a quote, so one met here, in the middle of a field, is a line that was damaged or written by something else:
+                    // said, instead of taking it for a character of the host, the status or the detail.
+                    else if (c == '"') problem ??= "there is a quote in a field that does not begin with one (the line is damaged).";
                     field.Append(c);
                 }
 

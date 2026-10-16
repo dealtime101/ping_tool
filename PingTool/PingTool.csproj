@@ -452,8 +452,9 @@
          1.21.374 = the reason why network cards were left out comes back with the discovery that met it, not from a shared field (PIN507.128)
          1.21.375 = brackets in a tcp address are accepted for an IPv6 literal only, a name or an IPv4 address in them is refused with a message (PIN507.129)
          1.21.376 = the position of a fault in a profiles file is a column of characters, no longer a count of bytes (PIN507.130)
-         1.21.377 = the summary of a run without a window does not give the path of a report that could not be written (PIN507.134) -->
-    <Version>1.21.377</Version>
+         1.21.377 = the summary of a run without a window does not give the path of a report that could not be written (PIN507.134)
+         1.21.378 = a quote inside a field of a log that does not begin with one is said to be a damaged line, as text after a closing quote already was (PIN507.135) -->
+    <Version>1.21.378</Version>
   </PropertyGroup>
 
   <ItemGroup>
