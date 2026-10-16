@@ -183,7 +183,7 @@ namespace PingTool
                     {
                         FullMode = BoundedChannelFullMode.DropOldest,
                         SingleReader = true,
-                    }, _ =>
+                    }, evicted =>
                     {
                         // This runs on the thread that calls Send, the one that measures: it counts and nothing else. Telling the
                         // subscribers (a console, a window, a file) is done elsewhere, once for a burst of drops, with the count at that time.
