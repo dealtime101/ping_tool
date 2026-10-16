@@ -22,9 +22,11 @@ namespace PingTool
     //   https://example.com/#contains=a%20b&cert=7   both (spaces and special characters written %20 etc.)
     //   https://example.com/#status=200              the status must be exactly that (a 3xx or 4xx is then a success when it is the one expected)
     //   https://example.com/#final=example.com/home  the redirects are followed (5 at most) and the page reached must be at that host and path
-    //   https://example.com/api#json=status=ok       the body must be JSON holding that value at that dotted path (a.b.0.c); no =value means "present, not null"
+    //   dns://example.com#server=1.1.1.1,8.8.8.8     ask those resolvers (up to 4) at once and compare what they answer; also #type=AAAA|MX|NS|TXT|CNAME,
+    //                                                #same (a difference is a failure) and #change (a notice when the answer is not the previous one)
+    //   https://example.com/api#json=status=ok      the body must be JSON holding that value at that dotted path (a.b.0.c); no =value means "present, not null"
     internal sealed record ProbeTarget(ProbeKind Kind, string Host, int Port, Uri? Url, string? ExpectText = null, int CertWarnDays = ProbeTarget.DefaultCertWarnDays,
-        int? ExpectStatus = null, string? FinalUrl = null, JsonExpect? Json = null)
+        int? ExpectStatus = null, string? FinalUrl = null, JsonExpect? Json = null, DnsExpect? DnsOptions = null)
     {
         public const int DefaultCertWarnDays = 14;
         public const int MaxCertWarnDays = 365;
@@ -33,7 +35,7 @@ namespace PingTool
         public const string Help =
             "No prefix = ping.  tcp://host:port = open a TCP connection.  http://url or https://url = web request.  dns://name = name lookup.  " +
             "Web options after #, joined by &: #contains=text (the page must hold it; spaces as %20) and #cert=days (https only: warn that many days before the certificate ends, 0 = never), " +
-            "for example https://example.com/#contains=Welcome&cert=30. Also #status=200 (the exact status), #final=host/path (where the redirects must end) and #json=path=value (a value in a JSON body).";
+            "for example https://example.com/#contains=Welcome&cert=30. Also #status=200 (the exact status), #final=host/path (where the redirects must end) and #json=path=value (a value in a JSON body). dns://name takes #server=ip,ip (resolvers to compare), #type=AAAA|MX|NS|TXT|CNAME, #same and #change.";
 
         // The addresses a file or the command line gave, minus those the address box would refuse (a hand-edited
         // settings.json, a mistyped argument): the same rule as typing them, and the count says how many were left out.
@@ -115,7 +117,17 @@ namespace PingTool
                     return true;
 
                 case "dns":
-                    string name = rest.TrimEnd('/');
+                    // Options after #: dns://example.com#server=1.1.1.1,8.8.8.8&type=AAAA&same&change
+                    string name = rest;
+                    DnsExpect? dnsOptions = null;
+                    int hash = rest.IndexOf('#', StringComparison.Ordinal);
+                    if (hash >= 0)
+                    {
+                        name = rest[..hash];
+                        if (!TryDnsOptions(rest[(hash + 1)..], out dnsOptions, out error)) return false;
+                    }
+
+                    name = name.TrimEnd('/');
                     // Just a name: the rest of what a URL can carry (?query, #fragment, user@, spaces) is not part of it, and would be sent to
                     // the resolver as if it were. CheckHostName also refuses a leading dash or an empty label; internationalised names pass.
                     if (name.Length == 0 || name.Contains(':', StringComparison.Ordinal) || name.Contains('/', StringComparison.Ordinal)
@@ -133,7 +145,7 @@ namespace PingTool
                         return false;
                     }
 
-                    target = new ProbeTarget(ProbeKind.Dns, name, 0, null);
+                    target = new ProbeTarget(ProbeKind.Dns, name, 0, null, DnsOptions: dnsOptions);
                     return true;
 
                 default:
@@ -248,6 +260,70 @@ namespace PingTool
             }
 
             options = new HttpOptions(expect, certDays, status, final, json);
+            return true;
+        }
+
+        // #server=ip[,ip...] (up to 4 resolvers, IP addresses: a name would need a lookup itself), #type=A|AAAA|CNAME|MX|NS|TXT,
+        // #same (the resolvers must give the same answer: a difference is a failure, not just a notice) and #change (a notice when the
+        // answer is not the one of the previous probe). Each once; without #server the DNS servers of the active network card are asked.
+        private static bool TryDnsOptions(string text, out DnsExpect? options, out string error)
+        {
+            options = null;
+            error = "";
+            var servers = new List<IPAddress>();
+            string type = "A";
+            bool same = false, change = false;
+            var seen = new HashSet<string>();
+
+            foreach (string part in text.Split('&'))
+            {
+                int eq = part.IndexOf('=', StringComparison.Ordinal);
+                string key = (eq < 0 ? part : part[..eq]).ToLowerInvariant();
+                string value = eq < 0 ? "" : part[(eq + 1)..];
+                if (key is not ("server" or "type" or "same" or "change"))
+                {
+                    error = "Unknown option after # in the dns address: use #server=ip,ip, #type=A|AAAA|CNAME|MX|NS|TXT, #same and #change (separated by &), each once.";
+                    return false;
+                }
+
+                if (!seen.Add(key))
+                {
+                    error = $"#{key} is given twice in the dns address: use each option once.";
+                    return false;
+                }
+
+                if (key == "server")
+                {
+                    foreach (string s in value.Split(','))
+                    {
+                        if (!IPAddress.TryParse(s.Trim(), out var ip) || servers.Count == DnsExpect.MaxServers)
+                        {
+                            error = $"#server= needs 1 to {DnsExpect.MaxServers} IP addresses separated by commas (a name would need a lookup itself), for example dns://example.com#server=1.1.1.1,8.8.8.8";
+                            return false;
+                        }
+
+                        servers.Add(ip);
+                    }
+                }
+                else if (key == "type")
+                {
+                    type = value.ToUpperInvariant();
+                    if (!DnsExpect.Types.Contains(type))
+                    {
+                        error = "#type= needs A, AAAA, CNAME, MX, NS or TXT, for example dns://example.com#type=AAAA";
+                        return false;
+                    }
+                }
+                else if (value.Length > 0)
+                {
+                    error = $"#{key} takes no value: write it alone, for example dns://example.com#server=1.1.1.1,8.8.8.8&{key}";
+                    return false;
+                }
+                else if (key == "same") same = true;
+                else change = true;
+            }
+
+            options = new DnsExpect(servers, type, same, change);
             return true;
         }
 

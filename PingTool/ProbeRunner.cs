@@ -321,6 +321,8 @@ namespace PingTool
             using var deadline = CancellationTokenSource.CreateLinkedTokenSource(token);
             deadline.CancelAfter(timeoutMs);
 
+            if (t.DnsOptions is { } options) return await DnsCompareAsync(t, options, deadline.Token, token);
+
             var clock = Stopwatch.StartNew();
             var addresses = await Dns.GetHostAddressesAsync(t.Host, deadline.Token);
             long rtt = clock.ElapsedMilliseconds;
@@ -329,5 +331,69 @@ namespace PingTool
                 ? new ProbeOutcome(-1, new PingFailure("No host", "The name resolved to no address"), null)
                 : new ProbeOutcome(rtt, null, addresses[0]);
         }
+
+        // The last answer of each dns:// target with #change, to say when it is not the same.
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, string> LastAnswers = new();
+
+        // dns:// with options: every resolver is asked at once. A resolver that fails is a failure naming it (an error); resolvers that
+        // answer differently are a notice, or a failure with #same (a CDN answers differently from place to place, which is no fault);
+        // #change adds a notice when the answer is not the one of the previous probe. The time is the slowest resolver's. The messages
+        // give the records, which are public data, trimmed to a few.
+        private static async Task<ProbeOutcome> DnsCompareAsync(ProbeTarget t, DnsExpect options, CancellationToken token, CancellationToken user)
+        {
+            var servers = options.Servers.Count > 0 ? options.Servers : SystemDnsServers();
+            if (servers.Count == 0) return new ProbeOutcome(-1, new PingFailure("No resolver", "No DNS server is configured on the active network card; add #server=ip"), null);
+
+            var clock = Stopwatch.StartNew();
+            async Task<(IPAddress Server, DnsClient.Reply? Reply, string? Error, long Ms)> Ask(IPAddress server)
+            {
+                try
+                {
+                    var reply = await DnsClient.QueryAsync(t.Host, options.Type, server, token);
+                    string? error = reply.Rcode == 0 ? (reply.Records.Count == 0 ? $"no {options.Type} record" : null) : reply.Rcode == 3 ? "the name does not exist" : $"DNS error {reply.Rcode}";
+                    return (server, reply, error, clock.ElapsedMilliseconds);
+                }
+                catch (OperationCanceledException) { return (server, null, "no answer in time", clock.ElapsedMilliseconds); }
+                catch (SocketException ex) { return (server, null, ex.SocketErrorCode.ToString(), clock.ElapsedMilliseconds); }
+            }
+
+            var asked = await Task.WhenAll(servers.Select(Ask));
+            user.ThrowIfCancellationRequested();
+
+            var failed = asked.Where(a => a.Error is not null).ToList();
+            if (failed.Count > 0)
+                return new ProbeOutcome(-1, new PingFailure("Resolver", string.Join("; ", failed.Select(a => $"{a.Server}: {a.Error}")) +
+                    (failed.Count < asked.Length ? $" ({asked.Length - failed.Count} of {asked.Length} resolvers answered)" : "")), null);
+
+            static string Set(IEnumerable<string> records) { var all = records.Order(StringComparer.Ordinal).ToList(); return string.Join(", ", all.Take(4)) + (all.Count > 4 ? $" (+{all.Count - 4})" : ""); }
+            var sets = asked.Select(a => (a.Server, Text: Set(a.Reply!.Records))).ToList();
+            IPAddress? first = asked[0].Reply!.Records.Select(r => IPAddress.TryParse(r, out var ip) ? ip : null).FirstOrDefault(ip => ip is not null);
+            long slowest = asked.Max(a => a.Ms);
+
+            string? warning = null;
+            if (sets.Select(s => s.Text).Distinct().Count() > 1)
+            {
+                string detail = "the resolvers answer differently: " + string.Join("; ", sets.Select(s => $"{s.Server} gives {s.Text}"));
+                if (options.MustMatch) return new ProbeOutcome(-1, new PingFailure("Different", $"{t.Host} {options.Type}: {detail}"), first);
+                warning = $"{t.Host} {options.Type}: {detail}";
+            }
+
+            if (options.WatchChange)
+            {
+                string key = t.Host + "|" + options.Type + "|" + string.Join(",", servers), now = string.Join(" | ", sets.Select(s => s.Text).Distinct());
+                if (LastAnswers.TryGetValue(key, out string? before) && before != now)
+                    warning = (warning is null ? "" : warning + ". ") + $"{t.Host} {options.Type}: the answer changed, from {before} to {now}";
+                LastAnswers[key] = now;
+            }
+
+            return new ProbeOutcome(slowest, null, first, Warning: warning);
+        }
+
+        // The DNS servers of the first network card that is up and has any.
+        private static List<IPAddress> SystemDnsServers() =>
+            System.Net.NetworkInformation.NetworkInterface.GetAllNetworkInterfaces()
+                .Where(n => n.OperationalStatus == System.Net.NetworkInformation.OperationalStatus.Up && n.NetworkInterfaceType != System.Net.NetworkInformation.NetworkInterfaceType.Loopback)
+                .Select(n => n.GetIPProperties().DnsAddresses.Where(a => !a.IsIPv6LinkLocal && !a.IsIPv6SiteLocal).Take(DnsExpect.MaxServers).ToList())
+                .FirstOrDefault(l => l.Count > 0) ?? new List<IPAddress>();
     }
 }
