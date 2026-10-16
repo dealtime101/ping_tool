@@ -30,7 +30,10 @@ namespace PingTool
             // UseMnemonic = false: an address is shown as it is. With the default, the "&" of a URL (?a=1&b=2) is taken for the mark of a keyboard
             // shortcut and dropped, so the target does not read as the one the person chose.
             Controls.Add(new Label { Text = address, UseMnemonic = false, ForeColor = Color.Silver, AutoSize = false, AutoEllipsis = true, Location = new Point(12, 10), Size = new Size(356, 18), AccessibleName = "Address of the target: " + address });
-            // The & makes the next letter an access key (Alt+N, Alt+S, Alt+L, Alt+D): a label takes the focus to the box that follows it.
+            // The & makes the next letter an access key. Two kinds, and they do not do the same: Alt+N (name) and Alt+V (service) belong to
+            // a LABEL, which takes the focus to the box that follows it; Alt+S, Alt+L and Alt+D (the three limits) belong to the CHECK BOX
+            // "own value" of the row (see Row), so the key ticks or unticks it, which enables the number beside it (the own value is kept in
+            // memory while unticked, so pressing it twice loses nothing). Five different letters, so that no key means two things.
             Controls.Add(new Label { Text = "&Name (shown in the list, the alerts and the report)", ForeColor = Color.White, AutoSize = true, Location = new Point(12, 36) });
             label = new TextBox
             {
