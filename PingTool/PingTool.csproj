@@ -551,8 +551,9 @@
          1.21.473 = a slowdown with no average (not one reply in the window) says "no reply" in the list of incidents and in the report, as the alert does, and no longer "avg - ms" (PIN507.330)
          1.21.474 = an empty segment after the # of a web or dns address (a & at the end, two in a row) is no longer taken for an unknown option (PIN507.331)
          1.21.475 = no source holds an invisible character any more: the joiner of the emoji in a comment of Profile and the byte order mark in a literal of the log reader are written in words and by their number (PIN507.332)
-         1.21.476 = the replay sorts the pings by time with the stable sort of LINQ alone, no index carried along to keep the order of one instant (PIN507.333) -->
-    <Version>1.21.476</Version>
+         1.21.476 = the replay sorts the pings by time with the stable sort of LINQ alone, no index carried along to keep the order of one instant (PIN507.333)
+         1.21.477 = the two ping statuses that are not ICMP messages, hardware error and unknown, are told as what they are and no longer as "ICMP error" (PIN507.334) -->
+    <Version>1.21.477</Version>
   </PropertyGroup>
 
   <ItemGroup>

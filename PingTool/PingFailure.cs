@@ -37,6 +37,10 @@ namespace PingTool
             // Source Quench can come from ANY router on the way, not only from the host that was pinged.
             // It is also obsolete (RFC 6633): seeing it at all is unusual.
             IPStatus.SourceQuench => new("Busy", "A router on the path, or the destination, asked the sender to slow down (ICMP source quench, obsolete). The host you pinged is not necessarily the one that asked."),
+            // These two are not ICMP messages from the network: the system reports them about the probe itself. Called "ICMP error" they
+            // would send the person to look at the network for what the computer says about its own adapter, or says nothing about.
+            IPStatus.HardwareError => new("HW error", "The system reported a hardware error for the probe (the network adapter or its driver): this is not an answer from the network."),
+            IPStatus.Unknown => new("Unknown", "The system gave no reason for the failure of the probe (status Unknown): this is not an answer from the network."),
             _ => new("Error", "ICMP error: " + status),
         };
 
