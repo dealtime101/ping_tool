@@ -1166,7 +1166,7 @@ namespace PingTool
         }
 
         // A report for someone who does not have PingTool: one self-contained HTML file.
-        private void btnReport_Click(object? sender, EventArgs e)
+        private async void btnReport_Click(object? sender, EventArgs e)
         {
             if (sessions.All(s => s.Last is null))
             {
@@ -1199,19 +1199,34 @@ namespace PingTool
             };
             if (dialog.ShowDialog(this) != DialogResult.OK) return;
 
+            // The pings are copied here, on the window's thread (they are still being added to); building the file and writing it - to a
+            // network share that is slow or gone, it can take a long time - runs on another thread, so the window answers and the probes
+            // go on being timed meanwhile. The button is off until it is over, so that two reports do not run at once.
+            var measures = ReportAnonymizer.MaskEntries(masked, log.Entries);   // a new list, whatever happens to the log meanwhile
+            long dropped = log.Dropped;
+            string target = dialog.FileName;
+            bool archive = dialog.FilterIndex == 2;
+            btnReport.Enabled = false;
+            Cursor = Cursors.WaitCursor;
             try
             {
-                string saved = ReportArchive.Save(dialog.FileName, dialog.FilterIndex == 2, masked.Data, ReportAnonymizer.MaskEntries(masked, log.Entries), log.Dropped);
+                string saved = await Task.Run(() => ReportArchive.Save(target, archive, masked.Data, measures, dropped));
+                if (closing || IsDisposed) return;
+
                 ReportMaskingForm.ShowKey(this, masked.Key);
                 FileOpener.OfferToOpen(this, "The report", saved);   // where it is, and the offer to open it
             }
-            catch (IOException ex)
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
-                MessageBox.Show("Could not write the file: " + ex.Message, "PingTool");
+                if (!closing && !IsDisposed) MessageBox.Show("Could not write the file: " + ex.Message, "PingTool");
             }
-            catch (UnauthorizedAccessException ex)
+            finally
             {
-                MessageBox.Show("Could not write the file: " + ex.Message, "PingTool");
+                if (!IsDisposed)
+                {
+                    Cursor = Cursors.Default;
+                    btnReport.Enabled = true;
+                }
             }
         }
 

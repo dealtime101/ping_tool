@@ -411,8 +411,9 @@
          1.21.333 = a timeline plot that is 0 pixels wide no longer throws when a network change falls in its range (PIN507.66)
          1.21.334 = the final report of a headless run that cannot be written is always told on the error output, even when a checkpoint of the night already was (PIN507.70)
          1.21.335 = a settings file that holds just null is kept aside and said, like any file that is not settings (PIN507.77)
-         1.21.336 = started minimized, the warnings of the launch (a settings file that could not be read, addresses left out, no gateway) all go in one balloon (PIN507.81) -->
-    <Version>1.21.336</Version>
+         1.21.336 = started minimized, the warnings of the launch (a settings file that could not be read, addresses left out, no gateway) all go in one balloon (PIN507.81)
+         1.21.337 = the report of the window is built and written off the window's thread, so a slow share no longer freezes the window or the timing of the probes (PIN507.82) -->
+    <Version>1.21.337</Version>
   </PropertyGroup>
 
   <ItemGroup>
