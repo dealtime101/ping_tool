@@ -194,8 +194,9 @@ namespace PingTool
         private readonly IReadOnlyList<Incident> incidents;
         private readonly ComboBox hostBox = new() { DropDownStyle = ComboBoxStyle.DropDownList, Location = new Point(10, 10), Size = new Size(260, 23), AccessibleName = Loc.T("timeline.target") };
         private readonly TimelineChart chart = new() { Location = new Point(10, 42), Size = new Size(740, 246), AccessibleName = Loc.T("timeline.chart"), Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right };
-        // The summary (up to four lines with the peak and the incidents, the network changes and, when the log let pings go, the note about it):
-        // this size is only where it starts, LayoutBottom gives it the height its text needs.
+        // The summary, up to six lines: the four of Timeline.Describe (the figures of the session, the slowest period, the worst loss, the peak
+        // when it is above the scale), then the network changes of this PC and, when the log let pings go, the note about it. This size is only
+        // where it starts, LayoutBottom gives it the height its text needs.
         private readonly Label summary = new() { UseMnemonic = false, ForeColor = Color.White, AutoSize = false, Location = new Point(10, 294), Size = new Size(740, 106), Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right };
 
         // A distance written for 96 DPI, in the pixels of this window's screen.
