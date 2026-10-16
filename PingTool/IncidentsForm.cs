@@ -78,6 +78,14 @@ namespace PingTool
                 (sortColumn, ascending) = IncidentOrder.Click(sortColumn, ascending, column);
                 list.ListViewItemSorter = new ItemSorter(sortColumn, ascending, now);
                 list.Sort();
+                // The selected incident (its route is shown below) keeps its place in the list's view: a sort can send its row out of sight, and
+                // a person at the keyboard or with a screen reader would no longer see which incident the detail is about.
+                if (list.SelectedItems.Count > 0)
+                {
+                    var selected = list.SelectedItems[0];
+                    selected.EnsureVisible();
+                    list.FocusedItem = selected;
+                }
                 for (int c = 0; c < titles.Length; c++) list.Columns[c].Text = titles[c] + (c == sortColumn ? (ascending ? " ▲" : " ▼") : "");
 
                 // The arrow is part of the title: a narrow column ("Failed", "#") that held the title with no room to spare would cut it with
