@@ -11,17 +11,22 @@ namespace PingTool
         public const int MaxEntries = 100_000;
         private static readonly char[] CsvSpecials = { ',', '"', '\r', '\n' };
         private readonly Queue<LogEntry> entries = new();
+        private long dropped;
 
-        public int Count => entries.Count;
+        // Every use of the queue and of the count of those let go is under the lock of `entries`. Today the window's thread is the only one
+        // that uses the log (the answers of the probes come back to it), which is a fact about the callers and not a guarantee: a queue
+        // that is changed while another thread copies or walks it throws, or hands out a copy that is not one, and the count and the queue
+        // would no longer go together. The lock is held for the length of one enqueue, one copy: never while a file is written.
+        public int Count { get { lock (entries) return entries.Count; } }
 
         // Oldest first, as it is NOW: a copy, so that nothing handed out can be cast back to the queue and changed behind Add and Clear
         // (the cap and Dropped would no longer say what the log holds), and a window that keeps it while pings go on sees a fixed
         // log, as its comment says. Each call copies: take it once, not once per item.
-        public IReadOnlyCollection<LogEntry> Entries => entries.ToArray();
+        public IReadOnlyCollection<LogEntry> Entries { get { lock (entries) return entries.ToArray(); } }
 
         // How many of the oldest entries were let go since the last Clear, to say so instead of letting
         // an export or a timeline pass for the whole session.
-        public long Dropped { get; private set; }
+        public long Dropped { get { lock (entries) return dropped; } }
 
         // In the language of the window (Loc), the numbers in the regional format.
         public string? DroppedNote => Dropped == 0 ? null : Loc.T("log.dropped",
@@ -29,19 +34,25 @@ namespace PingTool
 
         public void Clear()
         {
-            entries.Clear();
-            Dropped = 0;
+            lock (entries)
+            {
+                entries.Clear();
+                dropped = 0;
+            }
         }
 
         // Returns the entry, so the automatic log writes exactly what the in-memory log holds.
         public LogEntry Add(DateTimeOffset time, string host, string status, long? rttMs, string detail = "")
         {
             var entry = new LogEntry(time, host, status, rttMs, detail);
-            entries.Enqueue(entry);
-            while (entries.Count > MaxEntries)
+            lock (entries)
             {
-                entries.Dequeue();
-                Dropped++;
+                entries.Enqueue(entry);
+                while (entries.Count > MaxEntries)
+                {
+                    entries.Dequeue();
+                    dropped++;
+                }
             }
 
             return entry;
@@ -54,15 +65,20 @@ namespace PingTool
             // One picture of the log for the whole file, taken now: the entries and the count of those let go go together (the remark under
             // the header must say how many are missing from THESE rows), and the queue is not walked while a slow writer is at work, where a
             // ping added meanwhile would end the walk with an exception, in the middle of the file.
-            var snapshot = entries.ToArray();
-            long dropped = Dropped;
+            LogEntry[] snapshot; long letGo;
+            lock (entries)   // both in one look: the entries and the count of those let go are of the same moment
+            {
+                snapshot = entries.ToArray();
+                letGo = dropped;
+            }
+
             // CR LF written explicitly: the writer belongs to the caller, whose own line ending is none of our business.
             writer.Write(CsvHeader + "\r\n");
             // A log that let its oldest pings go says so IN the file (the window said it once, to whoever exported): whoever receives
             // the file cannot tell a whole session from the end of one. A row under the header with the same five columns, the remark in
             // the first and the other four empty, which the reader skips (PingLogReader.CommentMark) and a spreadsheet shows as a line of
             // text; a tool that wants as many fields in every row as the header has them finds them.
-            if (dropped > 0) writer.Write(IncompleteRow(dropped) + "\r\n");
+            if (letGo > 0) writer.Write(IncompleteRow(letGo) + "\r\n");
             foreach (var e in snapshot) writer.Write(CsvLine(e) + "\r\n");
         }
 
