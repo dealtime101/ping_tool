@@ -58,7 +58,9 @@ namespace PingTool
             // "3 perdus": the agreement follows the number LOST, not the number of pings, see Loc.Lost); one ping and several pings are two sentences
             ["graph.line.one"] = ("{0}: {1}{2}, {3} of the last {4} ping lost{5}", "{0} : {1}{2}, {3} perdu sur {4} ping{5}"),
             ["graph.line.many"] = ("{0}: {1}{2}, {3} of the last {4} pings lost{5}", "{0} : {1}{2}, {6} sur les {4} derniers pings{5}"),
-            ["graph.trend"] = ("; over the window, oldest first: {0}", " ; sur la fenêtre, du plus ancien au plus récent : {0}"),
+            // {1} = how many pings the graph holds: the trend is the curve as DRAWN, which is longer than the "last 60" of the figures before it,
+            // and a listener who adds up the losses of the stretches must not expect the total of those.
+            ["graph.trend"] = ("; over the {1} pings of the graph, oldest first: {0}", " ; sur les {1} pings du graphe, du plus ancien au plus récent : {0}"),
             ["graph.trend.part"] = ("{0}, {1}", "{0}, {1}"),   // {1} is a count.lost phrase; a comma between the two figures, so that a screen reader does not run them together
             ["graph.trend.nodata"] = ("not measured", "non mesuré"),   // a stretch of the window in which no ping was made (a silence)
             ["graph.noreply"] = ("no reply", "aucune réponse"),

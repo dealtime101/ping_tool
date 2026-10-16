@@ -41,7 +41,9 @@ namespace PingTool
 
         public const int TrendParts = 4;
 
-        // "; over the window, oldest first: 21 ms 0 lost / 22 ms 0 lost / 95 ms 3 lost / 40 ms 1 lost": what the line of the graph shows.
+        // "; over the 180 pings of the graph, oldest first: 21 ms, 0 lost / 22 ms, 0 lost / 95 ms, 3 lost / 40 ms, 1 lost": what the line of the
+        // graph shows, ALL of it (the figures before it are those of the last RecentStats.Window pings, and say so: the two are not the same
+        // pings, and the sentence says how many these are).
         // Nothing when there are too few pings to cut into at least two parts of two.
         // times (when each ping was made, the same order and count): the graph then places the pings by WHEN they were made, so the window is
         // cut into equal stretches of TIME, from the first ping to the last, and a stretch where nothing was measured says so (a silence is a
@@ -76,7 +78,7 @@ namespace PingTool
                 texts.Add(Loc.T("graph.trend.part", avg, Loc.Lost(slice.Count - replies.Count)));
             }
 
-            return Loc.T("graph.trend", string.Join(" / ", texts));
+            return Loc.T("graph.trend", string.Join(" / ", texts), list.Count.ToString(c));
         }
     }
 }
