@@ -108,7 +108,10 @@ namespace PingTool
 
                 long replies = sent - lost;
                 string avg = replies == 0 ? "-" : (group.Where(b => b.AvgMs is not null).Sum(b => b.AvgMs!.Value * (b.Sent - b.Lost)) / replies).ToString("0.#", c);
-                parts.Add(Loc.T("timeline.period", group[0].Start.ToLocalTime().ToString(format, c), avg, (100.0 * lost / sent).ToString("0.#", c)));
+                // "1 % perdu", "0,5 % perdu", "2 % perdus": the agreement follows the number as it is written (the same threshold as Loc.Lost).
+                string percent = (100.0 * lost / sent).ToString("0.#", c);
+                bool plural = double.Parse(percent, c) >= 2;
+                parts.Add(Loc.T(plural ? "timeline.period" : "timeline.period.one", group[0].Start.ToLocalTime().ToString(format, c), avg, percent));
             }
 
             return parts.Count == 0 ? null : Loc.T("timeline.periods", string.Join("; ", parts));
