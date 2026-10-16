@@ -221,7 +221,10 @@ namespace PingTool
                 foreach (var i in d.Incidents)
                 {
                     bool outage = i.Kind == IncidentKind.Outage;
-                    string detail = outage ? i.Cause : $"{Availability.FormatLoss(i.LossPercent, c)}% loss, average {N(i.AvgMs)} ms";
+                    // No average = not one reply in the window of the monitor: said, not "average - ms".
+                    string detail = outage ? i.Cause
+                        : i.AvgMs is null ? $"{Availability.FormatLoss(i.LossPercent, c)}% loss, no reply in the last {HostMonitor.WindowSize} pings"
+                        : $"{Availability.FormatLoss(i.LossPercent, c)}% loss, average {N(i.AvgMs)} ms";
                     h.AppendLine(c, $"<tr><td>{WhoHost(i.Host)}</td><td>{(outage ? "Outage" : "Slowdown")}</td><td>{E(T(i.Start))}</td>"
                         + $"<td>{(i.End is null ? "ongoing" : E(T(i.End.Value)))}</td><td>{E(IncidentLog.FormatDuration(i.Duration(end)))}</td>"
                         + $"<td class=\"n\">{(outage ? i.FailedPings.ToString(c) : "-")}</td><td>{E(detail + (i.Planned ? " (planned maintenance)" : ""))}</td><td class=\"n\">{i.Occurrence.ToString(c)}</td></tr>");

@@ -205,9 +205,13 @@ namespace PingTool
         }
 
         // The "Cause / detail" of an incident, as the list shows it: an outage's cause, or what a slowdown measured.
+        // A slowdown with no average (not one reply in the window: a run of losses shorter than "Down after" is a degraded state and not yet
+        // an outage) says so, as the alert does, and does not print "avg - ms", which reads like a measure that is missing from the display.
         public static string CauseText(Incident i, CultureInfo c) => i.Kind == IncidentKind.Outage
             ? i.Cause
-            : string.Format(c, "{0}% loss, avg {1} ms", Availability.FormatLoss(i.LossPercent, c), i.AvgMs?.ToString("0.#", c) ?? "-");
+            : i.AvgMs is double avg
+                ? string.Format(c, "{0}% loss, avg {1} ms", Availability.FormatLoss(i.LossPercent, c), avg.ToString("0.#", c))
+                : string.Format(c, "{0}% loss, no reply", Availability.FormatLoss(i.LossPercent, c));
 
         // The same, whole, as the first line of the details of the selected incident: the column can be too narrow for it.
         public static string DetailLine(Incident i, CultureInfo c) => i.Kind == IncidentKind.Outage
