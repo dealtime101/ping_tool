@@ -120,19 +120,30 @@ namespace PingTool
                         entry = RepeatNote(repeats);
                     }
 
-                    Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-                    // Moving the old file aside is housekeeping: if it fails (crash.log.1 held by an editor or an antivirus), the entry is written
-                    // all the same, the file just goes over MaxBytes this once. The entry is the one thing this method is for.
+                    bool reached = false;
                     try
                     {
-                        if (File.Exists(path) && NeedsRotation(new FileInfo(path).Length, Encoding.UTF8.GetByteCount(entry))) File.Move(path, path + ".1", overwrite: true);
-                    }
-                    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException or ArgumentException)
-                    {
-                        System.Diagnostics.Debug.WriteLine("crash.log could not be rotated: " + ex.Message);
-                    }
+                        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+                        // Moving the old file aside is housekeeping: if it fails (crash.log.1 held by an editor or an antivirus), the entry is written
+                        // all the same, the file just goes over MaxBytes this once. The entry is the one thing this method is for.
+                        try
+                        {
+                            if (File.Exists(path) && NeedsRotation(new FileInfo(path).Length, Encoding.UTF8.GetByteCount(entry))) File.Move(path, path + ".1", overwrite: true);
+                        }
+                        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException or ArgumentException)
+                        {
+                            System.Diagnostics.Debug.WriteLine("crash.log could not be rotated: " + ex.Message);
+                        }
 
-                    (write ?? ((p, text) => File.AppendAllText(p, text, new UTF8Encoding(false))))(path, entry);
+                        (write ?? ((p, text) => File.AppendAllText(p, text, new UTF8Encoding(false))))(path, entry);
+                        reached = true;
+                    }
+                    finally
+                    {
+                        // The note of a milestone did not reach the file: the count goes back, so that the next occurrence is the same
+                        // milestone again and tries once more, not an ordinary repeat that is counted and never written.
+                        if (!reached && repeat) repeats--;
+                    }
 
                     // Only an entry that REACHED the file is the one the repeats refer to: after a failed write the next one must be written.
                     if (!repeat)
