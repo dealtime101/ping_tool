@@ -121,7 +121,7 @@ namespace PingTool
             if (d.Diagnosis is null)
                 h.AppendLine("<p>Not enough targets to compare yet: at least two must have been pinged.</p>");
             else
-                h.AppendLine(c, $"<p class=\"box{(d.Hosts.All(x => x.State == HostState.Up) ? " ok" : "")}\">{E(d.Diagnosis)}</p>");
+                h.AppendLine(c, $"<p class=\"box{(d.Hosts.All(x => x.State == HostState.Up) ? " ok" : "")}\">{E(d.Diagnosis).Replace("\n", "<br />", StringComparison.Ordinal)}</p>");
 
             h.AppendLine("<h2>Targets</h2>");
             h.AppendLine("<table><tr><th>Target</th><th>Address</th><th>State</th><th>Sent</th><th>Lost</th><th>Loss %</th>"

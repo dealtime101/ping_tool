@@ -362,8 +362,9 @@
          1.21.284 = before a report is saved, a box asks what to hide from its reader (target names and addresses, IP addresses, network card names, computer name): one pseudonym per thing, used everywhere, said in the report; the key is shown to the sender only (PIN507.1)
          1.21.285 = the save box offers an archive (zip) of the report, the measures and the probe settings, under the same pseudonyms (PIN507.1)
          1.21.286 = a Preview button in the hiding box shows the report in the browser before saving, and the hide option masks the command-line report the same way (PIN507.1)
-         1.21.287 = the Wi-Fi is read every 5 s through the Windows WLAN service: connection, disconnection, a move to another network or to another access point of the same one, and a weak signal join the network events, and the hiding box masks the network names and access points (PIN507.2) -->
-    <Version>1.21.287</Version>
+         1.21.287 = the Wi-Fi is read every 5 s through the Windows WLAN service: connection, disconnection, a move to another network or to another access point of the same one, and a weak signal join the network events, and the hiding box masks the network names and access points (PIN507.2)
+         1.21.288 = targets with the same host name are read together as one service: the diagnosis says what DNS, ping, port and web probes of it suggest, as hints (PIN507.3) -->
+    <Version>1.21.288</Version>
   </PropertyGroup>
 
   <ItemGroup>

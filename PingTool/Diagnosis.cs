@@ -7,7 +7,10 @@ namespace PingTool
     // What the comparison needs to know about one monitored host.
     // OnLink: the address is in the network of one of this PC's own cards (same prefix): it is reached without the Internet even when
     // its address is a global one (a LAN machine with a global IPv6 address, a public IPv4 range handed out on the LAN).
-    internal sealed record Target(string Name, IPAddress? Ip, HostState State, bool HasData, bool OnLink = false);
+    // Kind, Host, Port: what the target is probed with and where (see ServiceDiagnosis: targets of one host name are one service seen from
+    // different sides). Host is empty when it is not known.
+    internal sealed record Target(string Name, IPAddress? Ip, HostState State, bool HasData, bool OnLink = false,
+        ProbeKind Kind = ProbeKind.Icmp, string Host = "", int Port = 0);
 
     // The networks this PC is directly attached to, read from its cards (address and prefix length), kept for a while: the diagnosis is
     // asked for at every refresh and the cards do not change that often.
@@ -110,8 +113,22 @@ namespace PingTool
             return ip.IsIPv6LinkLocal || ip.IsIPv6UniqueLocal;
         }
 
-        // null = nothing useful to say (fewer than two targets have answered or timed out yet).
+        // null = nothing useful to say (fewer than two targets have answered or timed out yet). The comparison of all the targets, then, on
+        // their own lines, what the probes of one service (the targets of one host name) say side by side (see ServiceDiagnosis).
         public static string? For(IReadOnlyList<Target> all)
+        {
+            string? general = Compare(all);
+            if (general is null) return null;
+
+            var services = ServiceDiagnosis.For(all);
+            if (services.Count == 0) return general;
+
+            var shown = services.Take(ServiceDiagnosis.MaxServices).ToList();
+            if (services.Count > shown.Count) shown.Add($"(+{services.Count - shown.Count} more services)");
+            return general + "\n" + string.Join("\n", shown);
+        }
+
+        private static string? Compare(IReadOnlyList<Target> all)
         {
             // A loopback target (127.0.0.1, ::1) answers from this PC's own stack whatever its network card does: it proves nothing about
             // the link, the router or the Internet, and would make "Local targets answer" true with the cable unplugged. It is left

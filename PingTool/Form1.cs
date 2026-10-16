@@ -1356,6 +1356,7 @@ namespace PingTool
         private void RenderDiagnosis()
         {
             lblDiagnosis.Text = Diagnosis.For(sessions.Select(s => s.ToTarget()).ToList()) ?? "";
+            toolTip.SetToolTip(lblDiagnosis, lblDiagnosis.Text);   // the box is small: with the lines about a service, the whole text comes up here
             lblDiagnosis.ForeColor = sessions.Any(s => s.Monitor.State != HostState.Up) ? UiColors.SmallTextRed : Color.Silver;
         }
 
