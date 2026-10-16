@@ -20,7 +20,9 @@ namespace PingTool
         // Highlight is the background of a selection and GrayText the colour of a disabled text: a theme is not bound to make either of them
         // readable on its window (a custom one may not), so a colour that does not contrast enough with the window gives way to the text colour,
         // and the pattern of the line (Dash) keeps the lines apart.
-        public Color Series(int index, Color own) => !highContrast ? own : (index % HighContrastColours) switch
+        // A negative index is held to 0, as Dash holds it: the remainder of a negative number is negative and fell to the last colour (GrayText)
+        // while Dash gave a solid line, a colour and a pattern that belonged to no rank.
+        public Color Series(int index, Color own) => !highContrast ? own : (Math.Max(0, index) % HighContrastColours) switch
         {
             0 => SystemColors.WindowText,
             1 => Readable(SystemColors.HotTrack, SystemColors.WindowText, SystemColors.Window),
