@@ -320,6 +320,7 @@ namespace PingTool
             numSlow.Value = Math.Clamp(settings.DegradedLatencyMs, (int)numSlow.Minimum, (int)numSlow.Maximum);
             numLoss.Value = Math.Clamp(settings.DegradedLossPercent, (int)numLoss.Minimum, (int)numLoss.Maximum);
             numMos.Value = (decimal)Limits.ClampMos(settings.DegradedMos);
+            alertGrouper.WindowSeconds = settings.AlertGroupSeconds;
             toolTip.SetToolTip(numMos, "A host also counts as degraded when the voice quality (MOS, 1 to 4.5) of its last 10 pings falls below this. 0 = not used. About 4 is good, under 3.6 callers notice.");
             numDownAfter.Value = Math.Clamp(settings.DownAfter, (int)numDownAfter.Minimum, (int)numDownAfter.Maximum);
             chkAlert.Checked = settings.Alert;
@@ -1425,8 +1426,33 @@ namespace PingTool
 
             var monitor = session.Monitor;
             string text = AlertMessage.For(session.DisplayName, change, monitor.WindowLossPercent, monitor.WindowAvgMs, outage, monitor.Voice);
-            webhooks?.Send(new WebhookEvent(session.Address, change, text, outage, DateTimeOffset.Now));
-            var (sound, icon) = change switch
+            var alert = new HeldAlert(session.Address, session.DisplayName, change, text, outage, DateTimeOffset.Now);
+
+            // The optional grouping: down and up alerts wait for the window to close, then go out as one (see AlertGrouper).
+            if (alertGrouper.Hold(alert, out bool first))
+            {
+                if (first)
+                    Task.Delay(TimeSpan.FromSeconds(alertGrouper.WindowSeconds)).ContinueWith(_ => PostToWindow(() => FlushAlerts(change)), TaskScheduler.Default);
+                return;
+            }
+
+            Deliver(alert);
+        }
+
+        private void FlushAlerts(HostChange change)
+        {
+            var items = alertGrouper.Take(change);
+            if (items.Count == 0 || !chkAlert.Checked) return;
+            if (items.Count == 1) { Deliver(items[0]); return; }
+
+            // The summary goes to the webhooks as a notice for the whole group: the host field is the first address, as in a notice.
+            Deliver(new HeldAlert(items[0].Address, "", change, AlertGrouper.Summary(items), null, DateTimeOffset.Now), summary: true);
+        }
+
+        private void Deliver(HeldAlert alert, bool summary = false)
+        {
+            webhooks?.Send(new WebhookEvent(alert.Address, summary ? HostChange.Notice : alert.Change, alert.Text, alert.Outage, alert.Time));
+            var (sound, icon) = alert.Change switch
             {
                 HostChange.Down => (System.Media.SystemSounds.Hand, ToolTipIcon.Error),
                 HostChange.Degraded => (System.Media.SystemSounds.Exclamation, ToolTipIcon.Warning),
@@ -1434,8 +1460,10 @@ namespace PingTool
             };
 
             sound.Play();
-            ShowBalloon(text, icon);
+            ShowBalloon(alert.Text, icon);
         }
+
+        private readonly AlertGrouper alertGrouper = new();
 
         // These two events come from a system thread: the window is only touched through BeginInvoke.
         private void OnNetworkAddressChanged(object? sender, EventArgs e) => NetworkSignal();

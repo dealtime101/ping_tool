@@ -71,6 +71,9 @@ namespace PingTool
         public int DegradedLossPercent { get; set; } = 30;
         // Also degraded when the voice quality (MOS, see RecentStats) of the last 10 pings falls below this; 0 = not used.
         public double DegradedMos { get; set; }
+        // Several targets going down (or coming back) within this many seconds are told as ONE alert (see AlertGrouper); 0 = each on its own.
+        // Edited in settings.json.
+        public int AlertGroupSeconds { get; set; }
         public int DownAfter { get; set; } = HostMonitor.DefaultDownAfter;
 
         // A readable name and limits of their own for some targets, by address (see TargetOptions).
@@ -186,6 +189,7 @@ namespace PingTool
             DegradedLatencyMs = Limits.Clamp(DegradedLatencyMs, Limits.DegradedLatencyMs);
             DegradedLossPercent = Limits.Clamp(DegradedLossPercent, Limits.DegradedLossPercent);
             DegradedMos = Limits.ClampMos(DegradedMos);
+            AlertGroupSeconds = Math.Clamp(AlertGroupSeconds, 0, AlertGrouper.MaxSeconds);
             DownAfter = Limits.Clamp(DownAfter, Limits.DownAfter);
 
             Address = (Address ?? "").Trim();
