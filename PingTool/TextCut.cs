@@ -26,17 +26,25 @@ namespace PingTool
 
         // The text as it is when `fits` says so, else its longest beginning that fits with an ellipsis, a character at a time (never half
         // of one). "…" alone when not even a character and the ellipsis fit. A beginning shorter than two units is not offered.
+        // `fits` is asked about O(log n) beginnings, not one per character: measuring a text is what costs (a GDI+ call), and the
+        // legend of the graph does it at every paint. A longer beginning is never narrower, so the longest one that fits is found by
+        // halving; what is returned has always been checked.
         internal static string Ellipsize(string text, Func<string, bool> fits)
         {
             if (fits(text)) return text;
             var starts = StringInfo.ParseCombiningCharacters(text);
-            for (int i = starts.Length - 1; i >= 1 && starts[i] > 1; i--)
+            int lo = 1, hi = starts.Length - 1;   // the boundaries still possible, by index into starts
+            while (lo <= hi && starts[lo] <= 1) lo++;
+            string best = "…";
+            while (lo <= hi)
             {
-                string cut = text[..starts[i]] + "…";
-                if (fits(cut)) return cut;
+                int mid = lo + (hi - lo) / 2;
+                string cut = text[..starts[mid]] + "…";
+                if (fits(cut)) { best = cut; lo = mid + 1; }
+                else hi = mid - 1;
             }
 
-            return "…";
+            return best;
         }
     }
 }
