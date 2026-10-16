@@ -52,9 +52,11 @@ namespace PingTool
         {
             clock ??= () => DateTimeOffset.Now;
             // The same ceiling as the command line (30 days). Past it, or below zero, the timer of the run would throw its own raw
-            // "Parameter 'delay'" error: a clear message in the same family as the one for the targets instead.
-            if (duration < TimeSpan.Zero || duration > StartupOptions.MaxDuration)
-                throw new ArgumentException($"The duration must not be negative or longer than {(int)StartupOptions.MaxDuration.TotalDays} days.");
+            // "Parameter 'delay'" error: a clear message in the same family as the one for the targets instead. Zero is refused too: the run
+            // would be cancelled before the first probe and end as "No probe was made", with nothing to say that the duration was why (the
+            // command line asks for 5 seconds at least, see StartupOptions.MinDuration; this door only needs a duration that lets a probe be made).
+            if (duration <= TimeSpan.Zero || duration > StartupOptions.MaxDuration)
+                throw new ArgumentException($"The duration must be longer than zero and no longer than {(int)StartupOptions.MaxDuration.TotalDays} days.");
 
             var targets = new List<(string Address, ProbeTarget Target)>();
             foreach (string address in addresses.Distinct(TargetKey.Comparer))
