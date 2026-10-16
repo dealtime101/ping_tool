@@ -62,6 +62,8 @@ namespace PingTool
             string T(DateTimeOffset t) => t.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss zzz", c);
             // "Box (192.168.1.1)" when the target has a name, its address otherwise; the address is what the pings went to.
             string Who(HostReport x) => x.Label is null ? E(x.Address) : E(x.Label) + " <small>(" + E(x.Address) + ")</small>";
+            // The same for the key an incident carries: the named target it belongs to (the same target by TargetKey), else the key as it is.
+            string WhoHost(string host) => d.Hosts.FirstOrDefault(x => TargetKey.Same(x.Address, host)) is { } named ? Who(named) : E(host);
             // Cut, never rounded up, to two decimals: 99.997 % with a real outage must not read "100 %" in a claim to a provider.
             string Pct(double v) => (Math.Floor(v * 100 + 1e-9) / 100).ToString("0.##", c);
 
@@ -216,7 +218,7 @@ namespace PingTool
                 {
                     bool outage = i.Kind == IncidentKind.Outage;
                     string detail = outage ? i.Cause : $"{Availability.FormatLoss(i.LossPercent, c)}% loss, average {N(i.AvgMs)} ms";
-                    h.AppendLine(c, $"<tr><td>{(d.Hosts.FirstOrDefault(x => TargetKey.Same(x.Address, i.Host)) is { } named ? Who(named) : E(i.Host))}</td><td>{(outage ? "Outage" : "Slowdown")}</td><td>{E(T(i.Start))}</td>"
+                    h.AppendLine(c, $"<tr><td>{WhoHost(i.Host)}</td><td>{(outage ? "Outage" : "Slowdown")}</td><td>{E(T(i.Start))}</td>"
                         + $"<td>{(i.End is null ? "ongoing" : E(T(i.End.Value)))}</td><td>{E(IncidentLog.FormatDuration(i.Duration(end)))}</td>"
                         + $"<td class=\"n\">{(outage ? i.FailedPings.ToString(c) : "-")}</td><td>{E(detail + (i.Planned ? " (planned maintenance)" : ""))}</td><td class=\"n\">{i.Occurrence.ToString(c)}</td></tr>");
                 }
@@ -227,7 +229,7 @@ namespace PingTool
 
                 // The route to the target when each outage began, hop by hop, with what changed.
                 foreach (var i in d.Incidents.Where(x => x.Path is not null))
-                    h.AppendLine(c, $"<h3>Network path when {E(i.Host)} went down ({E(T(i.Start))})</h3><pre>{E(i.PathText())}</pre>");
+                    h.AppendLine(c, $"<h3>Network path when {WhoHost(i.Host)} went down ({E(T(i.Start))})</h3><pre>{E(i.PathText())}</pre>");
             }
 
             // What happened on THIS side of the line: a cut that matches a Wi-Fi or VPN change may be local (a hint, not a proof).
