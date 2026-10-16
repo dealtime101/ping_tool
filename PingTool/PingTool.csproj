@@ -383,8 +383,9 @@
          1.21.305 = a route traced during a run no longer replaces the reference of a run started while the trace was going on (PIN507.25)
          1.21.306 = closing the window no longer reports success when a retired log could not be written (PIN507.26)
          1.21.307 = the cap on the retired logs counts the entries to give up under the lock of the queue (PIN507.27)
-         1.21.308 = a log file counts as recovered only after its repair worked, so a failed repair is tried again over the whole file (PIN507.28) -->
-    <Version>1.21.308</Version>
+         1.21.308 = a log file counts as recovered only after its repair worked, so a failed repair is tried again over the whole file (PIN507.28)
+         1.21.309 = in a trace, an unreachable report without an address is no longer given to another router that answered at that distance (PIN507.29) -->
+    <Version>1.21.309</Version>
   </PropertyGroup>
 
   <ItemGroup>

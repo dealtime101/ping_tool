@@ -62,7 +62,8 @@ namespace PingTool
             foreach (var h in Hops)
             {
                 string who = h.Address?.ToString() ?? "*";
-                if (h.Seen.Count > 1) who += " (also " + string.Join(", ", h.Seen.Skip(1)) + ")";
+                var others = h.Address is null ? h.Seen : h.Seen.Skip(1).ToList();   // an unnamed hop still shows the routers seen at its distance
+                if (others.Count > 0) who += " (also " + string.Join(", ", others) + ")";
                 string ms = h.RttMs is null ? "" : "  " + h.RttMs.Value.ToString(c) + " ms";
                 string flag = h.Status switch
                 {
@@ -235,7 +236,10 @@ namespace PingTool
                 // The address of the hop: the one of the reply that decided the status, or, when that reply gave none (an "unreachable"
                 // report can come without one), the first router that did give its address at this distance: the hop is not drawn as a
                 // star while a router is known. It leads the list of the addresses seen (the line prints the others as "also").
-                var address = reply.Address ?? answered.FirstOrDefault(x => x.Address is not null)?.Address;
+                // Not for an "unreachable" report that came without an address: the verdict would then say that this other router, which only
+                // let a probe expire, declared the destination unreachable. It stays unnamed there, and the router that did answer is kept in the
+                // list of addresses seen at this distance.
+                var address = reply.Address ?? (reply.Status == HopStatus.Unreachable ? null : answered.FirstOrDefault(x => x.Address is not null)?.Address);
                 var also = answered.Where(x => x.Address is not null).Select(x => x.Address!).Distinct().ToList();
                 if (address is not null) { also.Remove(address); also.Insert(0, address); }
                 long? best = answered.Count == 0 ? null : answered.Min(x => x.RttMs);
