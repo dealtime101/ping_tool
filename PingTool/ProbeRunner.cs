@@ -270,7 +270,7 @@ namespace PingTool
             if (t.Json is not null)
             {
                 await using var stream = await response.Content.ReadAsStreamAsync(token);
-                (body, bodyLength, bodyCut) = await ReadAll(stream, token);
+                (body, bodyLength, bodyCut) = await ReadAll(stream, token, response.Content.Headers.ContentLength);
             }
 
             // The page must contain the expected text: a redirect (to a login page, as a captive portal does) or a maintenance
@@ -284,7 +284,7 @@ namespace PingTool
                     : (Decode(body, bodyLength, response.Content.Headers.ContentType?.CharSet).Contains(expected, StringComparison.OrdinalIgnoreCase), bodyCut);
                 if (!found)
                     return new ProbeOutcome(-1, new PingFailure("Content", truncated
-                        ? $"The text was not found in the first {MaxBodyBytes / 1024} KiB of the page, which is all that is searched; the page is longer, so the text may be further down"
+                        ? $"The text was not found in the first {MaxBodyBytes / 1024} KiB of the page, which is all that is searched; the page may go on, so the text may be further down"
                         : "The page answered but does not contain the expected text (a maintenance page, an error page or a captive portal)"), null);
             }
 
@@ -296,19 +296,18 @@ namespace PingTool
             return new ProbeOutcome(rtt, null, null, Warning: warning);
         }
 
-        private static async Task<(byte[] Buffer, int Count, bool Truncated)> ReadAll(Stream stream, CancellationToken token)
+        internal static async Task<(byte[] Buffer, int Count, bool Truncated)> ReadAll(Stream stream, CancellationToken token, long? length = null)
         {
             var buffer = new byte[MaxBodyBytes];
             int total = 0, read;
             while (total < buffer.Length && (read = await stream.ReadAsync(buffer.AsMemory(total), token)) > 0) total += read;
-            bool more = total == buffer.Length && await stream.ReadAsync(new byte[1], token) > 0;
-            return (buffer, total, more);
+            return (buffer, total, PageGoesOn(total, buffer.Length, length));
         }
 
         // Null when the body holds the expected value at the path; otherwise what is wrong, never the body itself (it is not kept).
         internal static string? JsonProblem(byte[] body, int count, bool truncated, JsonExpect expected)
         {
-            if (truncated) return $"The body is longer than {MaxBodyBytes / 1024} KiB, which is all that is read, so it cannot be checked as JSON";
+            if (truncated) return $"The body fills the {MaxBodyBytes / 1024} KiB that are read and may go on, so it cannot be checked as JSON";
             System.Text.Json.JsonElement node;
             try { node = System.Text.Json.JsonDocument.Parse(body.AsMemory(0, count)).RootElement; }
             catch (System.Text.Json.JsonException) { return "The body is not valid JSON (an HTML page, a login page or a captive portal?)"; }
@@ -336,7 +335,7 @@ namespace PingTool
         private static async Task<(bool Found, bool Truncated)> ReadStart(HttpResponseMessage response, string expected, CancellationToken token)
         {
             await using var stream = await response.Content.ReadAsStreamAsync(token);
-            return await Search(stream, response.Content.Headers.ContentType?.CharSet, expected, token);
+            return await Search(stream, response.Content.Headers.ContentType?.CharSet, expected, token, response.Content.Headers.ContentLength);
         }
 
         // Looks for `expected` in the first MaxBodyBytes of the stream, as the page arrives: it stops at the first read that brings the text
@@ -344,7 +343,7 @@ namespace PingTool
         // decoded again whole after each read, so a text cut in two by two reads is found, at the price of a few decodings of 64 KiB.
         // Truncated: the page goes on beyond the limit, and the text was not in what was read - "not found" then may simply mean
         // "further down", which the message must not call a maintenance page.
-        internal static async Task<(bool Found, bool Truncated)> Search(Stream stream, string? charset, string expected, CancellationToken token)
+        internal static async Task<(bool Found, bool Truncated)> Search(Stream stream, string? charset, string expected, CancellationToken token, long? length = null)
         {
             var buffer = new byte[MaxBodyBytes];
             int total = 0, read;
@@ -354,9 +353,13 @@ namespace PingTool
                 if (Decode(buffer, total, charset).Contains(expected, StringComparison.OrdinalIgnoreCase)) return (true, false);
             }
 
-            bool more = total == buffer.Length && await stream.ReadAsync(new byte[1], token) > 0;
-            return (false, more);
+            return (false, PageGoesOn(total, buffer.Length, length));
         }
+
+        // At the limit, nothing more is read: a server that stops sending there would turn a search that is over into a timeout. Whether the
+        // page goes on is told by its Content-Length when it has one; without it, a page that fills the limit may go on, and is said to.
+        private static bool PageGoesOn(int read, int limit, long? contentLength) =>
+            read == limit && (contentLength is null || contentLength > read);
 
         // The text of a page in the encoding it says it has: a byte order mark first (it is certain), then the charset of the
         // Content-Type, and UTF-8 when there is neither or the name is not one this system knows. A page in ISO-8859-1 or UTF-16 read
