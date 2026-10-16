@@ -49,6 +49,11 @@ namespace PingTool
             return found;
         }
 
+        // The shortest prefix that still names a local network, by family. IPv4: 8 bits (10.0.0.0/8 is the widest private range). IPv6: 48,
+        // the size of a site (a LAN is a /64, a corporate ULA a /48): a tunnel or VPN card announces a /32 (Teredo, 2001::/32) or a /16
+        // (6to4), which holds a very large part of the Internet, and the hosts there would be called "on the link" and so the PC's own fault.
+        internal static int MinPrefix(System.Net.Sockets.AddressFamily family) => family == System.Net.Sockets.AddressFamily.InterNetworkV6 ? 48 : 8;
+
         // True when `ip` is in the same network as one of the (address, prefix) pairs: same family and the same first `prefix` bits.
         internal static bool Contains(IPAddress ip, IEnumerable<(IPAddress Address, int Prefix)> networks)
         {
@@ -58,8 +63,9 @@ namespace PingTool
             {
                 var a = address.IsIPv4MappedToIPv6 ? address.MapToIPv4() : address;
                 byte[] mine = a.GetAddressBytes();
-                // A prefix shorter than 8 bits would take in a large part of the Internet (a tunnel's odd mask): not a local network.
-                if (a.AddressFamily != ip.AddressFamily || prefix < 8 || prefix > mine.Length * 8) continue;
+                // A prefix shorter than the shortest of a real network would take in a large part of the Internet (a tunnel's odd mask): not
+                // a local network.
+                if (a.AddressFamily != ip.AddressFamily || prefix < MinPrefix(a.AddressFamily) || prefix > mine.Length * 8) continue;
 
                 int whole = prefix / 8, rest = prefix % 8;
                 bool same = target.AsSpan(0, whole).SequenceEqual(mine.AsSpan(0, whole));
