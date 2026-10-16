@@ -174,7 +174,7 @@ namespace PingTool
             {
                 // A receiver that stays out of reach fills the queue and the oldest alerts are dropped: it is said (once per webhook and
                 // run in the window, see MainForm), with the number so far, so that nobody reads a webhook history as complete.
-                int dropped = 0;
+                int dropped = 0, telling = 0;
                 string label = WebhookPayload.Label(url);
                 var target = new Target
                 {
@@ -183,7 +183,18 @@ namespace PingTool
                     {
                         FullMode = BoundedChannelFullMode.DropOldest,
                         SingleReader = true,
-                    }, _ => RaiseFailed(label, $"{Interlocked.Increment(ref dropped)} alert(s) dropped: this webhook did not take them fast enough (queue of {MaxQueued} full), so what it received is incomplete")),
+                    }, _ =>
+                    {
+                        // This runs on the thread that calls Send, the one that measures: it counts and nothing else. Telling the
+                        // subscribers (a console, a window, a file) is done elsewhere, once for a burst of drops, with the count at that time.
+                        Interlocked.Increment(ref dropped);
+                        if (Interlocked.Exchange(ref telling, 1) == 0)
+                            _ = Task.Run(() =>
+                            {
+                                Interlocked.Exchange(ref telling, 0);   // a drop after this one starts a new telling
+                                RaiseFailed(label, $"{Volatile.Read(ref dropped)} alert(s) dropped: this webhook did not take them fast enough (queue of {MaxQueued} full), so what it received is incomplete");
+                            });
+                    }),
                 };
                 targets.Add(target);
                 workers.Add(Task.Run(() => Work(target)));
