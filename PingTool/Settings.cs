@@ -234,6 +234,17 @@ namespace PingTool
         // leaves the old file instead of half of a new one.
         public void Save(string path)
         {
+            // The built-in diagnosis is not a saved profile: its targets are read from the network each time it is picked. Written as the
+            // active profile, the next start would show it as applied with the targets of the network of today (the gateway of a home
+            // that a laptop no longer is at), and the replacement question would treat the list as a diagnosis that is still true.
+            string active = ActiveProfile;
+            if (string.Equals(active, DiagnosticTargets.ProfileName, StringComparison.Ordinal)) ActiveProfile = "";
+            try { SaveCore(path); }
+            finally { ActiveProfile = active; }
+        }
+
+        private void SaveCore(string path)
+        {
             // A bare name like "settings.json" has directory "" (not null), which
             // CreateDirectory refuses: resolve against the current folder first.
             string full = Path.GetFullPath(path);
