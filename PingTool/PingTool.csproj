@@ -560,8 +560,9 @@
          1.21.482 = the room under the timeline chart is worked out again when the font or the screen of the window changes, and not only when its size does (PIN507.346)
          1.21.483 = dns:// no longer asks CheckHostName whether a name is an address after IPAddress.TryParse said no: it never differed (PIN507.348)
          1.21.484 = the "shown once" flag of the unexpected-error box is taken with Interlocked, so two errors at once show it once (PIN507.350)
-         1.21.485 = a French text of the table has a no-break space before : ; ? ! % and » and after «, so a line never begins with a lone "%" or ":" (PIN507.352) -->
-    <Version>1.21.485</Version>
+         1.21.485 = a French text of the table has a no-break space before : ; ? ! % and » and after «, so a line never begins with a lone "%" or ":" (PIN507.352)
+         1.21.486 = the IPv4-mapped address is turned into IPv4 by one rule in HostSession (Unmapped), used by SetIp and Describe, instead of two copies (PIN507.355) -->
+    <Version>1.21.486</Version>
   </PropertyGroup>
 
   <ItemGroup>

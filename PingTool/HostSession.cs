@@ -134,9 +134,12 @@ namespace PingTool
 
         public void SetIp(System.Net.IPAddress ip)
         {
-            Ip = ip.IsIPv4MappedToIPv6 ? ip.MapToIPv4() : ip;
-            IpText = Describe(ip);
+            Ip = Unmapped(ip);
+            IpText = Describe(Ip);
         }
+
+        // A dual-stack socket reports an IPv4 peer as ::ffff:a.b.c.d: it is the IPv4 address that is kept and shown (one rule, here).
+        public static System.Net.IPAddress Unmapped(System.Net.IPAddress ip) => ip.IsIPv4MappedToIPv6 ? ip.MapToIPv4() : ip;
 
         public void SetUnresolved()
         {
@@ -155,8 +158,7 @@ namespace PingTool
 
         public static string Describe(System.Net.IPAddress ip)
         {
-            // A dual-stack socket reports an IPv4 peer as ::ffff:a.b.c.d.
-            if (ip.IsIPv4MappedToIPv6) ip = ip.MapToIPv4();
+            ip = Unmapped(ip);
             string version = ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6 ? "IPv6" : "IPv4";
             return version + " " + ip;
         }
