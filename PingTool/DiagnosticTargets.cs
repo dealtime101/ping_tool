@@ -96,8 +96,10 @@ namespace PingTool
                 ?? candidates.FirstOrDefault();
         }
 
-        // Said wherever the diagnosis targets are built (the profile, --diagnose, --headless --diagnose): one wording.
-        public const string NoGatewayMessage = "No network gateway was found (is the PC connected?). Only the Internet references are in the list: without the router in it, the report cannot say whether the fault is on your side.";
+        // Said wherever the diagnosis targets are built (the profile, --diagnose, --headless --diagnose): one wording. It says what is missing
+        // (the router) and what is tested all the same; the DNS servers of the active card are in the list when the card has some, so
+        // it does not say that the Internet references are all there is.
+        public const string NoGatewayMessage = "No network gateway was found (is the PC connected?). The router is not in the list: without it, the report cannot say whether the fault is on your side. The Internet references, and the DNS servers of the active network card when it has some, are tested all the same.";
 
         public static List<string> Discover(out bool gatewayFound) =>
             Discover(CardReaders(), out gatewayFound, LocalAddressToInternet(), LocalAddressToInternet(AddressFamily.InterNetworkV6));

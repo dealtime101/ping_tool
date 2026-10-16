@@ -423,8 +423,9 @@
          1.21.345 = the copy kept of a settings file that could not be read is never overwritten: a name already taken gives the next name (PIN507.95)
          1.21.346 = the search for the expected text of a page decodes each piece once and keeps the end of the last, so a page sent in tiny pieces costs the work of the page (PIN507.96)
          1.21.347 = a page that begins with a UTF-32 byte order mark is read as UTF-32, no longer as UTF-16 with NULs between the letters (PIN507.97)
-         1.21.348 = the diagnosis of the connection also tests the IPv6 DNS servers of a card that has an IPv4 gateway, after the IPv4 ones, the limit applying to the whole list (PIN507.98) -->
-    <Version>1.21.348</Version>
+         1.21.348 = the diagnosis of the connection also tests the IPv6 DNS servers of a card that has an IPv4 gateway, after the IPv4 ones, the limit applying to the whole list (PIN507.98)
+         1.21.349 = the message that says no gateway was found no longer says that the references are all there is: the DNS servers of the card are tested too (PIN507.99) -->
+    <Version>1.21.349</Version>
   </PropertyGroup>
 
   <ItemGroup>
