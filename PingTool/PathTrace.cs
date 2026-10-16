@@ -149,6 +149,12 @@ namespace PingTool
                         ? $"Hop {ttl} ({string.Join(" / ", before)}) answered when healthy and is silent now."
                         : $"Hop {ttl} ({string.Join(" / ", before)}) answered when healthy; now a router {Said(is_)} (without giving its address).");
                 }
+                else if (before.Count == 0 && now.Count > 0 && i < healthy.Hops.Count && healthy.Hops[i].Status == HopStatus.Timeout)
+                {
+                    // The other way round: a hop really probed and silent when healthy that answers now. A router that rate-limits its replies
+                    // does this too, so it is told as an observation, not as a change of route.
+                    notes.Add($"Hop {ttl} ({string.Join(" / ", now)}) was silent when healthy and answers now (a router that rate-limits its replies does this too: it does not show by itself that the route changed).");
+                }
                 else if (before.Count > 0 && now.Count > 0 && i < healthy.Hops.Count && i < during.Hops.Count)
                 {
                     // Same router, but not the same answer: the destination that answered now reports itself unreachable (or the

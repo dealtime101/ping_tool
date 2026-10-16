@@ -416,8 +416,9 @@
          1.21.338 = a new page of the graph legend empties and hides the tip of the row the pointer was on (PIN507.83)
          1.21.339 = pings of the batch being written to the log are not given up meanwhile, so they are never counted lost when they reach the disk (PIN507.84)
          1.21.340 = the style of the worst hours of the report grid is valid CSS (colour apart from the two layers of pattern) (PIN507.87)
-         1.21.341 = the hour marks of the time axis are counted on the wall clock of the day, each with the offset of its own time, so they stay round on a day the clock changes (PIN507.89) -->
-    <Version>1.21.341</Version>
+         1.21.341 = the hour marks of the time axis are counted on the wall clock of the day, each with the offset of its own time, so they stay round on a day the clock changes (PIN507.89)
+         1.21.342 = the comparison of routes also tells a hop that was silent when healthy and answers now, without saying that the route changed (PIN507.91) -->
+    <Version>1.21.342</Version>
   </PropertyGroup>
 
   <ItemGroup>
