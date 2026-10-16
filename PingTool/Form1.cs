@@ -1021,7 +1021,9 @@ namespace PingTool
             catch (Exception ex)
             {
                 Debug.WriteLine($"Ping loop for {session.Address} ended: {ex}");
-                UpdatePingUI(session, -1, PingFailure.From(ex));
+                // After Stop the screen is not touched (as for a reply that lands late): with a quick Stop then Start, the failure of the OLD
+                // loop would be counted as a ping of the NEW run.
+                if (!token.IsCancellationRequested) UpdatePingUI(session, -1, token, PingFailure.From(ex));
             }
         }
 
@@ -1077,7 +1079,7 @@ namespace PingTool
 
                     // What actually answered beats what DNS listed first.
                     if (outcome.Ip is not null) session.SetIp(outcome.Ip);
-                    UpdatePingUI(session, outcome.Rtt, outcome.Failure);
+                    UpdatePingUI(session, outcome.Rtt, token, outcome.Failure);
                     RaiseNotice(session, outcome.Warning);
                 }
                 catch (OperationCanceledException) when (token.IsCancellationRequested)
@@ -1097,7 +1099,9 @@ namespace PingTool
             }
         }
 
-        private void UpdatePingUI(HostSession session, long ping, PingFailure? failure = null)
+        // `token` = the one of the run that made the ping (not the field cts, which a quick Stop then Start replaces, or which is null once
+        // the run has ended): the route captures started from here are cancelled with THAT run.
+        private void UpdatePingUI(HostSession session, long ping, CancellationToken token, PingFailure? failure = null)
         {
             if (closing) return;
             session.Add(ping, failure, DateTimeOffset.Now);
@@ -1116,7 +1120,6 @@ namespace PingTool
 
             // Where do the answers stop? Trace the route the moment an outage is declared, and once
             // while the host is healthy, so the two can be compared.
-            var token = cts?.Token ?? CancellationToken.None;
             // An outage declared before the address was known gets its route now that the address is there.
             Incident? traced = null;
             if (session.TakePendingCapture() is { } waiting)
