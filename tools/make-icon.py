@@ -1,5 +1,8 @@
 """Draws PingTool/PingTool.ico: a dark rounded square with a green ping pulse (a flat line, one spike) and a dot.
-Run:  python3 tools/make-icon.py   (needs Pillow). The .ico is committed; this script is how it was made."""
+Run:  python3 tools/make-icon.py   (needs Pillow), from any folder: the file is written next to the project, not to the folder you are in.
+The .ico is committed; this script is how it was made."""
+from pathlib import Path
+
 import PIL
 from PIL import Image, ImageChops, ImageDraw
 
@@ -20,7 +23,11 @@ def draw(size: int) -> Image.Image:
     d.ellipse([s * 0.80 - r, y - r, s * 0.80 + r, y + r], fill=GREEN)
     return im.resize((size, size), Image.LANCZOS)
 
-OUT = "PingTool/PingTool.ico"
+# Where the project is, found from where this script is (tools/ is next to PingTool/), not from the folder it was started in: from
+# anywhere else the relative name failed, or wrote an icon in a PingTool folder that was not this one.
+OUT = Path(__file__).resolve().parent.parent / "PingTool" / "PingTool.ico"
+if not OUT.parent.is_dir():
+    raise SystemExit(f"The folder {OUT.parent} is not there: this script belongs in tools/, next to the PingTool/ project folder.")
 frames = [draw(n) for n in SIZES]
 frames[-1].save(OUT, format="ICO", sizes=[(n, n) for n in SIZES], append_images=frames[:-1])
 

@@ -518,8 +518,9 @@
          1.21.440 = in a high-contrast theme a slowdown is drawn as large squares, no longer as fine dots that were taken for the dotted line of a change of network (PIN507.231)
          1.21.441 = a negative index of a line of the graph gets the colour of the first line in a high-contrast theme, like its pattern, instead of the last colour (PIN507.232)
          1.21.442 = a web address with no path and the same with a slash are the same target (PIN507.235)
-         1.21.443 = the port a scheme has anyway, written out (https :443, http :80), is no longer another target (PIN507.237) -->
-    <Version>1.21.443</Version>
+         1.21.443 = the port a scheme has anyway, written out (https :443, http :80), is no longer another target (PIN507.237)
+         1.21.444 = the script that draws the icon finds the project from where it is and not from the folder it is run in (PIN507.238; no change to the program) -->
+    <Version>1.21.444</Version>
   </PropertyGroup>
 
   <ItemGroup>
