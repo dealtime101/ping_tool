@@ -86,7 +86,8 @@ namespace PingTool
 
         // "1 ping" / "5 pings", "0 perdu" / "1 perdu" / "2 perdus": the count with the word that agrees with it (the rule of each language
         // lives in the table: English has one form for "lost", French splits at 2).
-        internal static string Pings(long n) => T(n == 1 ? "count.ping.one" : "count.ping.many", n.ToString(CultureInfo.CurrentCulture));
+        // English: "0 pings", "1 ping". French puts 0 with the singular, like 1: "0 ping", "1 ping", "2 pings".
+        internal static string Pings(long n) => T((Language == "fr" ? n >= 2 : n != 1) ? "count.ping.many" : "count.ping.one", n.ToString(CultureInfo.CurrentCulture));
         internal static string Lost(long n) => T(n >= 2 ? "count.lost.many" : "count.lost.one", n.ToString(CultureInfo.CurrentCulture));
 
         // The text for a key in the current language, with its arguments formatted in the current regional format.
