@@ -373,8 +373,9 @@
          1.21.295 = Mark an event: a timestamped note about something done by hand, on the timeline and in the report (PIN507.8)
          1.21.296 = Compare with another log: two periods of logs side by side per target, with better or worse in words and the reasons to read it with care (PIN507.9)
          1.21.297 = Schedule a measurement (a Task Scheduler task for a headless run, a profile option, {date} in the report name) and maintenance windows that silence the alerts and mark incidents planned (PIN507.10)
-         1.21.298 = the note about pings given up from the automatic log blames the folder only when a write error was on record (PIN507.12) -->
-    <Version>1.21.298</Version>
+         1.21.298 = the note about pings given up from the automatic log blames the folder only when a write error was on record (PIN507.12)
+         1.21.299 = the suffix that keeps apart the log files of hosts whose names had to be changed is 48 bits, not 24 (PIN507.13) -->
+    <Version>1.21.299</Version>
   </PropertyGroup>
 
   <ItemGroup>

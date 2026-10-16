@@ -219,8 +219,13 @@ namespace PingTool
                 $"{lost} ping(s) from earlier runs (from {from!.Value.ToLocalTime():G} to {to!.Value.ToLocalTime():G}) were given up: the log folder stayed unwritable through several runs, and what waits for it is kept to {MaxRetiredPending} pings. The log has a gap there.");
         }
 
+        // 6 bytes of the hash (12 hex characters, 48 bits), not 3: two typed hosts that change into the same name share a file only if their
+        // hashes agree too, and with 24 bits a few thousand such hosts would already make that likely. (Logs written by earlier versions
+        // for such a host keep their old name, with the short suffix.)
+        private const int HashBytes = 6;
+
         // "PingTool-8.8.8.8-2026-10-03.csv". The host is whatever the user typed (tcp://x:443,
-        // http://x/a?b): anything a file name cannot hold becomes "_", and a hash of the typed host ("-1a2b3c") is then added.
+        // http://x/a?b): anything a file name cannot hold becomes "_", and a hash of the typed host ("-1a2b3c4d5e6f") is then added.
         public static string FileName(string host, DateTimeOffset time)
         {
             var name = new StringBuilder();
@@ -235,7 +240,7 @@ namespace PingTool
             // A name that had to be changed (a character replaced, cut short) could be the same for another host ("x:1" and "x_1"):
             // a short hash of what was typed keeps them apart. A name that is the host itself stays as it is, readable.
             if (safe != typed)
-                safe += "-" + Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(typed)), 0, 3).ToLowerInvariant();
+                safe += "-" + Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(typed)), 0, HashBytes).ToLowerInvariant();
 
             return "PingTool-" + safe + "-" + time.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) + ".csv";
         }
