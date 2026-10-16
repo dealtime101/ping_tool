@@ -344,8 +344,13 @@ namespace PingTool
         // matters), before what is left is cut short.
         public static readonly TimeSpan DefaultCloseGrace = TimeSpan.FromSeconds(2);
 
+        private int disposed;
+
         public void Dispose()
         {
+            // Once: a second call (a using and an explicit Dispose, two paths of cleanup) would cancel a source that is already disposed.
+            if (Interlocked.Exchange(ref disposed, 1) != 0) return;
+
             foreach (var target in targets) target.Queue.Writer.TryComplete();   // no new alert; the workers send what is queued, then end
             try { Task.WaitAll(workers.ToArray(), closeGrace); }
             catch (AggregateException) { /* a worker that ended badly has nothing more to say */ }
