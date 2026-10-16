@@ -172,7 +172,8 @@ namespace PingTool
 
     // A traceroute: probes at TTL 1, 2, 3... Each router that drops a probe says who it is.
     // Gives up after GiveUpAfter silent hops in a row (a dead path would otherwise cost MaxHops
-    // timeouts) and keeps those stars, so the report shows where the answers stop.
+    // timeouts) and keeps those stars, so the report shows where the answers stop. A giveUpAfter of 0 or less never gives up:
+    // the trace goes on to maxHops (the "limit" case), it does not stop at the first hop.
     internal static class TraceRunner
     {
         public const int MaxHops = 20;
@@ -254,7 +255,7 @@ namespace PingTool
                 if (reply.Status is HopStatus.Reached or HopStatus.Unreachable or HopStatus.Failed) break;
 
                 silent = reply.Status == HopStatus.Timeout ? silent + 1 : 0;
-                if (silent >= giveUpAfter) { gaveUp = true; break; }
+                if (giveUpAfter > 0 && silent >= giveUpAfter) { gaveUp = true; break; }   // 0 or less: never give up, up to maxHops
             }
 
             bool hitLimit = !gaveUp && hops.Count > 0 && hops.Count == maxHops
