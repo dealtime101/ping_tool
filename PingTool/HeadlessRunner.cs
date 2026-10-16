@@ -35,6 +35,12 @@ namespace PingTool
             }
         }
 
+        // What the end of the summary says of the report: where it is, or that it is not there. The writer of the command line catches its
+        // own errors (and says them on the error output), so the run does not know that the last write failed: the caller does, and a path
+        // given as "Report: ..." after a failure would send a script to a file that is not there (or is the one of an earlier checkpoint).
+        public static string ReportNote(string? reportPath, bool lastWriteFailed) =>
+            reportPath is null ? "" : lastWriteFailed ? " The report could not be written to " + reportPath + "." : " Report: " + reportPath;
+
         public delegate Task<ProbeOutcome> ProbeFunc(ProbeTarget target, int timeoutMs, CancellationToken token);
 
         // addresses: what to probe. Limits, interval, timeout and names come from `settings`. probe: the probe itself (injected: tests do not

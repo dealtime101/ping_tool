@@ -184,7 +184,7 @@ namespace PingTool
                 {
                     Console.CancelKeyPress -= onInterrupt;
                 }
-                Console.WriteLine(result.Summary + (reportPath is null ? "" : " Report: " + reportPath));
+                Console.WriteLine(result.Summary + HeadlessRunner.ReportNote(reportPath, reportFailed));
                 if (pseudonyms.Count > 0) Console.Error.WriteLine("What the pseudonyms of the report stand for (keep this: it is not in the report):\r\n" + string.Join("\r\n", pseudonyms));
                 return reportFailed ? HeadlessRunner.ErrorCode : result.ExitCode;
             }
