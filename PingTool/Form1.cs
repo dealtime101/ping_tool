@@ -360,23 +360,23 @@ namespace PingTool
             if (startup.IntervalMs is int ms)
                 numInterval.Value = Math.Clamp(ms, (int)numInterval.Minimum, (int)numInterval.Maximum);
             IEnumerable<string> hostsOfThisLaunch = settings.Hosts;
-            bool gatewayMissing = false;
+            string? noGatewayText = null;
             if (startup.OverridesHosts)
             {
                 var discovered = new List<string>();
                 if (startup.Diagnose)
                 {
-                    discovered = DiagnosticTargets.Discover(out bool gatewayFound);
-                    gatewayMissing = !gatewayFound;
+                    discovered = DiagnosticTargets.Discover(out bool gatewayFound, out string whenMissing);
+                    if (!gatewayFound) noGatewayText = whenMissing;
                 }
 
                 hostsOfThisLaunch = discovered.Concat(startup.Hosts);
             }
 
             // Started minimized, no window is shown (see SetVisibleCore): the balloon is what can say it then.
-            if (gatewayMissing)
+            if (noGatewayText is not null)
             {
-                WarnAtLaunch(DiagnosticTargets.NoGatewayText);   // with the reason when a card could not be read, taken now: the box comes later
+                WarnAtLaunch(noGatewayText);   // with the reason when a card could not be read, taken now: the box comes later
             }
             // Same rule as typing an address: what the address box would refuse is left out, and said once the window is up.
             var validHosts = ProbeTarget.KeepValid(hostsOfThisLaunch.Distinct(TargetKey.Comparer), out int refused);
@@ -608,7 +608,7 @@ namespace PingTool
         {
             if (isRunning) return;
 
-            var targets = DiagnosticTargets.Discover(out bool gatewayFound);
+            var targets = DiagnosticTargets.Discover(out bool gatewayFound, out string noGatewayText);
             ApplyProfile(new Profile
             {
                 Name = DiagnosticTargets.ProfileName,
@@ -624,7 +624,7 @@ namespace PingTool
             });
 
             if (!gatewayFound)
-                MessageBox.Show(DiagnosticTargets.NoGatewayText, "PingTool");
+                MessageBox.Show(noGatewayText, "PingTool");
         }
 
         // Picking a profile replaces the target list and clears the figures. Nothing to ask when nothing would be lost; else the

@@ -127,8 +127,8 @@ namespace PingTool
                 var found = new List<string>();
                 if (o.Diagnose)
                 {
-                    found = DiagnosticTargets.Discover(out bool gatewayFound);
-                    if (!gatewayFound) Console.Error.WriteLine(DiagnosticTargets.NoGatewayText);
+                    found = DiagnosticTargets.Discover(out bool gatewayFound, out string noGatewayText);
+                    if (!gatewayFound) Console.Error.WriteLine(noGatewayText);
                 }
 
                 var hosts = found.Concat(o.Hosts).ToList();

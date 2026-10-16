@@ -101,8 +101,15 @@ namespace PingTool
         // it does not say that the Internet references are all there is.
         public const string NoGatewayMessage = "No network gateway was found (is the PC connected?). The router is not in the list: without it, the report cannot say whether the fault is on your side. The Internet references, and the DNS servers of the active network card when it has some, are tested all the same.";
 
-        public static List<string> Discover(out bool gatewayFound) =>
-            Discover(CardReaders(), out gatewayFound, LocalAddressToInternet(), LocalAddressToInternet(AddressFamily.InterNetworkV6));
+        // The targets of the connection, and when no gateway was found the text to say so (the same message everywhere, with the reason when
+        // part of the cards could not be read). The reason belongs to THIS discovery and comes back with it: it is not kept anywhere that
+        // another discovery, running at the same time, could write over.
+        public static List<string> Discover(out bool gatewayFound, out string noGatewayText)
+        {
+            var targets = Discover(CardReaders(), out gatewayFound, out string? cardProblem, LocalAddressToInternet(), LocalAddressToInternet(AddressFamily.InterNetworkV6));
+            noGatewayText = gatewayFound ? "" : NoGatewayTextOf(cardProblem);
+            return targets;
+        }
 
         // The address the system would send from to reach the Internet, in the family asked: a UDP socket "connected" to a public address
         // only asks the routing table (nothing is sent), and tells the local address it chose. null when there is no route.
@@ -122,7 +129,10 @@ namespace PingTool
 
         // One reader per card, each run on its own: a card whose properties cannot be read (a virtual adapter, a faulty driver) is
         // left out, and the real card next to it is still used. The list of cards itself failing leaves no card, as before.
-        internal static List<NicSnapshot> ReadCards(IEnumerable<Func<NicSnapshot>> readers)
+        // problem: why cards were left out, null when all were read (kept for the message that says no gateway was found: Debug output does
+        // not exist in a release build, and without it a missing gateway reads as "the PC is not connected" when a card the router is on
+        // could not be read).
+        internal static List<NicSnapshot> ReadCards(IEnumerable<Func<NicSnapshot>> readers, out string? problem)
         {
             var snapshots = new List<NicSnapshot>();
             int skipped = 0;
@@ -141,21 +151,17 @@ namespace PingTool
                 }
             }
 
-            // Kept for the message that says no gateway was found (Debug output does not exist in a release build): without it a missing
-            // gateway reads as "the PC is not connected" when a card the router is on could not be read.
-            LastCardProblem = skipped == 0 ? null : string.Create(CultureInfo.InvariantCulture,
+            problem = skipped == 0 ? null : string.Create(CultureInfo.InvariantCulture,
                 $"{skipped} network card(s) could not be read ({(why is { Length: > 80 } ? TextCut.Units(why, 77) + "..." : why)}): the gateway may be on one of them.");
             return snapshots;
         }
 
-        // Why the last discovery left cards out; null when it read them all. Written by Discover, read when the answer was "no gateway".
-        public static string? LastCardProblem { get; private set; }
-
         // The message for "no gateway was found", with the reason when part of the cards could not be read.
-        public static string NoGatewayText => LastCardProblem is { } problem ? NoGatewayMessage + " " + problem : NoGatewayMessage;
+        public static string NoGatewayTextOf(string? cardProblem) => cardProblem is { } problem ? NoGatewayMessage + " " + problem : NoGatewayMessage;
 
-        internal static List<string> Discover(IEnumerable<Func<NicSnapshot>> readers, out bool gatewayFound, IPAddress? routedFrom = null, IPAddress? routedFrom6 = null) =>
-            From(ReadCards(readers), out gatewayFound, routedFrom, routedFrom6);
+        internal static List<string> Discover(IEnumerable<Func<NicSnapshot>> readers, out bool gatewayFound, out string? cardProblem,
+            IPAddress? routedFrom = null, IPAddress? routedFrom6 = null) =>
+            From(ReadCards(readers, out cardProblem), out gatewayFound, routedFrom, routedFrom6);
 
         // Words of a card's description that say it is not a piece of hardware: the virtual switches of Hyper-V, VirtualBox, VMware and
         // Docker, the tunnel adapters of VPNs, the pseudo-interfaces. Most of them declare the type "Ethernet", so the type alone lets them
