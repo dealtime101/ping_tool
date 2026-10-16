@@ -195,6 +195,9 @@ namespace PingTool
         // this size is only where it starts, LayoutBottom gives it the height its text needs.
         private readonly Label summary = new() { UseMnemonic = false, ForeColor = Color.White, AutoSize = false, Location = new Point(10, 294), Size = new Size(740, 106), Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right };
 
+        // A distance written for 96 DPI, in the pixels of this window's screen.
+        private int Px(int at100) => DpiScale.Scale(new Size(at100, 0), DeviceDpi).Width;
+
         // droppedNote: what to say when the log has let its oldest pings go (null = nothing lost).
         public TimelineForm(IReadOnlyCollection<LogEntry> entries, IReadOnlyList<Incident> incidents, IEnumerable<string> hosts, string? selected,
                             string? droppedNote = null, IReadOnlyList<NetworkEvent>? networkEvents = null)
@@ -242,21 +245,23 @@ namespace PingTool
             // The legend is as tall as its text needs at the width it has (a narrow window wraps it onto more lines, and a fixed height
             // cut the end off); the summary sits right above it and the chart takes what is left. Written in the pixels of the screen
             // (the form has been scaled by then), so the text, which grows with the scaling, has its room at any DPI.
-            const int Gap = 6;
             void LayoutBottom()
             {
-                int width = Math.Max(100, close.Left - note.Left - Gap);   // from the left margin to the Close button
+                // The distances are those of 96 DPI scaled to the screen like everything else here: at 200 % a gap of 6 px is a hair, and
+                // a chart kept at 60 px is a strip. Read at each layout, the DPI of the window can change.
+                int gap = Px(6), minChart = Px(60), edge = Px(10), minWidth = Px(100);
+                int width = Math.Max(minWidth, close.Left - note.Left - gap);   // from the left margin to the Close button
                 int noteHeight = note.GetPreferredSize(new Size(width, 0)).Height;
-                note.SetBounds(note.Left, ClientSize.Height - noteHeight - Gap, width, noteHeight);
+                note.SetBounds(note.Left, ClientSize.Height - noteHeight - gap, width, noteHeight);
 
                 // The summary is as tall as its text needs at the width it has (up to six lines, more with a bigger font or a narrower
-                // window), but the chart keeps at least 60 px: a fixed 106 px cut the end off, or let the text run into the legend.
-                int summaryWidth = ClientSize.Width - summary.Left - 10;
-                int wanted = summary.GetPreferredSize(new Size(Math.Max(100, summaryWidth), 0)).Height;
-                int room = note.Top - chart.Top - 60 - 2 * Gap;
+                // window), but the chart keeps its minimum height: a fixed 106 px cut the end off, or let the text run into the legend.
+                int summaryWidth = ClientSize.Width - summary.Left - edge;
+                int wanted = summary.GetPreferredSize(new Size(Math.Max(minWidth, summaryWidth), 0)).Height;
+                int room = note.Top - chart.Top - minChart - 2 * gap;
                 int summaryHeight = TimelineLayout.SummaryHeight(wanted, room, summary.Font.Height);
-                summary.SetBounds(summary.Left, note.Top - summaryHeight - Gap, summaryWidth, summaryHeight);
-                int chartHeight = Math.Max(60, summary.Top - chart.Top - Gap);
+                summary.SetBounds(summary.Left, note.Top - summaryHeight - gap, summaryWidth, summaryHeight);
+                int chartHeight = Math.Max(minChart, summary.Top - chart.Top - gap);
                 if (chart.Height != chartHeight) chart.Height = chartHeight;   // its SizeChanged redraws, once
             }
 
