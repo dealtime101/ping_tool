@@ -20,7 +20,7 @@ namespace PingTool
             }
             catch (Exception ex) when (OpenFailure.Is(ex))
             {
-                MessageBox.Show(owner, "Could not open the file: " + ex.Message + "\n\nIt is saved at " + path, "PingTool");
+                MessageBox.Show(owner, "Could not open the file: " + ex.Message + "\n\nIt is saved at " + path, "PingTool", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
         }
     }
