@@ -248,7 +248,7 @@
             lblMos.ForeColor = Color.White;
             lblMos.Location = new Point(30, 467);
             lblMos.Name = "lblMos";
-            lblMos.TabIndex = 37;
+            lblMos.TabIndex = 20;
             lblMos.Text = "MOS below (0 = off)";
             //
             // numMos
@@ -261,7 +261,7 @@
             numMos.Minimum = new decimal(new int[] { 0, 0, 0, 0 });
             numMos.Name = "numMos";
             numMos.Size = new Size(80, 23);
-            numMos.TabIndex = 38;
+            numMos.TabIndex = 21;
             numMos.Value = new decimal(new int[] { 0, 0, 0, 0 });
             //
             // chkSaveLog
@@ -270,7 +270,7 @@
             chkSaveLog.ForeColor = Color.White;
             chkSaveLog.Location = new Point(30, 539);
             chkSaveLog.Name = "chkSaveLog";
-            chkSaveLog.TabIndex = 21;
+            chkSaveLog.TabIndex = 23;
             chkSaveLog.Text = "Save the log to disk (daily CSV per host)";
             //
             // chkGroup
@@ -279,7 +279,7 @@
             chkGroup.ForeColor = Color.White;
             chkGroup.Location = new Point(30, 563);
             chkGroup.Name = "chkGroup";
-            chkGroup.TabIndex = 22;
+            chkGroup.TabIndex = 24;
             chkGroup.Text = "Tell the targets of one outage as one alert";
             chkGroup.UseVisualStyleBackColor = true;
             //
@@ -311,7 +311,7 @@
             chkAlert.ForeColor = Color.White;
             chkAlert.Location = new Point(30, 515);
             chkAlert.Name = "chkAlert";
-            chkAlert.TabIndex = 20;
+            chkAlert.TabIndex = 22;
             chkAlert.Text = "Alert on outage / slowdown / recovery";
             chkAlert.UseVisualStyleBackColor = true;
             //
@@ -326,7 +326,7 @@
             lstHosts.Name = "lstHosts";
             lstHosts.Size = new Size(300, 218);
             lstHosts.AccessibleName = "Monitored targets";
-            lstHosts.TabIndex = 25;
+            lstHosts.TabIndex = 28;
             lstHosts.UseCompatibleStateImageBehavior = false;
             lstHosts.View = View.Details;
             lstHosts.SelectedIndexChanged += lstHosts_SelectedIndexChanged;
@@ -361,7 +361,7 @@
             btnAddHost.Location = new Point(300, 328);
             btnAddHost.Name = "btnAddHost";
             btnAddHost.Size = new Size(140, 28);
-            btnAddHost.TabIndex = 27;
+            btnAddHost.TabIndex = 30;
             btnAddHost.Text = "Add address";
             btnAddHost.UseVisualStyleBackColor = true;
             btnAddHost.Click += btnAddHost_Click;
@@ -371,7 +371,7 @@
             btnRemoveHost.Location = new Point(460, 328);
             btnRemoveHost.Name = "btnRemoveHost";
             btnRemoveHost.Size = new Size(140, 28);
-            btnRemoveHost.TabIndex = 28;
+            btnRemoveHost.TabIndex = 31;
             btnRemoveHost.Text = "Remove selected";
             btnRemoveHost.UseVisualStyleBackColor = true;
             btnRemoveHost.Click += btnRemoveHost_Click;
@@ -381,7 +381,7 @@
             btnExport.Location = new Point(300, 362);
             btnExport.Name = "btnExport";
             btnExport.Size = new Size(146, 28);
-            btnExport.TabIndex = 29;
+            btnExport.TabIndex = 32;
             btnExport.Text = "Export CSV...";
             btnExport.UseVisualStyleBackColor = true;
             btnExport.Click += btnExport_Click;
@@ -391,7 +391,7 @@
             btnIncidents.Location = new Point(454, 362);
             btnIncidents.Name = "btnIncidents";
             btnIncidents.Size = new Size(146, 28);
-            btnIncidents.TabIndex = 30;
+            btnIncidents.TabIndex = 33;
             btnIncidents.Text = "Incidents (0)";
             btnIncidents.UseVisualStyleBackColor = true;
             btnIncidents.Click += btnIncidents_Click;
@@ -401,7 +401,7 @@
             btnReport.Location = new Point(300, 424);
             btnReport.Name = "btnReport";
             btnReport.Size = new Size(300, 28);
-            btnReport.TabIndex = 32;
+            btnReport.TabIndex = 35;
             btnReport.Text = "Save diagnostic report (HTML)...";
             btnReport.UseVisualStyleBackColor = true;
             btnReport.Click += btnReport_Click;
@@ -411,7 +411,7 @@
             btnTimeline.Location = new Point(300, 456);
             btnTimeline.Name = "btnTimeline";
             btnTimeline.Size = new Size(146, 28);
-            btnTimeline.TabIndex = 33;
+            btnTimeline.TabIndex = 36;
             btnTimeline.Text = "Session timeline...";
             btnTimeline.UseVisualStyleBackColor = true;
             btnTimeline.Click += btnTimeline_Click;
@@ -421,7 +421,7 @@
             btnOpenLog.Location = new Point(454, 456);
             btnOpenLog.Name = "btnOpenLog";
             btnOpenLog.Size = new Size(146, 28);
-            btnOpenLog.TabIndex = 34;
+            btnOpenLog.TabIndex = 37;
             btnOpenLog.Text = "Open a log...";
             btnOpenLog.UseVisualStyleBackColor = true;
             btnOpenLog.Click += btnOpenLog_Click;
@@ -431,7 +431,7 @@
             btnImportProfiles.Location = new Point(300, 488);
             btnImportProfiles.Name = "btnImportProfiles";
             btnImportProfiles.Size = new Size(146, 28);
-            btnImportProfiles.TabIndex = 35;
+            btnImportProfiles.TabIndex = 38;
             btnImportProfiles.Text = "Import profiles...";
             btnImportProfiles.UseVisualStyleBackColor = true;
             btnImportProfiles.Click += btnImportProfiles_Click;
@@ -441,7 +441,7 @@
             btnExportProfiles.Location = new Point(454, 488);
             btnExportProfiles.Name = "btnExportProfiles";
             btnExportProfiles.Size = new Size(146, 28);
-            btnExportProfiles.TabIndex = 36;
+            btnExportProfiles.TabIndex = 39;
             btnExportProfiles.Text = "Export profiles...";
             btnExportProfiles.UseVisualStyleBackColor = true;
             btnExportProfiles.Click += btnExportProfiles_Click;
@@ -473,7 +473,7 @@
             lblDiagnosis.Location = new Point(300, 276);
             lblDiagnosis.Name = "lblDiagnosis";
             lblDiagnosis.Size = new Size(300, 46);
-            lblDiagnosis.TabIndex = 26;
+            lblDiagnosis.TabIndex = 29;
             lblDiagnosis.Text = "";
             //
             // chkCompare
@@ -482,7 +482,7 @@
             chkCompare.ForeColor = Color.White;
             chkCompare.Location = new Point(300, 394);
             chkCompare.Name = "chkCompare";
-            chkCompare.TabIndex = 31;
+            chkCompare.TabIndex = 34;
             chkCompare.Text = "Compare all hosts on one graph";
             chkCompare.UseVisualStyleBackColor = true;
             chkCompare.CheckedChanged += chkCompare_CheckedChanged;
@@ -493,7 +493,7 @@
             cboProfile.Name = "cboProfile";
             cboProfile.Size = new Size(190, 23);
             cboProfile.AccessibleName = "Monitoring profile";
-            cboProfile.TabIndex = 22;
+            cboProfile.TabIndex = 25;
             cboProfile.SelectionChangeCommitted += cboProfile_SelectionChangeCommitted;
             //
             // btnSaveProfile
@@ -501,7 +501,7 @@
             btnSaveProfile.Location = new Point(495, 19);
             btnSaveProfile.Name = "btnSaveProfile";
             btnSaveProfile.Size = new Size(50, 25);
-            btnSaveProfile.TabIndex = 23;
+            btnSaveProfile.TabIndex = 26;
             btnSaveProfile.Text = "Save";
             btnSaveProfile.UseVisualStyleBackColor = true;
             btnSaveProfile.Click += btnSaveProfile_Click;
@@ -511,7 +511,7 @@
             btnDeleteProfile.Location = new Point(550, 19);
             btnDeleteProfile.Name = "btnDeleteProfile";
             btnDeleteProfile.Size = new Size(50, 25);
-            btnDeleteProfile.TabIndex = 24;
+            btnDeleteProfile.TabIndex = 27;
             btnDeleteProfile.Text = "Delete";
             btnDeleteProfile.UseVisualStyleBackColor = true;
             btnDeleteProfile.Click += btnDeleteProfile_Click;

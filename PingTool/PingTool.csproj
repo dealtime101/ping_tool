@@ -374,8 +374,9 @@
          1.21.296 = Compare with another log: two periods of logs side by side per target, with better or worse in words and the reasons to read it with care (PIN507.9)
          1.21.297 = Schedule a measurement (a Task Scheduler task for a headless run, a profile option, {date} in the report name) and maintenance windows that silence the alerts and mark incidents planned (PIN507.10)
          1.21.298 = the note about pings given up from the automatic log blames the folder only when a write error was on record (PIN507.12)
-         1.21.299 = the suffix that keeps apart the log files of hosts whose names had to be changed is 48 bits, not 24 (PIN507.13) -->
-    <Version>1.21.299</Version>
+         1.21.299 = the suffix that keeps apart the log files of hosts whose names had to be changed is 48 bits, not 24 (PIN507.13)
+         1.21.300 = the tab order of the main window follows the screen: the MOS box comes after the down-after box, and no two controls share an index (PIN507.15) -->
+    <Version>1.21.300</Version>
   </PropertyGroup>
 
   <ItemGroup>
