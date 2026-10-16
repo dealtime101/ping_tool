@@ -19,8 +19,10 @@ namespace PingTool
                 // A resource that is not found: the generic icon, as before, but not in silence (see Report).
                 Report(new FileNotFoundException(ResourceNote.Missing(ResourceName, assembly.GetManifestResourceNames())));
             }
-            catch (Exception ex) when (ex is ArgumentException or IOException or InvalidOperationException)
+            catch (Exception ex) when (ex is ArgumentException or IOException or InvalidOperationException or NotSupportedException or System.Runtime.InteropServices.ExternalException)
             {
+                // ExternalException: what the system answers (Win32Exception, COMException) when the picture is damaged inside - measured: an icon
+                // whose pixels are altered raises a Win32Exception, where an empty, cut or mistaken one raises an ArgumentException.
                 Report(ex);
             }
 

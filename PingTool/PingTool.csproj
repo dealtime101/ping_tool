@@ -540,8 +540,9 @@
          1.21.462 = the handler of the errors of the window's thread cannot itself throw, as the handler of the fatal ones: the log, the summary and the box are each guarded (PIN507.274)
          1.21.463 = in the run without a window, a report that cannot be BUILT for a checkpoint loses that checkpoint like one that cannot be written, and no longer ends the run and the final report with it (PIN507.278)
          1.21.464 = the French sentence that reads a stretch of the timeline to a screen reader says "1 % perdu" and "0,5 % perdu" below 2, and "perdus" from 2, like the other counts of lost pings (PIN507.279)
-         1.21.465 = the log of the session kept in memory is under a lock, so that writing, copying and exporting it from different threads cannot fail or part the entries from the count of those let go (PIN507.290) -->
-    <Version>1.21.465</Version>
+         1.21.465 = the log of the session kept in memory is under a lock, so that writing, copying and exporting it from different threads cannot fail or part the entries from the count of those let go (PIN507.290)
+         1.21.466 = an icon resource that is damaged inside no longer ends the start of the program with a Win32Exception: the generic icon is shown, and it is said as before (PIN507.298) -->
+    <Version>1.21.466</Version>
   </PropertyGroup>
 
   <ItemGroup>
