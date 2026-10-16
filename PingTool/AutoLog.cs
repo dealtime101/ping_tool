@@ -246,8 +246,13 @@ namespace PingTool
                 lock (log.queue)
                 {
                     // Counted under the lock that guards the queue: a flush in the background can have written (and removed) entries since
-                    // `total` was read, and a number taken before the lock could be longer than what is left.
-                    int drop = Math.Min(total - MaxRetiredPending, log.pending.Count);
+                    // `total` was read, and a number taken before the lock could be longer than what is left, or give up pings that the
+                    // flush has just made unnecessary to give up. So the figures are taken again here: this log's, and the others' (each read
+                    // under its own lock; a flush holds the lock of ONE log at a time and only the window's thread caps, so no cycle of waits).
+                    int others = 0;
+                    foreach (var other in retired)
+                        if (!ReferenceEquals(other, log)) others += other.Pending;
+                    int drop = ToGiveUp(log.pending.Count, others, MaxRetiredPending);
                     if (drop > 0 && log.DropOldestLocked(drop) is { Count: > 0 } gone)
                     {
                         from ??= gone.From;
@@ -261,6 +266,10 @@ namespace PingTool
 
             return lost == 0 ? null : Loc.T("log.retired.cap", lost, SpanText(from!.Value, to!.Value), MaxRetiredPending);
         }
+
+        // How many of the `here` pings of one log go so that the retired logs together keep at most `cap`: what exceeds the cap, and never
+        // more than this log holds (the others are looked at next).
+        internal static int ToGiveUp(int here, int elsewhere, int cap) => Math.Clamp(here + elsewhere - cap, 0, here);
 
         // 6 bytes of the hash (12 hex characters, 48 bits), not 3: two typed hosts that change into the same name share a file only if their
         // hashes agree too, and with 24 bits a few thousand such hosts would already make that likely. (Logs written by earlier versions
