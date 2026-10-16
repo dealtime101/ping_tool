@@ -140,11 +140,12 @@ namespace PingTool
                 {
                     var clockWatch = Stopwatch.StartNew();
                     long ping; PingFailure? failure; string? warning = null;
+                    System.Net.IPAddress? answeredBy = null;   // what actually answered, as the window keeps it (the report names it, the diagnosis uses it)
                     try
                     {
                         var outcome = await probe(target, settings.TimeoutMs, run.Token);
                         if (run.Token.IsCancellationRequested) break;   // a reply that lands after the end is not counted
-                        ping = outcome.Rtt; failure = outcome.Failure; warning = outcome.Warning;
+                        ping = outcome.Rtt; failure = outcome.Failure; warning = outcome.Warning; answeredBy = outcome.Ip;
                     }
                     catch (OperationCanceledException) when (run.Token.IsCancellationRequested) { break; }
                     catch (Exception ex)
@@ -157,6 +158,7 @@ namespace PingTool
                     WebhookEvent? toRaise = null;
                     lock (gate)
                     {
+                        if (answeredBy is not null) session.SetIp(answeredBy);
                         session.Add(ping, failure, now);
                         session.Notice = warning;
                         var change = session.Monitor.Update(ping);

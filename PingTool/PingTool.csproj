@@ -567,8 +567,9 @@
          1.21.489 = taking back the rows of a failed write compares the length first: a file that grew by more than was written is not read into memory to learn that (PIN507.369)
          1.21.490 = after a window died holding the lock of a log file, the next flush reads that file whole to cut a row it left half written inside a quoted field (PIN507.372)
          1.21.491 = a target that is one of this PC's own addresses is left out of the comparison of the targets, as a loopback one is: the PC answers it from its own stack (PIN507.373)
-         1.21.492 = a log that finishes loading after its window was closed no longer opens a viewer or a box over it, in the main window and in the log viewer (PIN507.377) -->
-    <Version>1.21.492</Version>
+         1.21.492 = a log that finishes loading after its window was closed no longer opens a viewer or a box over it, in the main window and in the log viewer (PIN507.377)
+         1.21.493 = in the run without a window the address that answered is kept for the host, as in the window: the report names it and the diagnosis can tell what is on the link (PIN507.380) -->
+    <Version>1.21.493</Version>
   </PropertyGroup>
 
   <ItemGroup>
