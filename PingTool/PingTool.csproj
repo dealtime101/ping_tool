@@ -379,8 +379,9 @@
          1.21.301 = a log with a round-trip time above one hour is refused when it is opened; negative times already were (PIN507.16)
          1.21.302 = zero ping is singular in French, as one ping (PIN507.18)
          1.21.303 = a fatal error is never counted as a repeat of the same error survived before, so the crash log always says that the process stopped (PIN507.19)
-         1.21.304 = a repeat note of the crash log that could not be written is tried again at the next occurrence (PIN507.20) -->
-    <Version>1.21.304</Version>
+         1.21.304 = a repeat note of the crash log that could not be written is tried again at the next occurrence (PIN507.20)
+         1.21.305 = a route traced during a run no longer replaces the reference of a run started while the trace was going on (PIN507.25) -->
+    <Version>1.21.305</Version>
   </PropertyGroup>
 
   <ItemGroup>

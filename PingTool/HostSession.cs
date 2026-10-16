@@ -55,8 +55,32 @@ namespace PingTool
         // The address behind IpText, for telling a local target from an Internet one.
         public System.Net.IPAddress? Ip { get; private set; }
 
+        // Which run this session is in: Reset (the start of a run) moves it on. A route capture takes the number when it starts and gives
+        // its result back with it (PublishBaseline, PublishOutagePath): a trace that outlives its run - the loops ended by themselves,
+        // nobody cancelled it, and a new run started during the ~20 s it lasts - is dropped instead of replacing the new run's reference.
+        public int Epoch { get; private set; }
+
+        public bool PublishBaseline(int epoch, PathCapture path)
+        {
+            if (epoch != Epoch) return false;
+            BaselinePath = path;
+            return true;
+        }
+
+        public bool PublishOutagePath(int epoch, Incident outage, PathCapture path)
+        {
+            if (epoch != Epoch) return false;
+            outage.Path = path;
+            outage.PathNotes.AddRange(PathCapture.Compare(BaselinePath, path));
+            return true;
+        }
+
+        // A baseline trace of an earlier run that failed says nothing about this run's tries.
+        public bool BaselineFailed(int epoch) => epoch == Epoch && BaselineFailed();
+
         public void Reset()
         {
+            Epoch++;
             Stats.Reset();
             Monitor.Reset();
             History.Clear();

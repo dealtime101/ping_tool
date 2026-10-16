@@ -1222,23 +1222,18 @@ namespace PingTool
                 return;
             }
             if (outage is null) session.BaselineRequested = true;
-            pathCaptures.Add(CapturePathAsync(session, ip, outage, token));
+            pathCaptures.Add(CapturePathAsync(session, ip, outage, session.Epoch, token));
         }
 
-        private static async Task CapturePathAsync(HostSession session, IPAddress ip, Incident? outage, CancellationToken token)
+        // `epoch`: the run of the session when the capture began. A result that comes back after a new run began (see HostSession.Epoch)
+        // is dropped, so that the route of an old run never becomes the reference of the new one.
+        private static async Task CapturePathAsync(HostSession session, IPAddress ip, Incident? outage, int epoch, CancellationToken token)
         {
             try
             {
                 var path = await TraceRunner.RunAsync(session.Address, ip, PingHopProbe.Create(1000), DateTimeOffset.Now, token: token);
-                if (outage is null)
-                {
-                    session.BaselinePath = path;
-                }
-                else
-                {
-                    outage.Path = path;
-                    outage.PathNotes.AddRange(PathCapture.Compare(session.BaselinePath, path));
-                }
+                if (outage is null) session.PublishBaseline(epoch, path);
+                else session.PublishOutagePath(epoch, outage, path);
             }
             catch (OperationCanceledException)
             {
@@ -1247,7 +1242,7 @@ namespace PingTool
             catch (Exception ex)
             {
                 Debug.WriteLine($"Path capture for {session.Address} failed: {ex}");
-                if (outage is null) session.BaselineFailed();   // the baseline is asked again at a next reply (a few times)
+                if (outage is null) session.BaselineFailed(epoch);   // the baseline is asked again at a next reply (a few times)
             }
         }
 
