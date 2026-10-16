@@ -26,7 +26,7 @@ namespace PingTool
     //                                                #same (a difference is a failure) and #change (a notice when the answer is not the previous one)
     //   https://example.com/api#json=status=ok      the body must be JSON holding that value at that dotted path (a.b.0.c); no =value means "present, not null"
     internal sealed record ProbeTarget(ProbeKind Kind, string Host, int Port, Uri? Url, string? ExpectText = null, int CertWarnDays = ProbeTarget.DefaultCertWarnDays,
-        int? ExpectStatus = null, string? FinalUrl = null, JsonExpect? Json = null, DnsExpect? DnsOptions = null)
+        int? ExpectStatus = null, string? FinalUrl = null, JsonExpect? Json = null, DnsExpect? DnsOptions = null, int Family = 0)
     {
         public const int DefaultCertWarnDays = 14;
         public const int MaxCertWarnDays = 365;
@@ -91,13 +91,33 @@ namespace PingTool
             {
                 case "tcp":
                     // A trailing slash is what a pasted address often ends with; dns:// already accepts it.
+                    // Option after #: tcp://example.com:443#family=6 (see TryFamily).
+                    int tcpHash = rest.IndexOf('#', StringComparison.Ordinal);
+                    int tcpFamily = 0;
+                    if (tcpHash >= 0)
+                    {
+                        string fragment = rest[(tcpHash + 1)..];
+                        rest = rest[..tcpHash];
+                        if (!fragment.StartsWith("family=", StringComparison.OrdinalIgnoreCase) || !TryFamily(fragment[7..], out tcpFamily, out error))
+                        {
+                            if (error.Length == 0) error = "The only option after # of a tcp address is #family=4 or #family=6, for example tcp://example.com:443#family=6";
+                            return false;
+                        }
+                    }
+
                     if (!TryHostPort(rest.TrimEnd('/'), out string host, out int port))
                     {
                         error = "tcp:// needs a host and a port from 1 to 65535, for example tcp://example.com:443";
                         return false;
                     }
 
-                    target = new ProbeTarget(ProbeKind.Tcp, host, port, null);
+                    if (tcpFamily != 0 && IPAddress.TryParse(host, out _))
+                    {
+                        error = "#family= needs a host name, not an IP address: an address has one family already.";
+                        return false;
+                    }
+
+                    target = new ProbeTarget(ProbeKind.Tcp, host, port, null, Family: tcpFamily);
                     return true;
 
                 case "http":
@@ -112,8 +132,14 @@ namespace PingTool
 
                     // The host as tcp:// gives it: an IPv6 literal without its URI brackets ("[2001:db8::1]" is how a URI writes it, the
                     // resolver and the certificate check want the bare address).
+                    if (o.Family != 0 && url.HostNameType != UriHostNameType.Dns)
+                    {
+                        error = "#family= needs a host name, not an IP address: an address has one family already.";
+                        return false;
+                    }
+
                     target = new ProbeTarget(ProbeKind.Http, url.HostNameType == UriHostNameType.IPv6 ? url.Host.Trim('[', ']') : url.Host, url.Port, url,
-                        o.Expect, o.CertDays, o.Status, o.Final, o.Json);
+                        o.Expect, o.CertDays, o.Status, o.Final, o.Json, Family: o.Family);
                     return true;
 
                 case "dns":
@@ -157,12 +183,21 @@ namespace PingTool
 
         // The part after # of a web address: "contains=text" and/or "cert=days", separated by &. Anything else is refused: a typo
         // ("#contain=...") silently ignored would leave the check the user thinks they set up doing nothing.
-        private sealed record HttpOptions(string? Expect, int CertDays, int? Status, string? Final, JsonExpect? Json);
+        private sealed record HttpOptions(string? Expect, int CertDays, int? Status, string? Final, JsonExpect? Json, int Family = 0);
+
+        // #family=4 or 6: the probe uses only that IP family of the name, so that two entries of one name (one #family=4, one #family=6)
+        // are the two sides of a dual-stack service. A name with no record of that family is "No record", not a network failure.
+        private static bool TryFamily(string value, out int family, out string error)
+        {
+            family = value == "4" ? 4 : value == "6" ? 6 : 0;
+            error = family == 0 ? "#family= needs 4 or 6, for example https://example.com/#family=6" : "";
+            return family != 0;
+        }
 
         private static bool TryHttpOptions(string fragment, bool secure, out HttpOptions options, out string error)
         {
             string? expect = null, final = null;
-            int certDays = DefaultCertWarnDays;
+            int certDays = DefaultCertWarnDays, family = 0;
             int? status = null;
             JsonExpect? json = null;
             options = new HttpOptions(null, certDays, null, null, null);
@@ -177,7 +212,7 @@ namespace PingTool
                 string key = (eq < 0 ? part : part[..eq]).ToLowerInvariant();
                 string value = eq < 0 ? "" : part[(eq + 1)..];
 
-                if (key is "status" or "final" or "json" && seen.Add(key))
+                if (key is "status" or "final" or "json" or "family" && seen.Add(key))
                 {
                     string decoded = Uri.UnescapeDataString(value);
                     if (decoded.Length == 0 || decoded.Length > MaxExpectLength || decoded.Any(char.IsControl))
@@ -186,7 +221,11 @@ namespace PingTool
                         return false;
                     }
 
-                    if (key == "status")
+                    if (key == "family")
+                    {
+                        if (!TryFamily(decoded, out family, out error)) return false;
+                    }
+                    else if (key == "status")
                     {
                         if (!int.TryParse(decoded, NumberStyles.None, CultureInfo.InvariantCulture, out int code) || code is < 100 or > 599)
                         {
@@ -246,7 +285,7 @@ namespace PingTool
                         return false;
                     }
                 }
-                else if (key is "contains" or "cert" or "status" or "final" or "json")
+                else if (key is "contains" or "cert" or "status" or "final" or "json" or "family")
                 {
                     // A known option, written a second time: not a typo to look for, the same one twice (and which one is kept is not a guess to make).
                     error = $"#{key}= is given twice in the web address: use each option once, separated by & (#contains=text&cert=days).";
@@ -254,12 +293,12 @@ namespace PingTool
                 }
                 else
                 {
-                    error = "Unknown option after # in the web address: use #contains=text, #cert=days, #status=code, #final=host/path or #json=path=value (separated by &), each once.";
+                    error = "Unknown option after # in the web address: use #contains=text, #cert=days, #status=code, #final=host/path, #json=path=value or #family=4|6 (separated by &), each once.";
                     return false;
                 }
             }
 
-            options = new HttpOptions(expect, certDays, status, final, json);
+            options = new HttpOptions(expect, certDays, status, final, json, family);
             return true;
         }
 

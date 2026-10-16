@@ -18,7 +18,7 @@ namespace PingTool
         public static List<string> For(IReadOnlyList<Target> targets)
         {
             var said = new List<string>();
-            var data = targets.Where(t => t.HasData && t.Host.Length > 0 && !(t.Ip is { } ip && IPAddress.IsLoopback(ip.IsIPv4MappedToIPv6 ? ip.MapToIPv4() : ip))).ToList();
+            var data = targets.Where(t => t.HasData && t.Host.Length > 0 && !t.NoRecord && !(t.Ip is { } ip && IPAddress.IsLoopback(ip.IsIPv4MappedToIPv6 ? ip.MapToIPv4() : ip))).ToList();
             if (data.Count < 2 || data.All(t => t.State == HostState.Down)) return said;
 
             // A declared service gathers its targets whatever their host names; without one, the targets of a host name are the service.
@@ -69,6 +69,16 @@ namespace PingTool
         // The sentence for one service, or null when its probes do not tell a story (all well, or too few kinds to compare).
         internal static string? Read(string name, List<Target> named, List<Target> byAddress)
         {
+            // A dual-stack service probed on each family (#family=4 and #family=6 entries): one family weaker than the other is told first.
+            var v4 = Worst(named.Where(t => t.Family == 4).ToList());
+            var v6 = Worst(named.Where(t => t.Family == 6).ToList());
+            if (v4 is not null && v6 is not null && v4 != v6 && (v4 == HostState.Up || v6 == HostState.Up))
+            {
+                string weak = v6 == HostState.Up ? "IPv4" : "IPv6", strong = weak == "IPv4" ? "IPv6" : "IPv4";
+                string how = (weak == "IPv4" ? v4 : v6) == HostState.Down ? "fails" : "is slow or failing at times";
+                return $"{name}: {weak} {how} while {strong} answers normally: likely a {weak} problem (the path, the provider or the {weak} side of the server), not the service as a whole; an application that tries {weak} first waits or fails while one that tries {strong} first does not.";
+            }
+
             var dns = State(named, ProbeKind.Dns);
             var ping = State(named, ProbeKind.Icmp);
             var tcp = State(named, ProbeKind.Tcp);

@@ -10,7 +10,7 @@ namespace PingTool
     // Kind, Host, Port: what the target is probed with and where (see ServiceDiagnosis: targets of one host name are one service seen from
     // different sides). Host is empty when it is not known. Service: the service the user declared for it (TargetOptions), or null.
     internal sealed record Target(string Name, IPAddress? Ip, HostState State, bool HasData, bool OnLink = false,
-        ProbeKind Kind = ProbeKind.Icmp, string Host = "", int Port = 0, string? Service = null);
+        ProbeKind Kind = ProbeKind.Icmp, string Host = "", int Port = 0, string? Service = null, int Family = 0, bool NoRecord = false);
 
     // The networks this PC is directly attached to, read from its cards (address and prefix length), kept for a while: the diagnosis is
     // asked for at every refresh and the cards do not change that often.

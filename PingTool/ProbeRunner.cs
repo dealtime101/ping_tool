@@ -53,6 +53,44 @@ namespace PingTool
             return client;
         }
 
+        // The clients of #family=4 and #family=6: they connect themselves, to an address of that family only, and the name stays the one in the
+        // URL for the Host header and the certificate. The end date of the certificate is not read on these (its callback is not handed the
+        // request): the plain target of the same name keeps watching it.
+        private static readonly HttpClient Web4 = CreateFamilyClient(4), Web6 = CreateFamilyClient(6);
+
+        private static HttpClient CreateFamilyClient(int family)
+        {
+            var handler = new SocketsHttpHandler
+            {
+                AllowAutoRedirect = false,
+                ConnectCallback = async (context, ct) =>
+                {
+                    string host = context.DnsEndPoint.Host;
+                    IPAddress[] addresses;
+                    try { addresses = await Dns.GetHostAddressesAsync(host, FamilyOf(family), ct); }
+                    catch (SocketException)
+                    {
+                        // Told apart: the name exists but has nothing of this family (no record), or does not resolve at all (the error stays).
+                        if ((await Dns.GetHostAddressesAsync(host, ct)).Length == 0) throw;
+                        throw new NoRecordException(family);
+                    }
+
+                    if (addresses.Length == 0) throw new NoRecordException(family);
+                    var socket = new Socket(SocketType.Stream, ProtocolType.Tcp) { NoDelay = true };
+                    try
+                    {
+                        await socket.ConnectAsync(addresses, context.DnsEndPoint.Port, ct);
+                        return new NetworkStream(socket, ownsSocket: true);
+                    }
+                    catch { socket.Dispose(); throw; }
+                },
+            };
+            handler.SslOptions.RemoteCertificateValidationCallback = (_, _, _, errors) => errors == SslPolicyErrors.None;
+            var client = new HttpClient(handler) { Timeout = Timeout.InfiniteTimeSpan };
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("PingTool/" + AppVersion.Number);
+            return client;
+        }
+
         public static async Task<ProbeOutcome> RunAsync(ProbeTarget target, int timeoutMs, Ping ping, byte[]? buffer, CancellationToken token)
         {
             try
@@ -75,10 +113,20 @@ namespace PingTool
                 // Our own deadline fired, not the user's Stop.
                 return new ProbeOutcome(-1, PingFailure.Timeout, null, ex);
             }
+            catch (Exception ex) when (FindNoRecord(ex) is { } none)
+            {
+                return NoRecord(none.Family);
+            }
             catch (Exception ex)
             {
                 return new ProbeOutcome(-1, PingFailure.From(ex), null, ex);
             }
+        }
+
+        private static NoRecordException? FindNoRecord(Exception? ex)
+        {
+            for (; ex is not null; ex = ex.InnerException) if (ex is NoRecordException none) return none;
+            return null;
         }
 
         // The token goes to the call: Stop or Close cancels a ping in flight, like the other probes (the class promises it). A null buffer
@@ -90,6 +138,19 @@ namespace PingTool
             return reply.Status == IPStatus.Success
                 ? new ProbeOutcome(reply.RoundtripTime, null, reply.Address)
                 : new ProbeOutcome(-1, PingFailure.From(reply.Status, reply.Address?.AddressFamily), null);
+        }
+
+        internal static AddressFamily FamilyOf(int family) => family == 6 ? AddressFamily.InterNetworkV6 : AddressFamily.InterNetwork;
+
+        internal const string NoRecordShort = "No record";
+
+        internal static ProbeOutcome NoRecord(int family) =>
+            new(-1, new PingFailure(NoRecordShort, $"The name has no {(family == 6 ? "AAAA (IPv6)" : "A (IPv4)")} record: nothing to reach on this family, which is not a network failure"), null);
+
+        // Thrown by the connection of a #family= web target when the name has no address of that family.
+        internal sealed class NoRecordException(int family) : Exception("no record")
+        {
+            public int Family { get; } = family;
         }
 
         // The time to open the connection, nothing more: that is "the port is reachable".
@@ -106,6 +167,13 @@ namespace PingTool
 
             var addresses = await resolve(t.Host, deadline.Token);
             if (addresses.Length == 0) return new ProbeOutcome(-1, new PingFailure("No host", "The name resolved to no address"), null);
+
+            // #family=: only that family is tried; a name with none of it has no record of that kind, which is not a network failure.
+            if (t.Family != 0)
+            {
+                addresses = addresses.Where(a => a.AddressFamily == FamilyOf(t.Family)).ToArray();
+                if (addresses.Length == 0) return NoRecord(t.Family);
+            }
 
             // The addresses are tried in the order the system gave them, as it does itself: what a slow first one costs before the
             // second one answers is part of what a connection to this name costs.
@@ -142,7 +210,7 @@ namespace PingTool
 
         // The time until the status line and headers arrive, on a NEW connection each time (so the
         // figure includes the TCP and TLS handshakes, like a first visit). 4xx and 5xx are failures.
-        private static Task<ProbeOutcome> HttpAsync(ProbeTarget t, int timeoutMs, CancellationToken token) => HttpAsync(t, timeoutMs, Web, token);
+        private static Task<ProbeOutcome> HttpAsync(ProbeTarget t, int timeoutMs, CancellationToken token) => HttpAsync(t, timeoutMs, t.Family == 4 ? Web4 : t.Family == 6 ? Web6 : Web, token);
 
         internal static async Task<ProbeOutcome> HttpAsync(ProbeTarget t, int timeoutMs, HttpClient client, CancellationToken token)   // the token last (CA1068)
         {
