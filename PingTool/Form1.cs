@@ -1222,6 +1222,11 @@ namespace PingTool
         // outage = the incident to attach the route to; null = the healthy baseline of the host.
         private void StartPathCapture(HostSession session, Incident? outage, CancellationToken token)
         {
+            // A token that is already cancelled belongs to a run that is over: its capture would end at once, and the list below is the
+            // one of the run in progress (pathCaptures is replaced at each Start), so nothing of an old run is added to it. Not reachable
+            // today (the loops leave before UpdatePingUI once cancelled); this keeps it so.
+            if (token.IsCancellationRequested) return;
+
             if (session.Ip is not { } ip)
             {
                 // No address yet: an outage keeps its place in line and is traced at the first ping after the address is known (see
