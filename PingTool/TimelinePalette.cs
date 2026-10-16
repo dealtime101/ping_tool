@@ -39,7 +39,11 @@ namespace PingTool
 
         // The share of lost pings in a column: the stronger the red, the larger the share; in high contrast one opaque colour, the width of
         // the bar and its position at the bottom say the rest.
-        public Color Loss(double fraction) => highContrast ? Fit(SystemColors.HotTrack) : Color.FromArgb((int)(70 + 185 * Math.Clamp(fraction, 0, 1)), 255, 99, 71);
+        // The weakest red is still a graphic that carries information (a column with a single lost ping, often the one to find), which asks
+        // 3:1 against the plot: at an alpha of 70 over the dark plot it was 1.5:1, and a lone loss was lost in it. 180 gives 3.2:1.
+        public const int MinLossAlpha = 180;
+        public Color Loss(double fraction) => highContrast ? Fit(SystemColors.HotTrack)
+            : Color.FromArgb((int)(MinLossAlpha + (255 - MinLossAlpha) * Math.Clamp(fraction, 0, 1)), 255, 99, 71);
 
         // The two colours of the hatching of an outage.
         public (Color Fore, Color Back) OutageHatch => highContrast ? (Fit(SystemColors.HotTrack), SystemColors.Window) : (Color.FromArgb(170, 255, 99, 71), Color.FromArgb(50, 255, 99, 71));
