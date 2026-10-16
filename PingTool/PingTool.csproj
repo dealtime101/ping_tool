@@ -426,8 +426,9 @@
          1.21.348 = the diagnosis of the connection also tests the IPv6 DNS servers of a card that has an IPv4 gateway, after the IPv4 ones, the limit applying to the whole list (PIN507.98)
          1.21.349 = the message that says no gateway was found no longer says that the references are all there is: the DNS servers of the card are tested too (PIN507.99)
          1.21.350 = a profile name cannot hold the other characters that draw nothing (U+034F, the fillers, a variation selector after a letter), so two names cannot look the same (PIN507.100)
-         1.21.351 = the check of a profile name segments the name once and refuses a name over 512 units before any segmentation, so a name of tags no longer costs a quadratic time (PIN507.101) -->
-    <Version>1.21.351</Version>
+         1.21.351 = the check of a profile name segments the name once and refuses a name over 512 units before any segmentation, so a name of tags no longer costs a quadratic time (PIN507.101)
+         1.21.352 = a private address that is not in the network of any card of the PC (behind a router, at the far end of a VPN) is no longer taken for a local device by the diagnosis (PIN507.102) -->
+    <Version>1.21.352</Version>
   </PropertyGroup>
 
   <ItemGroup>

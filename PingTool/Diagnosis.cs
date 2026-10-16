@@ -9,8 +9,12 @@ namespace PingTool
     // its address is a global one (a LAN machine with a global IPv6 address, a public IPv4 range handed out on the LAN).
     // Kind, Host, Port: what the target is probed with and where (see ServiceDiagnosis: targets of one host name are one service seen from
     // different sides). Host is empty when it is not known. Service: the service the user declared for it (TargetOptions), or null.
+    // NetworksKnown: the cards were read and have networks, so "not in any of them" means something: a private address that is not
+    // on the link is then a ROUTED one (a network behind the router, or at the far end of a VPN), whose path is not known. Without it
+    // (the cards could not be read) the ranges of the addresses alone decide, as they always did.
     internal sealed record Target(string Name, IPAddress? Ip, HostState State, bool HasData, bool OnLink = false,
-        ProbeKind Kind = ProbeKind.Icmp, string Host = "", int Port = 0, string? Service = null, int Family = 0, bool NoRecord = false);
+        ProbeKind Kind = ProbeKind.Icmp, string Host = "", int Port = 0, string? Service = null, int Family = 0, bool NoRecord = false,
+        bool NetworksKnown = false);
 
     // The networks this PC is directly attached to, read from its cards (address and prefix length), kept for a while: the diagnosis is
     // asked for at every refresh and the cards do not change that often.
@@ -71,16 +75,18 @@ namespace PingTool
             return false;
         }
 
-        public static bool IsOnLink(IPAddress ip)
+        public static bool IsOnLink(IPAddress ip) => Contains(ip, Current());
+
+        // True when the cards were read and have networks: "not in any of them" then says that the address is not on the link.
+        public static bool IsKnown() => Current().Count > 0;
+
+        private static IReadOnlyList<(IPAddress Address, int Prefix)> Current()
         {
-            IReadOnlyList<(IPAddress Address, int Prefix)> networks;
             lock (gate)
             {
                 if (cached is null || DateTime.UtcNow - cachedAt > Lifetime) { cached = Read(); cachedAt = DateTime.UtcNow; }
-                networks = cached;
+                return cached;
             }
-
-            return Contains(ip, networks);
         }
 
         internal static void Forget() { lock (gate) cached = null; }
@@ -96,22 +102,41 @@ namespace PingTool
         private static bool IsLoopback(IPAddress ip) => IPAddress.IsLoopback(ip.IsIPv4MappedToIPv6 ? ip.MapToIPv4() : ip);
 
         // Private, loopback and link-local ranges: reachable without the Internet.
-        public static bool IsLocal(IPAddress ip)
+        public static bool IsLocal(IPAddress ip) => IsLinkScope(ip) || IsPrivateRange(ip);
+
+        // Loopback and link-local addresses: on this PC or on its link by their very nature, whatever the cards say.
+        private static bool IsLinkScope(IPAddress ip)
         {
             if (ip.IsIPv4MappedToIPv6) ip = ip.MapToIPv4();
             if (IPAddress.IsLoopback(ip)) return true;
+            if (ip.AddressFamily == AddressFamily.InterNetwork)
+            {
+                var b = ip.GetAddressBytes();
+                return b[0] == 169 && b[1] == 254;
+            }
 
+            return ip.IsIPv6LinkLocal;
+        }
+
+        // The private ranges (10/8, 172.16/12, 192.168/16, fc00::/7): an address of a network that is not on the Internet, but that is
+        // not necessarily the network of this PC - it can be one behind the router, or at the far end of a VPN.
+        private static bool IsPrivateRange(IPAddress ip)
+        {
+            if (ip.IsIPv4MappedToIPv6) ip = ip.MapToIPv4();
             if (ip.AddressFamily == AddressFamily.InterNetwork)
             {
                 var b = ip.GetAddressBytes();
                 return b[0] == 10
                     || (b[0] == 172 && b[1] >= 16 && b[1] <= 31)
-                    || (b[0] == 192 && b[1] == 168)
-                    || (b[0] == 169 && b[1] == 254);
+                    || (b[0] == 192 && b[1] == 168);
             }
 
-            return ip.IsIPv6LinkLocal || ip.IsIPv6UniqueLocal;
+            return ip.IsIPv6UniqueLocal;
         }
+
+        // A private address that the cards say is NOT on the link: its path (a router, a VPN) is not known, so a fault there is not a
+        // fault of "a local device".
+        private static bool IsRouted(Target t) => t.Ip is { } ip && t.NetworksKnown && !t.OnLink && IsPrivateRange(ip);
 
         // null = nothing useful to say (fewer than two targets have answered or timed out yet). The comparison of all the targets, then, on
         // their own lines, what the probes of one service (the targets of one host name) say side by side (see ServiceDiagnosis).
@@ -157,9 +182,12 @@ namespace PingTool
             if (slow.Count > 0 && down.Count + slow.Count == n)
                 return $"{down.Count} of {n} targets {(down.Count == 1 ? "is" : "are")} down and the other {(slow.Count == 1 ? "one is" : slow.Count + " are")} slow or losing packets: likely this PC's link or the path they share.";
 
-            // Local: a private or link-local address, or one in the network of this PC's own cards (a global address on the LAN).
-            var local = targets.Where(t => t.Ip is not null && (t.OnLink || IsLocal(t.Ip))).ToList();
-            var remote = targets.Where(t => t.Ip is not null && !(t.OnLink || IsLocal(t.Ip))).ToList();
+            // Local: a link-local address, or one in the network of this PC's own cards (a global address on the LAN), or a private
+            // address when the cards could not say otherwise. A private address of a network the cards are NOT in (behind a router, at the
+            // far end of a VPN) is neither local nor Internet: its path is unknown, so it is in neither list and a fault there is not
+            // put on "a local device" (the general sentence says "that target or its path").
+            var local = targets.Where(t => t.Ip is not null && !IsRouted(t) && (t.OnLink || IsLocal(t.Ip))).ToList();
+            var remote = targets.Where(t => t.Ip is not null && !IsRouted(t) && !(t.OnLink || IsLocal(t.Ip))).ToList();
 
             // A target whose address is not known (a local name that does not resolve, "nas.local") is neither local nor Internet:
             // counting it as Internet would blame the router or the link for a device that may be off. Without an address for
