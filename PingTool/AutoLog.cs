@@ -124,6 +124,20 @@ namespace PingTool
         // One try for each retired log; the ones that got everything out are forgotten.
         public static void FlushRetired(List<AutoLog> retired) => retired.RemoveAll(r => r.Flush());
 
+        // The timer's try for the retired logs, off the window's thread: each log has at most ONE flush going at a time (FlushInBackground
+        // says "still going" at once instead of starting another). Without that, a share that stops answering holds the first flush for tens
+        // of seconds and every tick sends one more pool thread to wait for the same lock, for hours. The logs that got everything out are
+        // returned; one whose flush is still going is not (it reports for itself when it ends, and is tried again at the next tick).
+        public static async Task<List<AutoLog>> FlushRetiredInBackground(IReadOnlyList<AutoLog> retired)
+        {
+            var attempts = retired.Select(r => (Log: r, Done: r.FlushInBackground())).ToList();
+            var emptied = new List<AutoLog>();
+            foreach (var (log, done) in attempts)
+                if (await done == true) emptied.Add(log);
+
+            return emptied;
+        }
+
         // Why the last Flush could not write everything; null when it did. Written by a flush that may run in the background.
         private volatile string? lastError;
         public string? LastError => lastError;

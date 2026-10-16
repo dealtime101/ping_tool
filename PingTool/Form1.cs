@@ -924,7 +924,7 @@ namespace PingTool
                 Task<bool?> own = log?.FlushInBackground() ?? Task.FromResult<bool?>(null);
                 Task<List<AutoLog>> others = retired.Count == 0
                     ? Task.FromResult(new List<AutoLog>())
-                    : Task.Run(() => retired.Where(r => r.Flush()).ToList());
+                    : AutoLog.FlushRetiredInBackground(retired);   // one flush at a time for each log, like the current one
                 bool? written = await own;
                 var emptied = await others;
                 if (closing || IsDisposed) return;
