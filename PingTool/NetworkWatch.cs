@@ -38,9 +38,12 @@ namespace PingTool
         // interface (WifiWatch reads it); the card name already tells Wi-Fi from Ethernet and from a VPN adapter.
         // null when the cards could not be read (all of them or one: a list with a card missing would be read as that card being
         // unplugged). The caller keeps what it knew and ignores this reading; an EMPTY list means the PC really has no network.
+        // error: why the reading failed, null when it did not (it comes with THIS reading: kept in a field of the class it would be the reason
+        // of an earlier failure after a good reading, or the one of another reading).
         // read: the reading itself, a parameter so that a failure can be replayed in a test.
-        public static List<NicState>? Snapshot(Func<List<NicState>>? read = null)
+        public static List<NicState>? Snapshot(out string? error, Func<List<NicState>>? read = null)
         {
+            error = null;
             try
             {
                 return (read ?? ReadCards)();
@@ -48,25 +51,23 @@ namespace PingTool
             catch (Exception ex) when (ex is NetworkInformationException or PlatformNotSupportedException or InvalidOperationException)
             {
                 System.Diagnostics.Debug.WriteLine("Network cards could not be read: " + ex.Message);
-                LastReadError = ex.Message;   // Debug output does not exist in a release build: the reason is kept for the window to say
+                error = ex.Message;   // Debug output does not exist in a release build: the reason goes with the reading, for the window to say
                 return null;
             }
         }
-
-        // Why the last reading that failed did. Set by Snapshot (the reading runs on the window's thread).
-        public static string? LastReadError { get; private set; }
 
         // What changed between what the window knew (null = nothing yet) and this reading (null = could not be read): the new "last
         // known" state and the sentence, if any. A failed reading changes nothing in what is known; it is SAID once per run of failures
         // (failureSaid is kept by the caller), so that a person looking for the reason of a missing change finds it in the events.
         // The first reading only sets the base.
-        public static (List<NicState>? Last, string? Text) Compare(List<NicState>? last, List<NicState>? now, ref bool failureSaid)
+        // readError: the reason Snapshot gave with a reading that failed (null = it gave none).
+        public static (List<NicState>? Last, string? Text) Compare(List<NicState>? last, List<NicState>? now, ref bool failureSaid, string? readError = null)
         {
             if (now is null)
             {
                 if (failureSaid) return (last, null);
                 failureSaid = true;
-                string why = LastReadError is { Length: > 0 } reason ? reason.Length <= 80 ? reason : TextCut.Units(reason, 77) + "..." : "no reason given";
+                string why = readError is { Length: > 0 } reason ? reason.Length <= 80 ? reason : TextCut.Units(reason, 77) + "..." : "no reason given";
                 return (last, $"The network cards could not be read ({why}): changes of the network are not recorded until they can be.");
             }
 

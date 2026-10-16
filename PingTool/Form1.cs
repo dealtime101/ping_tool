@@ -816,7 +816,7 @@ namespace PingTool
                 noticed.Clear();
                 networkEvents.Clear();
                 networkReadFailureSaid = false;
-                lastNetwork = NetworkWatch.Snapshot();
+                lastNetwork = NetworkWatch.Snapshot(out _);
                 wifi = new WifiTracker();
                 wifiTimer.Start();
                 PollWifi();
@@ -1584,7 +1584,8 @@ namespace PingTool
         {
             networkTimer.Stop();
             // A reading that failed changes nothing: it is not "the network went away" (see NetworkWatch.Snapshot).
-            (lastNetwork, string? text) = NetworkWatch.Compare(lastNetwork, NetworkWatch.Snapshot(), ref networkReadFailureSaid);
+            var reading = NetworkWatch.Snapshot(out string? readError);
+            (lastNetwork, string? text) = NetworkWatch.Compare(lastNetwork, reading, ref networkReadFailureSaid, readError);
             if (text is not null && isRunning && !closing) networkEvents.Add(new NetworkEvent(DateTimeOffset.Now, text));
         }
 
