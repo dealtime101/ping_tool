@@ -63,7 +63,9 @@ namespace PingTool
         }
 
         private static bool guiStarted;
-        private static bool windowErrorShown;
+        // 1 once the box of OnWindowThreadError was shown; taken with Interlocked so that two errors at once show it once, whichever thread
+        // runs the handler (today only the window thread does: ThreadException is raised on the thread of the failing message loop).
+        private static int windowErrorShown;
 
         // The process is going down (an exception nobody caught on another thread): write what is known, say so where someone can read it.
         private static void OnFatal(object? exception)
@@ -98,8 +100,7 @@ namespace PingTool
             try { saved = CrashLog.TryAppend(CrashLog.DefaultPath, CrashLog.Entry(exception, DateTimeOffset.Now, AppVersion.Display, fatal: false)); }
             catch (Exception) { }
 
-            if (windowErrorShown) return;
-            windowErrorShown = true;
+            if (Interlocked.Exchange(ref windowErrorShown, 1) != 0) return;
             string what = "an error that could not be described";
             try { what = CrashLog.Summary(exception); }
             catch (Exception) { }
