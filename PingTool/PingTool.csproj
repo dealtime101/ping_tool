@@ -497,8 +497,9 @@
          1.21.419 = a text of the table that has a place to fill, asked for with no argument, comes out with its key like one asked for with too few, instead of raw (PIN507.204)
          1.21.420 = the detail of a socket error with no sentence of its own is its name and system number, not the message of the system in the language of the machine (PIN507.205)
          1.21.421 = an invalid packet size or timeout is no longer reported as an invalid address (PIN507.206)
-         1.21.422 = the report file of a headless run is made absolute and tried (folder made, a trial file written and removed) before anything is probed, instead of failing ten minutes or a night later (PIN507.207) -->
-    <Version>1.21.422</Version>
+         1.21.422 = the report file of a headless run is made absolute and tried (folder made, a trial file written and removed) before anything is probed, instead of failing ten minutes or a night later (PIN507.207)
+         1.21.423 = start, minimized and test-webhooks combined with headless are refused with a message that names them, instead of being dropped in silence (PIN507.208) -->
+    <Version>1.21.423</Version>
   </PropertyGroup>
 
   <ItemGroup>

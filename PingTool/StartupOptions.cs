@@ -173,6 +173,18 @@ namespace PingTool
                 return false;
             }
 
+            // No window, so nothing to start from, to minimise or to test in a box: which of the modes should win would be a guess (the run
+            // without a window did, and the others were dropped without a word).
+            if (headless && (start || minimized || testWebhooks))
+            {
+                var ignored = new List<string>();
+                if (start) ignored.Add("--start");
+                if (minimized) ignored.Add("--minimized");
+                if (testWebhooks) ignored.Add("--test-webhooks");
+                message = $"{string.Join(", ", ignored)} cannot be used with --headless: there is no window. Use --headless on its own for the run without a window, and {(ignored.Count == 1 ? "that option" : "those options")} for the window.";
+                return false;
+            }
+
             if (hide is not null && reportPath is null)
             {
                 message = "--hide only works with --headless and --report.";
