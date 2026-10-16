@@ -73,11 +73,14 @@ namespace PingTool
         private static string? lastSignature, lastPath;
         private static int repeats;
 
-        // What identifies an error: the entry without its first line (the time and the version).
+        // What identifies an error: the entry without its first line (the time and the version) - but with whether it is FATAL, which is
+        // on that line. The same error that PingTool survived a minute ago and now ends the process is not a repeat: counted as one, it
+        // would not be written at all (a repeat is written at the 2nd time, then the 10th...), and the log would not say that it stopped.
         private static string SignatureOf(string entry)
         {
             int at = entry.IndexOf("\r\n", StringComparison.Ordinal);
-            return at < 0 ? entry : entry[(at + 2)..];
+            if (at < 0) return entry;
+            return (entry.AsSpan(0, at).EndsWith(" - FATAL", StringComparison.Ordinal) ? "FATAL\r\n" : "") + entry[(at + 2)..];
         }
 
         // A repeat is written to the file at the 2nd time, then at the 10th, the 100th, the 1000th...
