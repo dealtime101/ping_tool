@@ -227,8 +227,10 @@ namespace PingTool
             a.AddressFamily == AddressFamily.InterNetwork && !a.Equals(IPAddress.Any) && !IPAddress.IsLoopback(a);
 
         // The IPv6 counterpart, for a connection that has no IPv4 at all: not "::" (no gateway), not ::1. Link-local (fe80::%zone) is
-        // kept, a router announces itself that way, with the zone the address carries.
+        // kept, a router announces itself that way, with the zone the address carries. Site-local (fec0::/10, deprecated in 2004) is not:
+        // Windows lists fec0:0:0:ffff::1, ::2 and ::3 as the DNS servers of a card that has none over IPv6, they never answer, and the
+        // report would blame the provider's DNS for it. (ProbeRunner leaves them out of the servers it compares for the same reason.)
         private static bool IsUsableIPv6(IPAddress a) =>
-            a.AddressFamily == AddressFamily.InterNetworkV6 && !a.Equals(IPAddress.IPv6Any) && !IPAddress.IsLoopback(a);
+            a.AddressFamily == AddressFamily.InterNetworkV6 && !a.Equals(IPAddress.IPv6Any) && !IPAddress.IsLoopback(a) && !a.IsIPv6SiteLocal;
     }
 }

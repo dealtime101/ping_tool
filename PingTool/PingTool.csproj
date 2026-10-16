@@ -476,8 +476,9 @@
          1.21.398 = the gap, the minimum height of the chart and the margins in the layout of the timeline window are scaled to the screen, not fixed pixels (PIN507.172)
          1.21.399 = the webhook client and the #family=4/6 probe clients renew their connections every 5 minutes, so a receiver or a service that changed address is reached again without a restart (PIN507.173)
          1.21.400 = a Teams workflow address (logic.azure.com, powerplatform.com) gets the Adaptive Card its template reads, with the generic fields beside it; the comment and the README no longer say that "text" is enough (PIN507.175)
-         1.21.401 = the whole ICMP probe, the lookup of a name included, has to fit in the timeout, as the other probes do (PIN507.177) -->
-    <Version>1.21.401</Version>
+         1.21.401 = the whole ICMP probe, the lookup of a name included, has to fit in the timeout, as the other probes do (PIN507.177)
+         1.21.402 = the site-local IPv6 addresses (fec0::/10), among them the placeholder DNS servers Windows lists, are no longer tested as gateways or DNS servers (PIN507.181) -->
+    <Version>1.21.402</Version>
   </PropertyGroup>
 
   <ItemGroup>
