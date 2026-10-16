@@ -754,7 +754,7 @@ namespace PingTool
                 if (log.DroppedNote is string dropped)
                     MessageBox.Show("Exported, but incomplete.\n\n" + dropped + "\nThe file starts at "
                         + log.Entries.First().Time.ToLocalTime().ToString("G", CultureInfo.CurrentCulture)
-                        + $".\n\nTick \"{chkSaveLog.Text}\" before Start to keep everything.", "PingTool");   // the label as it is on screen
+                        + $".\n\nTick \"{chkSaveLog.Text.Replace("&", "", StringComparison.Ordinal)}\" before Start to keep everything.", "PingTool");   // the label as it is on screen: without the & that marks the key
             }
             catch (IOException ex)
             {
@@ -795,7 +795,7 @@ namespace PingTool
                 isRunning = true;
                 hasRun = true;
                 alertGrouper.Reset();
-                btnStartStop.Text = "Stop";
+                btnStartStop.Text = "&Stop";   // the same key as Start: one button, one key
                 SetSettingsEnabled(false);
                 ShowRunState();
 
@@ -973,7 +973,7 @@ namespace PingTool
             if (closing) return;
             isRunning = false;
             wifiTimer.Stop();
-            btnStartStop.Text = "Start";
+            btnStartStop.Text = "&Start";
             SetSettingsEnabled(true);
             ShowRunState();
             RenderSelected();

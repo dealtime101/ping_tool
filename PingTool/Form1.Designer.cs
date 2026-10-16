@@ -90,7 +90,7 @@
             lblAddress.Name = "lblAddress";
             lblAddress.Size = new Size(79, 15);
             lblAddress.TabIndex = 0;
-            lblAddress.Text = "Enter Address";
+            lblAddress.Text = "Enter &Address";
             // 
             // cmbAddress
             // 
@@ -100,6 +100,7 @@
             cmbAddress.Size = new Size(220, 23);
             cmbAddress.TabIndex = 1;
             cmbAddress.Text = "google.ca";
+            cmbAddress.AccessibleName = "Address to monitor";
             // 
             // btnStartStop
             // 
@@ -107,7 +108,7 @@
             btnStartStop.Name = "btnStartStop";
             btnStartStop.Size = new Size(100, 32);
             btnStartStop.TabIndex = 3;
-            btnStartStop.Text = "Start";
+            btnStartStop.Text = "&Start";
             btnStartStop.UseVisualStyleBackColor = true;
             btnStartStop.Click += btnStartStop_Click;
             // 
@@ -148,7 +149,7 @@
             lblInterval.Location = new Point(30, 367);
             lblInterval.Name = "lblInterval";
             lblInterval.TabIndex = 8;
-            lblInterval.Text = "Interval (ms)";
+            lblInterval.Text = "&Interval (ms)";
             //
             // lblTimeout
             //
@@ -157,7 +158,7 @@
             lblTimeout.Location = new Point(114, 367);
             lblTimeout.Name = "lblTimeout";
             lblTimeout.TabIndex = 10;
-            lblTimeout.Text = "Timeout (ms)";
+            lblTimeout.Text = "&Timeout (ms)";
             //
             // lblSize
             //
@@ -166,7 +167,7 @@
             lblSize.Location = new Point(198, 367);
             lblSize.Name = "lblSize";
             lblSize.TabIndex = 12;
-            lblSize.Text = "Size (bytes)";
+            lblSize.Text = "Si&ze (bytes)";
             //
             // numInterval
             //
@@ -210,7 +211,7 @@
             lblSlow.Location = new Point(30, 417);
             lblSlow.Name = "lblSlow";
             lblSlow.TabIndex = 14;
-            lblSlow.Text = "Slow above (ms)";
+            lblSlow.Text = "S&low above (ms)";
             //
             // numSlow
             //
@@ -230,7 +231,7 @@
             lblLoss.Location = new Point(125, 417);
             lblLoss.Name = "lblLoss";
             lblLoss.TabIndex = 16;
-            lblLoss.Text = "Loss at least (%)";
+            lblLoss.Text = "L&oss at least (%)";
             //
             // numLoss
             //
@@ -250,7 +251,7 @@
             lblMos.Location = new Point(30, 467);
             lblMos.Name = "lblMos";
             lblMos.TabIndex = 20;
-            lblMos.Text = "MOS below (0 = off)";
+            lblMos.Text = "&MOS below (0 = off)";
             //
             // numMos
             //
@@ -272,7 +273,7 @@
             chkSaveLog.Location = new Point(30, 539);
             chkSaveLog.Name = "chkSaveLog";
             chkSaveLog.TabIndex = 23;
-            chkSaveLog.Text = "Save the log to disk (daily CSV per host)";
+            chkSaveLog.Text = "Sa&ve the log to disk (daily CSV per host)";
             //
             // chkGroup
             //
@@ -281,7 +282,7 @@
             chkGroup.Location = new Point(30, 563);
             chkGroup.Name = "chkGroup";
             chkGroup.TabIndex = 24;
-            chkGroup.Text = "Tell the targets of one outage as one alert";
+            chkGroup.Text = "Tell the tar&gets of one outage as one alert";
             chkGroup.UseVisualStyleBackColor = true;
             //
             // lblDownAfter
@@ -291,7 +292,7 @@
             lblDownAfter.Location = new Point(225, 417);
             lblDownAfter.Name = "lblDownAfter";
             lblDownAfter.TabIndex = 18;
-            lblDownAfter.Text = "Down after";
+            lblDownAfter.Text = "Dow&n after";
             //
             // numDownAfter
             //
@@ -313,7 +314,7 @@
             chkAlert.Location = new Point(30, 515);
             chkAlert.Name = "chkAlert";
             chkAlert.TabIndex = 22;
-            chkAlert.Text = "Alert on outage / slowdown / recovery";
+            chkAlert.Text = "Al&ert on outage / slowdown / recovery";
             chkAlert.UseVisualStyleBackColor = true;
             //
             // lstHosts
@@ -363,7 +364,7 @@
             btnAddHost.Name = "btnAddHost";
             btnAddHost.Size = new Size(140, 28);
             btnAddHost.TabIndex = 30;
-            btnAddHost.Text = "Add address";
+            btnAddHost.Text = "A&dd address";
             btnAddHost.UseVisualStyleBackColor = true;
             btnAddHost.Click += btnAddHost_Click;
             //
@@ -373,7 +374,7 @@
             btnRemoveHost.Name = "btnRemoveHost";
             btnRemoveHost.Size = new Size(140, 28);
             btnRemoveHost.TabIndex = 31;
-            btnRemoveHost.Text = "Remove selected";
+            btnRemoveHost.Text = "&Remove selected";
             btnRemoveHost.UseVisualStyleBackColor = true;
             btnRemoveHost.Click += btnRemoveHost_Click;
             //
@@ -383,7 +384,7 @@
             btnExport.Name = "btnExport";
             btnExport.Size = new Size(146, 28);
             btnExport.TabIndex = 32;
-            btnExport.Text = "Export CSV...";
+            btnExport.Text = "E&xport CSV...";
             btnExport.UseVisualStyleBackColor = true;
             btnExport.Click += btnExport_Click;
             //
@@ -403,7 +404,7 @@
             btnReport.Name = "btnReport";
             btnReport.Size = new Size(300, 28);
             btnReport.TabIndex = 35;
-            btnReport.Text = "Save diagnostic report (HTML)...";
+            btnReport.Text = "Save diagnostic re&port (HTML)...";
             btnReport.UseVisualStyleBackColor = true;
             btnReport.Click += btnReport_Click;
             //
@@ -433,7 +434,7 @@
             btnImportProfiles.Name = "btnImportProfiles";
             btnImportProfiles.Size = new Size(146, 28);
             btnImportProfiles.TabIndex = 38;
-            btnImportProfiles.Text = "Import profiles...";
+            btnImportProfiles.Text = "Import pro&files...";
             btnImportProfiles.UseVisualStyleBackColor = true;
             btnImportProfiles.Click += btnImportProfiles_Click;
             //
@@ -454,7 +455,7 @@
             chkCompact.Location = new Point(125, 19);
             chkCompact.Name = "chkCompact";
             chkCompact.TabIndex = 2;
-            chkCompact.Text = "Compact (on top)";
+            chkCompact.Text = "&Compact (on top)";
             chkCompact.UseVisualStyleBackColor = true;
             chkCompact.CheckedChanged += chkCompact_CheckedChanged;
             //
@@ -485,7 +486,7 @@
             chkCompare.Location = new Point(300, 394);
             chkCompare.Name = "chkCompare";
             chkCompare.TabIndex = 34;
-            chkCompare.Text = "Compare all hosts on one graph";
+            chkCompare.Text = "Compare all &hosts on one graph";
             chkCompare.UseVisualStyleBackColor = true;
             chkCompare.CheckedChanged += chkCompare_CheckedChanged;
             //
