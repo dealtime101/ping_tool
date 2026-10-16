@@ -57,6 +57,24 @@ namespace PingTool
         public static string Export(IEnumerable<Profile> profiles) =>
             JsonSerializer.Serialize(new Document { Profiles = profiles.ToList() }, WriteOptions);
 
+        // The column, counted from 0 in characters (UTF-16 units, as the editors of text count), of a place the JSON reader gives as a line
+        // (from 0, the lines ending at "\n" as the reader counts them) and a position in bytes of the UTF-8 line. A position past the end
+        // of the line, or a line the text does not have, gives the bytes as they are.
+        internal static long ColumnOf(string text, long line, long bytePosition)
+        {
+            int start = 0;
+            for (long i = 0; i < line; i++)
+            {
+                int newline = text.IndexOf('\n', start);
+                if (newline < 0) return bytePosition;
+                start = newline + 1;
+            }
+
+            int end = text.IndexOf('\n', start);
+            var bytes = System.Text.Encoding.UTF8.GetBytes(end < 0 ? text[start..] : text[start..end]);
+            return System.Text.Encoding.UTF8.GetCharCount(bytes, 0, (int)Math.Clamp(bytePosition, 0, bytes.Length));
+        }
+
         // A file made by Export, or just a JSON list of profiles.
         public static bool TryParse(string json, out Imported imported, out string error)
         {
@@ -152,9 +170,10 @@ namespace PingTool
             {
                 // The file itself is not JSON: here the line and position are those of the file. Said in our own words (the text of the
                 // exception is the library's, for a developer, and in the language of the runtime), with the place counted from 1 as an
-                // editor shows it (the library counts from 0, and the position in bytes: exact for plain text).
+                // editor shows it (the library counts from 0, and the position in BYTES of the UTF-8 text: turned into a column of
+                // characters from the line itself, so that an accent, an emoji or an ideogram before the fault does not shift it).
                 error = ex.LineNumber is long line && ex.BytePositionInLine is long position
-                    ? $"This file is not valid JSON: it breaks at line {(line + 1).ToString(System.Globalization.CultureInfo.InvariantCulture)}, position {(position + 1).ToString(System.Globalization.CultureInfo.InvariantCulture)}."
+                    ? $"This file is not valid JSON: it breaks at line {(line + 1).ToString(System.Globalization.CultureInfo.InvariantCulture)}, position {(ColumnOf(json, line, position) + 1).ToString(System.Globalization.CultureInfo.InvariantCulture)}."
                     : "This file is not valid JSON.";
                 return false;
             }
