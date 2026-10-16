@@ -341,7 +341,7 @@ namespace PingTool
             // A change at the very edge is still a line (clamped inside the plot); one outside the time range is not drawn.
             var markers = (networkEvents ?? Array.Empty<NetworkEvent>())
                 .Where(n => n.Time >= d.From && n.Time <= d.To)
-                .Select(n => Math.Clamp(X(n.Time), 0f, width - 1f)).ToList();
+                .Select(n => Math.Clamp(X(n.Time), 0f, Math.Max(0f, width - 1f))).ToList();   // Clamp throws when its maximum is under its minimum (a plot 0 wide)
 
             return new TimelineShapes(bars, runs, cells, bands, markers, clipped);
         }
