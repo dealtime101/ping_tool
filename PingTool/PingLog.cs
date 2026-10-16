@@ -68,9 +68,12 @@ namespace PingTool
 
         // The remark row for a log that let `dropped` of its oldest pings go (also the first row of the measures in a report archive).
         // Five fields like every row (four empty ones after the remark). Files written before had the remark alone: the reader takes both.
+        // Written WITHOUT a comma (plain digits, a semicolon): a field with a comma is put in quotes, and the line would then begin with a
+        // quote instead of the mark, so a tool that tells a remark by the first character of the raw line (as many do) would take it for a
+        // ping that is badly formed. The reader takes both forms, this one and the quoted one that earlier versions wrote.
         public static string IncompleteRow(long dropped) =>
-            Field(CommentMark + " Incomplete: only the latest " + MaxEntries.ToString("N0", CultureInfo.InvariantCulture)
-                + " pings are in this file, the " + dropped.ToString("N0", CultureInfo.InvariantCulture) + " older ones were no longer kept.") + ",,,,";
+            Field(CommentMark + " Incomplete: only the latest " + MaxEntries.ToString(CultureInfo.InvariantCulture)
+                + " pings are in this file; the " + dropped.ToString(CultureInfo.InvariantCulture) + " older ones were no longer kept.") + ",,,,";
 
         // The mark of a row that is a remark and not a ping.
         public const string CommentMark = "#";
