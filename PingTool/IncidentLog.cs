@@ -43,6 +43,21 @@ namespace PingTool
 
         public bool Ongoing => End is null;
         public TimeSpan Duration(DateTimeOffset now) => (End ?? now) - Start;
+
+        // A copy with the values of THIS moment. The incident of the log goes on changing (End, FailedPings, Cause, the route) as the pings
+        // come, and a report that is built from it and written afterwards, on another thread, would read it half way through a change
+        // (End is a nullable date: a torn read can be neither) and show what came after the time it says it was made at.
+        public Incident Snapshot()
+        {
+            var copy = new Incident
+            {
+                Host = Host, Kind = Kind, Start = Start, End = End, FailedPings = FailedPings, Cause = Cause,
+                LossPercent = LossPercent, AvgMs = AvgMs, Occurrence = Occurrence, Planned = Planned,
+                Path = Path, PathTextOverride = PathTextOverride,
+            };
+            copy.PathNotes.AddRange(PathNotes);
+            return copy;
+        }
     }
 
     // Turns the stream of pings of every host into a list of INCIDENTS: periods, not probes.
