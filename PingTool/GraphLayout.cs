@@ -69,12 +69,19 @@ namespace PingTool
             return (bottom, Math.Max(0, bottom - band));
         }
 
+        // How many intervals without a ping make a SILENCE, which breaks the line instead of being crossed by it. Two pings of a host are
+        // never exactly one interval apart: the next one is made one interval after the answer of the last, so the time the probe took
+        // is added (with an interval of 1 s, a reply that took 1.2 s puts the next ping 2.2 s after the last). A ping that was not made
+        // is two intervals and more; the threshold is above that, at two and a half, so that a slow answer or the jitter of the timer is
+        // not taken for a silence, and two missing pings (three intervals) are.
+        public const double SilenceIntervals = 2.5;
+
         // The newest ping is on the right edge; one ping = one column of width/(maxSamples-1).
         // 0 ms is the bottom line, `top` ms the top line.
         // times/now/interval (all three, `times` as many as `samples`): the pings are placed by WHEN they were made, a ping that is k
         // intervals old k columns left of the right edge, instead of by rank. Several hosts compared are then on one time axis (their
         // probes do not take the same time, and one that stopped being measured ends where it stopped, not at "now"). A silence of more
-        // than two intervals between two pings of a host breaks its line; pings older than the graph are not drawn.
+        // than SilenceIntervals intervals between two pings of a host breaks its line; pings older than the graph are not drawn.
         public static GraphShapes Build(IReadOnlyCollection<long> samples, int width, int height, long top, int maxSamples,
             IReadOnlyCollection<DateTimeOffset>? times = null, DateTimeOffset? now = null, TimeSpan? interval = null)
         {
@@ -91,7 +98,7 @@ namespace PingTool
 
             bool byTime = times is not null && times.Count == samples.Count && now is not null && interval is { } iv && iv > TimeSpan.Zero;
             var stamps = byTime ? times!.ToArray() : null;
-            var gap = byTime ? interval!.Value * 2.5 : TimeSpan.Zero;
+            var gap = byTime ? interval!.Value * SilenceIntervals : TimeSpan.Zero;
 
             GraphPoint? prev = null;
             bool joined = false;   // has `prev` been joined by a line to the ping before it?

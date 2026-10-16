@@ -454,8 +454,9 @@
          1.21.376 = the position of a fault in a profiles file is a column of characters, no longer a count of bytes (PIN507.130)
          1.21.377 = the summary of a run without a window does not give the path of a report that could not be written (PIN507.134)
          1.21.378 = a quote inside a field of a log that does not begin with one is said to be a damaged line, as text after a closing quote already was (PIN507.135)
-         1.21.379 = the error that explains a failure (a refused connection, a time limit, a secure-connection fault) is found however deep it is wrapped (PIN507.136) -->
-    <Version>1.21.379</Version>
+         1.21.379 = the error that explains a failure (a refused connection, a time limit, a secure-connection fault) is found however deep it is wrapped (PIN507.136)
+         1.21.380 = the silence that breaks the line of the time graph is a named threshold, and the comment says what the code does: two and a half intervals (PIN507.137) -->
+    <Version>1.21.380</Version>
   </PropertyGroup>
 
   <ItemGroup>
