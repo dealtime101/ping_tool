@@ -269,15 +269,21 @@ namespace PingTool
         }
 
         // The longest a Retry-After is obeyed: one webhook waits in its own worker, and a receiver that asks for an hour must not hold
-        // up (and fill) the queue behind it nor the closing of PingTool.
+        // up (and fill) the queue behind it nor the closing of PingTool. A longer one is NOT cut down to this (that would send the retry
+        // inside the receiver's restriction and use up the attempts): the delivery is given up, and the failure says why.
         public static readonly TimeSpan MaxRetryAfter = TimeSpan.FromSeconds(60);
 
-        // Retry-After comes as a number of seconds or as a date; null when absent, unreadable or already past.
+        // Retry-After comes as a number of seconds or as a date; null when absent, unreadable or already past. As asked, not cut.
         internal static TimeSpan? RetryAfterOf(System.Net.Http.Headers.RetryConditionHeaderValue? header, DateTimeOffset now)
         {
             var wait = header?.Delta ?? (header?.Date is { } at ? at - now : (TimeSpan?)null);
-            return wait is { } w && w > TimeSpan.Zero ? (w < MaxRetryAfter ? w : MaxRetryAfter) : null;
+            return wait is { } w && w > TimeSpan.Zero ? w : null;
         }
+
+        // The failure text of an answer that asks for a longer wait than is obeyed.
+        internal static string TooLongDetail(string detail, TimeSpan asked) =>
+            detail + "; the receiver asked to wait " + Math.Ceiling(asked.TotalSeconds).ToString(CultureInfo.InvariantCulture) + " s, longer than the "
+            + MaxRetryAfter.TotalSeconds.ToString(CultureInfo.InvariantCulture) + " s waited here, so it was not tried again";
 
         // ok, whether trying again could help, what to tell, and how long the receiver asked to wait.
         private async Task<(bool Ok, bool Retry, string Detail, TimeSpan? RetryAfter)> TryOnce(Uri url, WebhookEvent e, CancellationToken token)
@@ -294,7 +300,10 @@ namespace PingTool
                 // A 4xx means the address or the request is wrong: trying again will not fix it (except too-many-requests
                 // and request-timeout); a 5xx is the receiver's trouble and may pass.
                 bool transient = code >= 500 || response.StatusCode is HttpStatusCode.TooManyRequests or HttpStatusCode.RequestTimeout;
-                return (false, transient, "HTTP " + code.ToString(CultureInfo.InvariantCulture), transient ? RetryAfterOf(response.Headers.RetryAfter, DateTimeOffset.UtcNow) : null);
+                string what = "HTTP " + code.ToString(CultureInfo.InvariantCulture);
+                var asked = transient ? RetryAfterOf(response.Headers.RetryAfter, DateTimeOffset.UtcNow) : null;
+                if (asked is { } w && w > MaxRetryAfter) return (false, false, TooLongDetail(what, w), null);   // a retry before that would only be refused again
+                return (false, transient, what, asked);
             }
             catch (OperationCanceledException) when (!token.IsCancellationRequested)
             {

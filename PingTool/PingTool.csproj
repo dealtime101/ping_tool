@@ -418,8 +418,9 @@
          1.21.340 = the style of the worst hours of the report grid is valid CSS (colour apart from the two layers of pattern) (PIN507.87)
          1.21.341 = the hour marks of the time axis are counted on the wall clock of the day, each with the offset of its own time, so they stay round on a day the clock changes (PIN507.89)
          1.21.342 = the comparison of routes also tells a hop that was silent when healthy and answers now, without saying that the route changed (PIN507.91)
-         1.21.343 = the room under the axis of the time graph follows the height of the font, so a larger font no longer cuts the time labels (PIN507.93) -->
-    <Version>1.21.343</Version>
+         1.21.343 = the room under the axis of the time graph follows the height of the font, so a larger font no longer cuts the time labels (PIN507.93)
+         1.21.344 = a webhook that asks to wait longer than a minute is not tried again too early: the delivery is given up and the failure says why (PIN507.94) -->
+    <Version>1.21.344</Version>
   </PropertyGroup>
 
   <ItemGroup>
