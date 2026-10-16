@@ -9,7 +9,8 @@ namespace PingTool
         // The same for the width of a line (1.5 at 100 %): a fraction of a pixel counts there.
         private float PxF(float at100) => at100 * (DeviceDpi <= 0 ? DpiScale.BaseDpi : DeviceDpi) / DpiScale.BaseDpi;
         private int TopMargin => Px(6);
-        private int BottomMargin => Px(24);
+        // The time labels start 5 px under the axis (+2 of slack) and are one line of the font high: the margin follows the font.
+        private int BottomMargin => TimelineLayout.BottomMargin(Font.Height, Px(24), Px(7));
         private int RightMargin => Px(8);
 
         // The room on the left for the top value ("50 ms", or "5000 ms (peak 12000)"): as wide as that text, never narrower than 46 px at 100 %.

@@ -296,6 +296,10 @@ namespace PingTool
         // is not squeezed away for it.
         internal static int SummaryHeight(int wanted, int room, int lineHeight) => Math.Max(lineHeight, Math.Min(wanted, room));
 
+        // The room under the axis for the time labels: the usual `minimum`, but never less than what a label needs in THIS font (the gap
+        // under the axis plus the height of a line), or a larger font would cut them at the bottom of the control.
+        internal static int BottomMargin(int fontHeight, int minimum, int gapUnderAxis) => Math.Max(minimum, gapUnderAxis + fontHeight);
+
         // Where a time label starts: centred under its mark, but held inside [leftEdge, rightEdge] so that the first and the last are
         // not cut by the edge of the control (the right margin is a few pixels, a label is tens). A label wider than the room starts at
         // the left edge.
