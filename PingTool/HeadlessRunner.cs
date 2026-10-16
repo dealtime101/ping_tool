@@ -80,7 +80,7 @@ namespace PingTool
                         settings.DegradedLatencyMs, settings.DegradedLossPercent,
                         sessions.Select(s => new HostReport(s.Address, s.IpText, s.Monitor.State, s.Stats.Sent, s.Stats.Lost, s.Stats.LossPercent,
                             s.Stats.Min, s.Stats.Avg, s.Stats.Max, s.Stats.Jitter, s.History.ToArray(), s.Stats.Hours,
-                            s.Options?.Label, s.Options is null ? null : TargetOptions.DescribeLimits(s.Options), s.Notice, s.Mos)).ToList(),
+                            s.Options?.Label, s.Options is null ? null : TargetOptions.DescribeLimits(s.Options), s.Notice, s.Mos, s.Options?.Service)).ToList(),
                         Diagnosis.For(sessions.Select(s => s.ToTarget()).ToList()), incidents.Summary(now), incidents.Incidents.ToList(), DownAfter: settings.DownAfter, DegradedMos: settings.DegradedMos);
             }
 

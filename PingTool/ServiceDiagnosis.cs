@@ -4,8 +4,9 @@ namespace PingTool
 {
     // Several targets can be ONE service seen from different sides: dns://example.com, example.com (ping), tcp://example.com:443,
     // https://example.com/. Read side by side they say more than separate lights: "the name does not resolve" is not "the server is down".
-    // The service is not declared by the user: targets with the same host name are one service, and a target typed as an address joins the
-    // service whose name resolved to that address (so that "reached by address" can be told from "reached by name").
+    // The service is declared by the user (the Service box of "Name and limits": the targets that share it are one service, whatever their
+    // host names) or, when nobody declared one, it is the targets with the same host name. A target typed as an address joins the service
+    // whose name resolved to that address (so that "reached by address" can be told from "reached by name").
     //
     // The sentences are hints from the pattern, worded as such ("likely"): pinging cannot tell a dead service from a firewall rule.
     internal static class ServiceDiagnosis
@@ -20,20 +21,32 @@ namespace PingTool
             var data = targets.Where(t => t.HasData && t.Host.Length > 0 && !(t.Ip is { } ip && IPAddress.IsLoopback(ip.IsIPv4MappedToIPv6 ? ip.MapToIPv4() : ip))).ToList();
             if (data.Count < 2 || data.All(t => t.State == HostState.Down)) return said;
 
-            var services = new Dictionary<string, List<Target>>(StringComparer.OrdinalIgnoreCase);
-            foreach (var t in data.Where(t => !IPAddress.TryParse(t.Host, out _)))
+            // A declared service gathers its targets whatever their host names; without one, the targets of a host name are the service.
+            // The keys are told apart (a service called like a host is not that host).
+            var services = new Dictionary<string, (string Name, List<Target> Named, List<Target> ByAddress)>(StringComparer.OrdinalIgnoreCase);
+            void Join(string key, string name, Target t, bool byAddress)
             {
-                if (!services.TryGetValue(t.Host, out var list)) services[t.Host] = list = new List<Target>();
-                list.Add(t);
+                if (!services.TryGetValue(key, out var group)) services[key] = group = (name, new List<Target>(), new List<Target>());
+                (byAddress ? group.ByAddress : group.Named).Add(t);
             }
 
-            foreach (var (name, named) in services)
+            foreach (var t in data)
             {
-                // The targets typed as an address that is the one this name resolved to.
-                var byAddress = data.Where(t => IPAddress.TryParse(t.Host, out var literal)
-                    && named.Any(n => n.Ip is { } resolved && Same(resolved, literal))).ToList();
-                if (Read(name, named, byAddress) is { } sentence) said.Add(sentence);
+                bool literal = IPAddress.TryParse(t.Host, out _);
+                if (t.Service is { Length: > 0 } declared) Join("service:" + declared, declared, t, literal);
+                else if (!literal) Join("host:" + t.Host, t.Host, t, false);
             }
+
+            // The targets typed as an address, with no service of their own, join the service whose name resolved to that address.
+            foreach (var t in data.Where(t => t.Service is not { Length: > 0 } && IPAddress.TryParse(t.Host, out _)))
+            {
+                var literal = IPAddress.Parse(t.Host);
+                foreach (var group in services.Values)
+                    if (group.Named.Any(n => n.Ip is { } resolved && Same(resolved, literal))) group.ByAddress.Add(t);
+            }
+
+            foreach (var (name, named, byAddress) in services.Values)
+                if (named.Count + byAddress.Count > 1 && Read(name, named, byAddress) is { } sentence) said.Add(sentence);
 
             return said;
         }

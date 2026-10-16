@@ -1,10 +1,10 @@
 namespace PingTool
 {
-    // "Name and limits of this host": a readable name, and limits of its own instead of the global ones. A limit left unticked
+    // "Name and limits of this host" (and the service it belongs to): a readable name, and limits of its own instead of the global ones. A limit left unticked
     // follows the global value (shown greyed). Limits apply from the next Start; the name at once.
     internal sealed class TargetOptionsForm : Form
     {
-        private readonly TextBox label;
+        private readonly TextBox label, service;
         private readonly (CheckBox Own, NumericUpDown Value)[] limits;
 
         public TargetOptions? Result { get; private set; }
@@ -17,7 +17,7 @@ namespace PingTool
             AutoScaleMode = AutoScaleMode.Dpi;
 
             Text = "PingTool - Name and limits";
-            ClientSize = new Size(380, 264);
+            ClientSize = new Size(380, 314);
             StartPosition = FormStartPosition.CenterParent;
             FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox = false;
@@ -37,6 +37,16 @@ namespace PingTool
             };
             Controls.Add(label);
 
+            // Targets with the same service are diagnosed together, whatever their host names (see ServiceDiagnosis): left empty, the
+            // targets of one host name are the service.
+            Controls.Add(new Label { Text = "Ser&vice (targets with the same one are diagnosed together)", ForeColor = Color.White, AutoSize = true, Location = new Point(12, 86) });
+            service = new TextBox
+            {
+                Location = new Point(12, 106), Size = new Size(356, 23), MaxLength = TargetOptions.MaxLabelLength,
+                Text = current?.Service ?? "", AccessibleName = "Service this target belongs to",
+            };
+            Controls.Add(service);
+
             limits = new[]
             {
                 Row(0, "&Slow above (ms)", Limits.DegradedLatencyMs, current?.SlowMs, globalSlow),
@@ -47,13 +57,13 @@ namespace PingTool
             // Said where the limits are, not only in the code: a limit changed during a run shows no change, and looks as if it was not saved.
             Controls.Add(new Label
             {
-                Text = "The name changes at once. The limits apply from the next Start: the run in progress keeps the ones it began with.",
-                ForeColor = Color.Silver, AutoSize = false, Location = new Point(12, 184), Size = new Size(356, 32),
+                Text = "The name and the service change at once. The limits apply from the next Start: the run in progress keeps the ones it began with.",
+                ForeColor = Color.Silver, AutoSize = false, Location = new Point(12, 234), Size = new Size(356, 32),
                 AccessibleName = "When the limits apply",
             });
 
-            var ok = new Button { Text = "OK", DialogResult = DialogResult.OK, Location = new Point(190, 224), Size = new Size(84, 28) };
-            var cancel = new Button { Text = "Cancel", DialogResult = DialogResult.Cancel, Location = new Point(284, 224), Size = new Size(84, 28) };
+            var ok = new Button { Text = "OK", DialogResult = DialogResult.OK, Location = new Point(190, 274), Size = new Size(84, 28) };
+            var cancel = new Button { Text = "Cancel", DialogResult = DialogResult.Cancel, Location = new Point(284, 274), Size = new Size(84, 28) };
             AcceptButton = ok;
             CancelButton = cancel;
             Controls.Add(ok);
@@ -62,13 +72,14 @@ namespace PingTool
                 label.Text,
                 limits[0].Own.Checked ? (int)limits[0].Value.Value : null,
                 limits[1].Own.Checked ? (int)limits[1].Value.Value : null,
-                limits[2].Own.Checked ? (int)limits[2].Value.Value : null));
+                limits[2].Own.Checked ? (int)limits[2].Value.Value : null,
+                service.Text));
         }
 
         // One limit: "own value" box + the number (greyed and showing the global value while unticked).
         private (CheckBox, NumericUpDown) Row(int index, string text, (int Min, int Max) range, int? own, int global)
         {
-            int y = 92 + index * 30;
+            int y = 142 + index * 30;
             string plain = text.Replace("&", "", StringComparison.Ordinal);   // what a screen reader says: without the access key mark
             var box = new CheckBox { Text = text, ForeColor = Color.White, AutoSize = true, Location = new Point(12, y + 2), Checked = own is not null, AccessibleName = plain + ": own value" };
             var number = new NumericUpDown

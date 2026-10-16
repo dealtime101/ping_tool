@@ -3,12 +3,23 @@ namespace PingTool
     // What belongs to ONE target besides its address: a readable name ("Box", "Office VPN") and limits of its own, which replace the
     // global ones for that target only. A router at 2 ms and a server overseas at 180 ms do not share the same "normal".
     // null = use the global value.
-    internal sealed record TargetOptions(string? Label, int? SlowMs, int? LossPercent, int? DownAfter)
+    // Service: the name of a service this target is one side of ("Webmail"). Targets that share it are diagnosed TOGETHER whatever their host
+    // names (an alias, a CDN, a name for the port and another for the page), see ServiceDiagnosis; without it, the targets of one host name are.
+    internal sealed record TargetOptions(string? Label, int? SlowMs, int? LossPercent, int? DownAfter, string? Service = null)
     {
         public const int MaxLabelLength = 40;
         public const int MaxEntries = 100;
 
-        public bool IsEmpty => Label is null && SlowMs is null && LossPercent is null && DownAfter is null;
+        public bool IsEmpty => Label is null && SlowMs is null && LossPercent is null && DownAfter is null && Service is null;
+
+        // A name as the user typed it, cleaned the same way for a label and a service: invisible format characters out, trimmed, no control
+        // character, cut to MaxLabelLength; null when nothing is left.
+        private static string? CleanName(string? text)
+        {
+            string? name = text is null ? null : ProfileBook.WithoutInvisibleFormat(text).Trim();
+            if (string.IsNullOrEmpty(name) || name.Any(char.IsControl)) return null;
+            return name.Length > MaxLabelLength ? CutToUnits(name, MaxLabelLength).TrimEnd() : name;
+        }
 
         // Trimmed name (blank or with control characters = none), limits pulled into the range of the boxes; null when nothing is left.
         public static TargetOptions? Normalize(TargetOptions? o)
@@ -18,14 +29,11 @@ namespace PingTool
             // The invisible FORMAT characters (a right-to-left override, a zero width space...) are taken out, as for the name of a profile
             // (the joiners that hold an emoji together stay): a name that reads the other way round, or two names that look alike and are
             // not, would make one target pass for another in the list, the alerts and the report.
-            string? label = o.Label is null ? null : ProfileBook.WithoutInvisibleFormat(o.Label).Trim();
-            if (string.IsNullOrEmpty(label) || label.Any(char.IsControl)) label = null;
-            else if (label.Length > MaxLabelLength) label = CutToUnits(label, MaxLabelLength).TrimEnd();
-
-            var clean = new TargetOptions(label,
+            var clean = new TargetOptions(CleanName(o.Label),
                 o.SlowMs is int s ? Limits.Clamp(s, Limits.DegradedLatencyMs) : null,
                 o.LossPercent is int l ? Limits.Clamp(l, Limits.DegradedLossPercent) : null,
-                o.DownAfter is int d ? Limits.Clamp(d, Limits.DownAfter) : null);
+                o.DownAfter is int d ? Limits.Clamp(d, Limits.DownAfter) : null,
+                CleanName(o.Service));
             return clean.IsEmpty ? null : clean;
         }
 

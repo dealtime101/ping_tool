@@ -13,7 +13,9 @@ namespace PingTool
         // A warning the last probe came with although it succeeded (a certificate about to expire).
         string? Notice = null,
         // The voice quality (MOS) of the last RecentStats.Window pings, as the window shows it; null with no reply.
-        double? Mos = null);
+        double? Mos = null,
+        // The service the user declared for the target, when there is one (named in the diagnosis lines: see ServiceDiagnosis).
+        string? Service = null);
 
     // The probe settings a run was STARTED with: the boxes can be changed after Stop, and a report must describe the measures it holds.
     internal sealed record RunSettings(int IntervalMs, int TimeoutMs, int PacketSize, int DegradedLatencyMs, int DegradedLossPercent, int DownAfter, double DegradedMos = 0);

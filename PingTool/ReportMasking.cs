@@ -76,6 +76,7 @@ namespace PingTool
                 Label = masking.Targets || x.Label is null ? null : s.Text(x.Label),
                 IpText = masking.Targets ? s.NoIp(x.IpText) : s.Text(x.IpText),
                 Notice = x.Notice is null ? null : s.Text(x.Notice),
+                Service = x.Service is null ? null : s.Text(x.Service),
             }).ToList();
 
             var incidents = d.Incidents.Select(i => new Incident
@@ -125,6 +126,7 @@ namespace PingTool
             private readonly Dictionary<string, string> replacements = new(StringComparer.OrdinalIgnoreCase);   // what to find in a text -> pseudonym
             private readonly Dictionary<string, string> ipNames = new(StringComparer.Ordinal);   // normalised address -> pseudonym
             private readonly Dictionary<string, string> cardNames = new(StringComparer.Ordinal);
+            private readonly Dictionary<string, string> serviceNames = new(StringComparer.OrdinalIgnoreCase);
             private readonly Dictionary<string, string> ssidNames = new(StringComparer.Ordinal);
             private readonly Dictionary<string, string> accessPoints = new(StringComparer.Ordinal);
             private int localIps, publicIps;
@@ -144,6 +146,15 @@ namespace PingTool
                     Add(x.Address, name);
                     if (ProbeTarget.TryParse(x.Address, out var probe, out _) && probe is not null) Add(probe.Host, name);
                     if (!string.IsNullOrWhiteSpace(x.Label)) Add(x.Label.Trim(), name);
+                    // A service name is a name the user chose (and the diagnosis lines say it): service-1, service-2...
+                    if (!string.IsNullOrWhiteSpace(x.Service) && !serviceNames.ContainsKey(x.Service.Trim()))
+                    {
+                        string service = "service-" + (serviceNames.Count + 1).ToString(System.Globalization.CultureInfo.InvariantCulture);
+                        serviceNames[x.Service.Trim()] = service;
+                        Add(x.Service.Trim(), service);
+                        key.Add(service + " = " + x.Service.Trim());
+                    }
+
                     // The address a name resolved to says as much as the name: it goes under the same pseudonym.
                     int space = x.IpText.LastIndexOf(' ');
                     if (space >= 0 && IPAddress.TryParse(x.IpText[(space + 1)..], out var resolved)) Add(resolved.ToString(), name);

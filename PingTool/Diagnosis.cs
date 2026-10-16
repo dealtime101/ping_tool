@@ -8,9 +8,9 @@ namespace PingTool
     // OnLink: the address is in the network of one of this PC's own cards (same prefix): it is reached without the Internet even when
     // its address is a global one (a LAN machine with a global IPv6 address, a public IPv4 range handed out on the LAN).
     // Kind, Host, Port: what the target is probed with and where (see ServiceDiagnosis: targets of one host name are one service seen from
-    // different sides). Host is empty when it is not known.
+    // different sides). Host is empty when it is not known. Service: the service the user declared for it (TargetOptions), or null.
     internal sealed record Target(string Name, IPAddress? Ip, HostState State, bool HasData, bool OnLink = false,
-        ProbeKind Kind = ProbeKind.Icmp, string Host = "", int Port = 0);
+        ProbeKind Kind = ProbeKind.Icmp, string Host = "", int Port = 0, string? Service = null);
 
     // The networks this PC is directly attached to, read from its cards (address and prefix length), kept for a while: the diagnosis is
     // asked for at every refresh and the cards do not change that often.

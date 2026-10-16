@@ -121,7 +121,7 @@ namespace PingTool
         {
             ProbeTarget.TryParse(Address, out var probe, out _);
             return new(Address, Ip, Monitor.State, Last is not null, Ip is not null && LocalNetworks.IsOnLink(Ip),
-                probe?.Kind ?? ProbeKind.Icmp, probe?.Host ?? "", probe?.Port ?? 0);
+                probe?.Kind ?? ProbeKind.Icmp, probe?.Host ?? "", probe?.Port ?? 0, Options?.Service);
         }
 
         public static string Describe(System.Net.IPAddress ip)
