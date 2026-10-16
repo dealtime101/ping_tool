@@ -159,8 +159,10 @@ namespace PingTool
                     {
                         raw.Add(null);
                         string at = where + "[" + index.ToString(System.Globalization.CultureInfo.InvariantCulture) + "]" + (ex.Path is { Length: > 1 } path ? path[1..] : "");
-                        int cut = ex.Message.IndexOf(" Path:", StringComparison.Ordinal);
-                        firstProblem ??= $"A profile in this file is not valid: {(cut > 0 ? ex.Message[..cut] : ex.Message)} (at {at}).";
+                        // In our own words, like the error of the file itself below: the text of the exception is the library's, written for a
+                        // developer (type names, "could not be converted to System.Int32"), in the language of the runtime. The place says
+                        // where to look.
+                        firstProblem ??= $"A profile in this file is not valid: a value is missing, or is not of the kind expected there (at {at}).";
                     }
 
                     index++;
