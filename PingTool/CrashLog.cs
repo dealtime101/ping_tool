@@ -103,7 +103,8 @@ namespace PingTool
         // the last-resort handler, called from the code that handles what nobody else caught, and an exception leaving it (a
         // SecurityException from a locked-down profile, a path the system refuses in a way not foreseen here) would replace the error
         // that is being reported by another one and end the program. `write` is a seam for the tests: what appends the text.
-        public static bool TryAppend(string path, string entry, Action<string, string>? write = null)
+        // `exists` is a seam too: whether the file is there (File.Exists).
+        public static bool TryAppend(string path, string entry, Action<string, string>? write = null, Func<string, bool>? exists = null)
         {
             try
             {
@@ -111,8 +112,12 @@ namespace PingTool
                 {
                     // The same error over and over (a loop that fails every second) would fill the file, and two rotations later the FIRST
                     // entry, the cause, would be gone. The first one is written in full; the repeats are counted and said at 2, 10, 100...
+                    // A repeat points at "the entry above": it is one only while that entry is in the file. A file that was deleted since (by
+                    // the user, a cleaner) holds no such entry, and the error is written in full again.
+                    string original = entry;
                     string signature = SignatureOf(entry);
-                    bool repeat = signature.Length > 0 && signature == lastSignature && path == lastPath;
+                    bool repeat = signature.Length > 0 && signature == lastSignature && path == lastPath && (exists ?? File.Exists)(path);
+                    bool counted = repeat;
                     if (repeat)
                     {
                         repeats++;
@@ -126,14 +131,22 @@ namespace PingTool
                         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
                         // Moving the old file aside is housekeeping: if it fails (crash.log.1 held by an editor or an antivirus), the entry is written
                         // all the same, the file just goes over MaxBytes this once. The entry is the one thing this method is for.
+                        bool rotated = false;
                         try
                         {
-                            if (File.Exists(path) && NeedsRotation(new FileInfo(path).Length, Encoding.UTF8.GetByteCount(entry))) File.Move(path, path + ".1", overwrite: true);
+                            if (File.Exists(path) && NeedsRotation(new FileInfo(path).Length, Encoding.UTF8.GetByteCount(entry)))
+                            {
+                                File.Move(path, path + ".1", overwrite: true);
+                                rotated = true;
+                            }
                         }
                         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException or ArgumentException)
                         {
                             System.Diagnostics.Debug.WriteLine("crash.log could not be rotated: " + ex.Message);
                         }
+
+                        // The entry that a note would send the reader to has just been moved to crash.log.1: the new file starts with the error in full.
+                        if (rotated && repeat) { entry = original; repeat = false; }
 
                         (write ?? ((p, text) => File.AppendAllText(p, text, new UTF8Encoding(false))))(path, entry);
                         reached = true;
@@ -142,7 +155,7 @@ namespace PingTool
                     {
                         // The note of a milestone did not reach the file: the count goes back, so that the next occurrence is the same
                         // milestone again and tries once more, not an ordinary repeat that is counted and never written.
-                        if (!reached && repeat) repeats--;
+                        if (!reached && counted) repeats--;
                     }
 
                     // Only an entry that REACHED the file is the one the repeats refer to: after a failed write the next one must be written.
