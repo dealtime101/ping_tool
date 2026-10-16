@@ -156,20 +156,21 @@ namespace PingTool
                     }
 
                     name = name.TrimEnd('/');
+                    // An IP address is not looked up: the system hands it back without asking any server, so the target would answer for ever
+                    // whatever the DNS does (this takes the short forms too: 127.1, 2130706433). It is told BEFORE the test of a name below: an
+                    // IPv6 address has colons, and would be refused there as "not a name" without saying that it is an address.
+                    if (System.Net.IPAddress.TryParse(name, out _) || Uri.CheckHostName(name) is UriHostNameType.IPv4 or UriHostNameType.IPv6)
+                    {
+                        error = "dns:// needs a name, not an IP address: an address is not looked up, so nothing would be tested. For example dns://example.com (to test an address, write it without a prefix to ping it).";
+                        return false;
+                    }
+
                     // Just a name: the rest of what a URL can carry (?query, #fragment, user@, spaces) is not part of it, and would be sent to
                     // the resolver as if it were. CheckHostName also refuses a leading dash or an empty label; internationalised names pass.
                     if (name.Length == 0 || name.Contains(':', StringComparison.Ordinal) || name.Contains('/', StringComparison.Ordinal)
                         || Uri.CheckHostName(name) == UriHostNameType.Unknown)
                     {
                         error = "dns:// needs just a name, for example dns://example.com";
-                        return false;
-                    }
-
-                    // An IP address is not looked up: the system hands it back without asking any server, so the target would answer for ever
-                    // whatever the DNS does (this takes the short forms too: 127.1, 2130706433).
-                    if (System.Net.IPAddress.TryParse(name, out _) || Uri.CheckHostName(name) is UriHostNameType.IPv4 or UriHostNameType.IPv6)
-                    {
-                        error = "dns:// needs a name, not an IP address: an address is not looked up, so nothing would be tested. For example dns://example.com (to test an address, write it without a prefix to ping it).";
                         return false;
                     }
 
