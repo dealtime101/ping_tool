@@ -192,7 +192,9 @@ namespace PingTool
                 // A cadence is only read from enough steps: with two pings two days apart the only step IS the gap, and ten times it would
                 // make a limit of twenty days that no hole could exceed. Too few steps, or a limit above MaxGap: the limits that hold anyway.
                 var usual = steps.Count < MinStepsForCadence ? TimeSpan.Zero : steps[steps.Count / 2];
-                var limit = usual * GapFactor > MinGap ? usual * GapFactor : MinGap;
+                // The product is only made when it cannot overflow: dates a few thousand years apart (the reader accepts any date) give a
+                // step whose tenfold is longer than a TimeSpan can hold. A step above MaxGap / GapFactor makes a limit above MaxGap anyway.
+                var limit = usual > MaxGap / GapFactor ? MaxGap : usual * GapFactor > MinGap ? usual * GapFactor : MinGap;
                 limits[host.Key] = limit > MaxGap ? MaxGap : limit;
             }
 
