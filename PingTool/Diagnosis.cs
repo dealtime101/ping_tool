@@ -101,16 +101,31 @@ namespace PingTool
         // True when the cards were read and have networks: "not in any of them" then says that the address is not on the link.
         public static bool IsKnown() => Current().Count > 0;
 
+        // Listing the cards can take a while (a card being removed, a driver that is slow to answer), so it is done OUTSIDE the lock: the lock
+        // guards the two fields only. Held through the read, it kept every other asker waiting for it, and the thread of the system that
+        // says "the network changed" (Forget) waited for the read it was telling to be thrown away.
         private static IReadOnlyList<(IPAddress Address, int Prefix)> Current()
         {
+            int seen;
             lock (gate)
             {
-                if (cached is null || DateTime.UtcNow - cachedAt > Lifetime) { cached = Read(); cachedAt = DateTime.UtcNow; }
-                return cached;
+                if (cached is not null && DateTime.UtcNow - cachedAt <= Lifetime) return cached;
+                seen = generation;
             }
+
+            var read = Read();
+            lock (gate)
+            {
+                // A Forget during the read says that what was read may be out of date already: it answers this question, and is not kept.
+                if (seen == generation) { cached = read; cachedAt = DateTime.UtcNow; }
+            }
+
+            return read;
         }
 
-        internal static void Forget() { lock (gate) cached = null; }
+        private static int generation;   // changed by every Forget, under the lock
+
+        internal static void Forget() { lock (gate) { cached = null; generation++; } }
     }
 
     // Reads the states of SEVERAL targets side by side and says where the fault
