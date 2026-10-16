@@ -52,6 +52,9 @@ A web address can end with options after a `#` (never sent to the server):
 | `https://example.com/#contains=Welcome` | the page must contain that text (case ignored, first 64 KB read). A maintenance page, an error page that answers `200`, or the login page of a captive portal (hotel Wi-Fi: a redirect) is then a **failure** (`Content` or `Redirect`) instead of a success. Write spaces as `%20` |
 | `https://example.com/#cert=30` | a **notice** (balloon, webhook, report) when the TLS certificate expires in less than 30 days; default 14, `0` = never. A reminder a day while it lasts. An expired or untrusted certificate is a `TLS` failure as before |
 | `https://example.com/#contains=Welcome&cert=7` | both |
+| `https://example.com/#status=200` | the status must be exactly that (failure `Status` otherwise). A `404` or `302` that you expect is then a success; without this option any `4xx`/`5xx` is a failure |
+| `https://example.com/#final=example.com/home` | the redirects are followed (5 at most) and the page they end on must be at that host and path (failure `Final URL`: a login page, a captive portal, a wrong site). The status of that last page is the one judged |
+| `https://example.com/health#json=status=ok` | the body must be JSON with that value at that dotted path (`a.b.0.c`, array indexes allowed; case ignored; without `=value`, the value must just exist and not be `null`). Failure `JSON` otherwise. At most 64 KB are read, and the body is never stored or shown: a message only says the path was missing or the value differs. Can be combined with the others |
 
 A mistyped option is refused with a message rather than silently ignored.
 

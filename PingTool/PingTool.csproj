@@ -364,8 +364,9 @@
          1.21.286 = a Preview button in the hiding box shows the report in the browser before saving, and the hide option masks the command-line report the same way (PIN507.1)
          1.21.287 = the Wi-Fi is read every 5 s through the Windows WLAN service: connection, disconnection, a move to another network or to another access point of the same one, and a weak signal join the network events, and the hiding box masks the network names and access points (PIN507.2)
          1.21.288 = targets with the same host name are read together as one service: the diagnosis says what DNS, ping, port and web probes of it suggest, as hints (PIN507.3)
-         1.21.289 = a Service box in "Name and limits of this host" declares which targets are one service whatever their host names, and the hiding box masks service names (PIN507.3) -->
-    <Version>1.21.289</Version>
+         1.21.289 = a Service box in "Name and limits of this host" declares which targets are one service whatever their host names, and the hiding box masks service names (PIN507.3)
+         1.21.290 = web addresses take #status= (exact status), #final= (where the redirects must end) and #json= (a value in a JSON body), each failure named apart from the transport ones (PIN507.4) -->
+    <Version>1.21.290</Version>
   </PropertyGroup>
 
   <ItemGroup>

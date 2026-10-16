@@ -152,12 +152,58 @@ namespace PingTool
             request.Headers.ConnectionClose = true;
 
             var clock = Stopwatch.StartNew();
-            using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, deadline.Token);
-            long rtt = clock.ElapsedMilliseconds;
+            var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, deadline.Token);
+            try
+            {
+                // #final=: the redirects are followed by hand (5 at most), and the page they end on is the one that is judged.
+                Uri? reached = t.Url;
+                if (t.FinalUrl is not null)
+                {
+                    for (int hops = 0; (int)response.StatusCode is >= 300 and < 400 && response.Headers.Location is { } next; hops++)
+                    {
+                        if (hops == MaxRedirects)
+                            return new ProbeOutcome(-1, new PingFailure("Final URL", $"More than {MaxRedirects} redirects in a row"), null);
+                        reached = new Uri(reached!, next);
+                        using var hop = new HttpRequestMessage(HttpMethod.Get, reached);
+                        hop.Headers.ConnectionClose = true;
+                        var following = await client.SendAsync(hop, HttpCompletionOption.ResponseHeadersRead, deadline.Token);
+                        response.Dispose();
+                        response = following;
+                    }
+                }
 
+                return await Judge(t, response, reached, clock.ElapsedMilliseconds, request, deadline.Token);
+            }
+            finally { response.Dispose(); }
+        }
+
+        private const int MaxRedirects = 5;
+
+        // The answer against what the target expects: transport problems never get here (they throw), so each failure below is
+        // the page being wrong, with its own name (HTTP, Status, Final URL, Redirect, Content, JSON).
+        private static async Task<ProbeOutcome> Judge(ProbeTarget t, HttpResponseMessage response, Uri? reached, long rtt, HttpRequestMessage request, CancellationToken token)
+        {
             int code = (int)response.StatusCode;
-            if (code >= 400)
+            if (t.ExpectStatus is { } wanted)
+            {
+                if (code != wanted)
+                    return new ProbeOutcome(-1, new PingFailure("Status", $"The server answered {StatusText(code, response.ReasonPhrase)} instead of the expected {wanted}"), null);
+            }
+            else if (code >= 400)
                 return new ProbeOutcome(-1, new PingFailure("HTTP " + code, "The server answered " + StatusText(code, response.ReasonPhrase)), null);
+
+            if (t.FinalUrl is { } final && reached is not null
+                && !(reached.Host + reached.PathAndQuery).StartsWith(final, StringComparison.OrdinalIgnoreCase))
+                return new ProbeOutcome(-1, new PingFailure("Final URL", $"The page reached is {reached.Host}{reached.PathAndQuery}, not {final}: a login page or a captive portal does this"), null);
+
+            byte[]? body = null;
+            int bodyLength = 0;
+            bool bodyCut = false;
+            if (t.Json is not null)
+            {
+                await using var stream = await response.Content.ReadAsStreamAsync(token);
+                (body, bodyLength, bodyCut) = await ReadAll(stream, token);
+            }
 
             // The page must contain the expected text: a redirect (to a login page, as a captive portal does) or a maintenance
             // page that answers "200" is then a failure, not a success.
@@ -166,16 +212,57 @@ namespace PingTool
                 if (code is >= 300 and < 400)
                     return new ProbeOutcome(-1, new PingFailure("Redirect", $"The server redirected (HTTP {code}) instead of serving the page with the expected text: a login page of a captive portal does this"), null);
 
-                var (found, truncated) = await ReadStart(response, expected, deadline.Token);
+                var (found, truncated) = body is null ? await ReadStart(response, expected, token)
+                    : (Decode(body, bodyLength, response.Content.Headers.ContentType?.CharSet).Contains(expected, StringComparison.OrdinalIgnoreCase), bodyCut);
                 if (!found)
                     return new ProbeOutcome(-1, new PingFailure("Content", truncated
                         ? $"The text was not found in the first {MaxBodyBytes / 1024} KiB of the page, which is all that is searched; the page is longer, so the text may be further down"
                         : "The page answered but does not contain the expected text (a maintenance page, an error page or a captive portal)"), null);
             }
 
+            if (t.Json is { } wantedJson && body is not null && JsonProblem(body, bodyLength, bodyCut, wantedJson) is { } problem)
+                return new ProbeOutcome(-1, new PingFailure("JSON", problem), null);
+
             string? warning = request.Options.TryGetValue(CertificateEnd, out DateTime end)
                 ? CertWatch.Warning(t.Host, end, DateTime.UtcNow, t.CertWarnDays) : null;
             return new ProbeOutcome(rtt, null, null, Warning: warning);
+        }
+
+        private static async Task<(byte[] Buffer, int Count, bool Truncated)> ReadAll(Stream stream, CancellationToken token)
+        {
+            var buffer = new byte[MaxBodyBytes];
+            int total = 0, read;
+            while (total < buffer.Length && (read = await stream.ReadAsync(buffer.AsMemory(total), token)) > 0) total += read;
+            bool more = total == buffer.Length && await stream.ReadAsync(new byte[1], token) > 0;
+            return (buffer, total, more);
+        }
+
+        // Null when the body holds the expected value at the path; otherwise what is wrong, never the body itself (it is not kept).
+        internal static string? JsonProblem(byte[] body, int count, bool truncated, JsonExpect expected)
+        {
+            if (truncated) return $"The body is longer than {MaxBodyBytes / 1024} KiB, which is all that is read, so it cannot be checked as JSON";
+            System.Text.Json.JsonElement node;
+            try { node = System.Text.Json.JsonDocument.Parse(body.AsMemory(0, count)).RootElement; }
+            catch (System.Text.Json.JsonException) { return "The body is not valid JSON (an HTML page, a login page or a captive portal?)"; }
+
+            foreach (string step in expected.Path.Split('.'))
+            {
+                bool found = false;
+                if (node.ValueKind == System.Text.Json.JsonValueKind.Object) found = node.TryGetProperty(step, out node);
+                else if (node.ValueKind == System.Text.Json.JsonValueKind.Array && int.TryParse(step, NumberStyles.None, CultureInfo.InvariantCulture, out int index) && index < node.GetArrayLength())
+                {
+                    node = node[index];
+                    found = true;
+                }
+
+                if (!found) return $"The JSON has nothing at \"{expected.Path}\"";
+            }
+
+            if (node.ValueKind == System.Text.Json.JsonValueKind.Null) return $"The JSON value at \"{expected.Path}\" is null";
+            if (expected.Value is null) return null;
+            string actual = node.ValueKind == System.Text.Json.JsonValueKind.String ? node.GetString() ?? "" : node.GetRawText();
+            return string.Equals(actual, expected.Value, StringComparison.OrdinalIgnoreCase) ? null
+                : $"The JSON value at \"{expected.Path}\" is not the expected one";
         }
 
         private static async Task<(bool Found, bool Truncated)> ReadStart(HttpResponseMessage response, string expected, CancellationToken token)

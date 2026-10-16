@@ -6,6 +6,9 @@ namespace PingTool
 {
     internal enum ProbeKind { Icmp, Tcp, Http, Dns }
 
+    // A value looked for in a JSON body: the dotted path (object names and array indexes) and the text it must have; null = present and not null.
+    internal sealed record JsonExpect(string Path, string? Value);
+
     // What to probe, parsed from what the user typed in the address box:
     //   google.ca                 ping (ICMP), as before
     //   tcp://example.com:443     can a TCP connection be opened to that port?
@@ -17,7 +20,11 @@ namespace PingTool
     //                                                answers "200" or redirects, but does not contain it)
     //   https://example.com/#cert=30                 warn when the certificate expires in less than 30 days (default 14, 0 = never)
     //   https://example.com/#contains=a%20b&cert=7   both (spaces and special characters written %20 etc.)
-    internal sealed record ProbeTarget(ProbeKind Kind, string Host, int Port, Uri? Url, string? ExpectText = null, int CertWarnDays = ProbeTarget.DefaultCertWarnDays)
+    //   https://example.com/#status=200              the status must be exactly that (a 3xx or 4xx is then a success when it is the one expected)
+    //   https://example.com/#final=example.com/home  the redirects are followed (5 at most) and the page reached must be at that host and path
+    //   https://example.com/api#json=status=ok       the body must be JSON holding that value at that dotted path (a.b.0.c); no =value means "present, not null"
+    internal sealed record ProbeTarget(ProbeKind Kind, string Host, int Port, Uri? Url, string? ExpectText = null, int CertWarnDays = ProbeTarget.DefaultCertWarnDays,
+        int? ExpectStatus = null, string? FinalUrl = null, JsonExpect? Json = null)
     {
         public const int DefaultCertWarnDays = 14;
         public const int MaxCertWarnDays = 365;
@@ -26,7 +33,7 @@ namespace PingTool
         public const string Help =
             "No prefix = ping.  tcp://host:port = open a TCP connection.  http://url or https://url = web request.  dns://name = name lookup.  " +
             "Web options after #, joined by &: #contains=text (the page must hold it; spaces as %20) and #cert=days (https only: warn that many days before the certificate ends, 0 = never), " +
-            "for example https://example.com/#contains=Welcome&cert=30.";
+            "for example https://example.com/#contains=Welcome&cert=30. Also #status=200 (the exact status), #final=host/path (where the redirects must end) and #json=path=value (a value in a JSON body).";
 
         // The addresses a file or the command line gave, minus those the address box would refuse (a hand-edited
         // settings.json, a mistyped argument): the same rule as typing them, and the count says how many were left out.
@@ -99,11 +106,12 @@ namespace PingTool
                         return false;
                     }
 
-                    if (!TryHttpOptions(url.Fragment, url.Scheme == Uri.UriSchemeHttps, out string? expect, out int certDays, out error)) return false;
+                    if (!TryHttpOptions(url.Fragment, url.Scheme == Uri.UriSchemeHttps, out var o, out error)) return false;
 
                     // The host as tcp:// gives it: an IPv6 literal without its URI brackets ("[2001:db8::1]" is how a URI writes it, the
                     // resolver and the certificate check want the bare address).
-                    target = new ProbeTarget(ProbeKind.Http, url.HostNameType == UriHostNameType.IPv6 ? url.Host.Trim('[', ']') : url.Host, url.Port, url, expect, certDays);
+                    target = new ProbeTarget(ProbeKind.Http, url.HostNameType == UriHostNameType.IPv6 ? url.Host.Trim('[', ']') : url.Host, url.Port, url,
+                        o.Expect, o.CertDays, o.Status, o.Final, o.Json);
                     return true;
 
                 case "dns":
@@ -137,24 +145,68 @@ namespace PingTool
 
         // The part after # of a web address: "contains=text" and/or "cert=days", separated by &. Anything else is refused: a typo
         // ("#contain=...") silently ignored would leave the check the user thinks they set up doing nothing.
-        private static bool TryHttpOptions(string fragment, bool secure, out string? expect, out int certDays, out string error)
+        private sealed record HttpOptions(string? Expect, int CertDays, int? Status, string? Final, JsonExpect? Json);
+
+        private static bool TryHttpOptions(string fragment, bool secure, out HttpOptions options, out string error)
         {
-            expect = null;
-            certDays = DefaultCertWarnDays;
+            string? expect = null, final = null;
+            int certDays = DefaultCertWarnDays;
+            int? status = null;
+            JsonExpect? json = null;
+            options = new HttpOptions(null, certDays, null, null, null);
             error = "";
             string text = fragment.TrimStart('#');
             if (text.Length == 0) return true;
 
-            bool sawContains = false, sawCert = false;
+            var seen = new HashSet<string>();
             foreach (string part in text.Split('&'))
             {
                 int eq = part.IndexOf('=', StringComparison.Ordinal);
                 string key = (eq < 0 ? part : part[..eq]).ToLowerInvariant();
                 string value = eq < 0 ? "" : part[(eq + 1)..];
 
-                if (key == "contains" && !sawContains)
+                if (key is "status" or "final" or "json" && seen.Add(key))
                 {
-                    sawContains = true;
+                    string decoded = Uri.UnescapeDataString(value);
+                    if (decoded.Length == 0 || decoded.Length > MaxExpectLength || decoded.Any(char.IsControl))
+                    {
+                        error = $"#{key}= needs a value of 1 to {MaxExpectLength} characters (write spaces as %20), for example https://example.com/#status=200";
+                        return false;
+                    }
+
+                    if (key == "status")
+                    {
+                        if (!int.TryParse(decoded, NumberStyles.None, CultureInfo.InvariantCulture, out int code) || code is < 100 or > 599)
+                        {
+                            error = "#status= needs a status code from 100 to 599, for example https://example.com/#status=200";
+                            return false;
+                        }
+
+                        status = code;
+                    }
+                    else if (key == "final")
+                    {
+                        // host/path, the scheme ignored: what the browser would show once the redirects are over.
+                        final = decoded.Contains("://", StringComparison.Ordinal) ? decoded[(decoded.IndexOf("://", StringComparison.Ordinal) + 3)..] : decoded;
+                    }
+                    else
+                    {
+                        int at = decoded.IndexOf('=', StringComparison.Ordinal);
+                        string path = at < 0 ? decoded : decoded[..at];
+                        if (path.Length == 0 || path.Split('.').Any(s => s.Length == 0))
+                        {
+                            error = "#json= needs a dotted path, optionally followed by =value, for example https://example.com/health#json=status=ok";
+                            return false;
+                        }
+
+                        json = new JsonExpect(path, at < 0 ? null : decoded[(at + 1)..]);
+                    }
+
+                    continue;
+                }
+
+                if (key == "contains" && seen.Add(key))
+                {
                     // UnescapeDataString never throws for a bad sequence: "%zz", a lone "%" ("100%") and bytes that are not UTF-8 stay as
                     // typed, which is what someone looking for a text with a percent sign in it means. A decoded control character (%00,
                     // %0A) is refused below.
@@ -167,9 +219,8 @@ namespace PingTool
 
                     expect = decoded;
                 }
-                else if (key == "cert" && !sawCert)
+                else if (key == "cert" && seen.Add(key))
                 {
-                    sawCert = true;
                     // An option that can never do anything is refused, like the unknown ones: a person who wrote it believes a certificate is watched.
                     if (!secure)
                     {
@@ -183,7 +234,7 @@ namespace PingTool
                         return false;
                     }
                 }
-                else if (key is "contains" or "cert")
+                else if (key is "contains" or "cert" or "status" or "final" or "json")
                 {
                     // A known option, written a second time: not a typo to look for, the same one twice (and which one is kept is not a guess to make).
                     error = $"#{key}= is given twice in the web address: use each option once, separated by & (#contains=text&cert=days).";
@@ -191,11 +242,12 @@ namespace PingTool
                 }
                 else
                 {
-                    error = "Unknown option after # in the web address: use #contains=text and/or #cert=days (separated by &), each once.";
+                    error = "Unknown option after # in the web address: use #contains=text, #cert=days, #status=code, #final=host/path or #json=path=value (separated by &), each once.";
                     return false;
                 }
             }
 
+            options = new HttpOptions(expect, certDays, status, final, json);
             return true;
         }
 
