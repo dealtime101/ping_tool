@@ -1339,7 +1339,7 @@ namespace PingTool
             }
         }
 
-        private static (ReplayResult? Replay, List<LogEntry>? Entries, string? Error) LoadLogs(string[] paths)
+        internal static (ReplayResult? Replay, List<LogEntry>? Entries, string? Error) LoadLogs(string[] paths)
         {
             var all = new List<LogEntry>();
             foreach (string path in paths)

@@ -370,8 +370,9 @@
          1.21.292 = tcp and web addresses take #family=4 or #family=6: one entry per IP family of a name, a missing record told from a network failure, and the diagnosis says when one family is weaker (PIN507.6)
          1.21.293 = optional grouping of alerts (AlertGroupSeconds in settings.json): targets going down or coming back within a short window are told as one summary, balloon and webhook alike, each keeping its own incident (PIN507.7)
          1.21.294 = a box in the window turns the grouping of alerts on, the targets of a declared service are shown together, and one alert says when every target of a grouped outage is back (PIN507.7)
-         1.21.295 = Mark an event: a timestamped note about something done by hand, on the timeline and in the report (PIN507.8) -->
-    <Version>1.21.295</Version>
+         1.21.295 = Mark an event: a timestamped note about something done by hand, on the timeline and in the report (PIN507.8)
+         1.21.296 = Compare with another log: two periods of logs side by side per target, with better or worse in words and the reasons to read it with care (PIN507.9) -->
+    <Version>1.21.296</Version>
   </PropertyGroup>
 
   <ItemGroup>

@@ -59,8 +59,16 @@ namespace PingTool
             var timeline = new Button { Text = "Session timeline...", Location = new Point(12, 176), Size = new Size(170, 28) };
             var incidents = new Button { Text = "Incidents...", Location = new Point(190, 176), Size = new Size(170, 28) };
             var report = new Button { Text = "Save report (HTML)...", Location = new Point(368, 176), Size = new Size(180, 28) };
+            var compare = new Button { Text = "Compare with another log...", Location = new Point(12, 212), Size = new Size(220, 28) };
             var close = new Button { Text = "Close", DialogResult = DialogResult.Cancel, Location = new Point(458, 212), Size = new Size(90, 28) };
             CancelButton = close;
+
+            compare.Click += async (_, _) =>
+            {
+                compare.Enabled = false;
+                try { await CompareWith(entries, sources); }
+                finally { compare.Enabled = true; }
+            };
 
             timeline.Click += (_, _) =>
             {
@@ -74,7 +82,47 @@ namespace PingTool
             };
             report.Click += (_, _) => SaveReport(entries);
 
-            Controls.AddRange(new Control[] { info, timeline, incidents, report, close });
+            Controls.AddRange(new Control[] { info, timeline, incidents, report, compare, close });
+        }
+
+        // Two periods side by side: this log and another one the person picks (a night before and a night after a new router, a cable, a
+        // provider). The page opens in the browser like the report; see PeriodComparison for what it says and what it warns about.
+        private async Task CompareWith(List<LogEntry> entries, string sources)
+        {
+            using var open = new OpenFileDialog { Filter = "PingTool log (*.csv)|*.csv|All files (*.*)|*.*", Multiselect = true, Title = "The other log, to compare with " + sources };
+            if (open.ShowDialog(this) != DialogResult.OK) return;
+
+            string[] paths = open.FileNames;
+            Cursor = Cursors.WaitCursor;
+            try
+            {
+                var (other, otherEntries, error) = await Task.Run(() => Form1.LoadLogs(paths));
+                if (other is null || otherEntries is null) { MessageBox.Show(error, "PingTool"); return; }
+
+                string otherName = paths.Length == 1 ? Path.GetFileName(paths[0]) : paths.Length.ToString(CultureInfo.CurrentCulture) + " log files";
+                var answer = MessageBox.Show(this,
+                    $"Which one is the period BEFORE the change?\r\n\r\nYes: the log you opened ({sources}) is before, {otherName} is after.\r\nNo: {otherName} is before, the log you opened is after.",
+                    "PingTool - compare two periods", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question);
+                if (answer == DialogResult.Cancel) return;
+
+                var mine = PeriodComparison.Measure(sources, replay, entries);
+                var theirs = PeriodComparison.Measure(otherName, other, otherEntries);
+                string html = answer == DialogResult.Yes ? PeriodComparison.BuildHtml(mine, theirs, DateTimeOffset.Now) : PeriodComparison.BuildHtml(theirs, mine, DateTimeOffset.Now);
+
+                using var save = new SaveFileDialog { Filter = "HTML page (*.html)|*.html", FileName = $"pingtool-comparison-{DateTime.Now:yyyyMMdd-HHmmss}.html" };
+                if (save.ShowDialog(this) != DialogResult.OK) return;
+
+                File.WriteAllText(save.FileName, html, new System.Text.UTF8Encoding(false));
+                FileOpener.OfferToOpen(this, "The comparison", save.FileName);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                MessageBox.Show("Could not write the file: " + ex.Message, "PingTool");
+            }
+            finally
+            {
+                Cursor = Cursors.Default;
+            }
         }
 
         private void SaveReport(List<LogEntry> entries)
