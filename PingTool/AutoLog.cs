@@ -191,17 +191,30 @@ namespace PingTool
 
         // The oldest `over` entries are given up (the folder stayed unwritable too long, or writing did not keep up and the memory budget is
         // spent: told apart by whether a write error was on record, see droppedWhileFailing). Under `queue`.
-        private void DropOldestLocked(int over)
+        // The entries being written right now (the batch a flush took, always the front of `pending`) are not given up while the write goes on:
+        // if it succeeds they are on the disk, and counting them lost would announce a gap in a log that has no hole. The ones after them go
+        // instead, so the queue may stand above MaxPending by the size of the batch until the write ends. Under `queue`.
+        private int inFlight;
+
+        // Returns what was given up (first and last time, how many); Count is 0 when everything that could go is being written.
+        private (DateTimeOffset From, DateTimeOffset To, int Count) DropOldestLocked(int over)
         {
-            DroppedFrom ??= pending[0].Time;
-            DroppedTo = pending[over - 1].Time;
+            int skip = Math.Min(inFlight, pending.Count);
+            over = Math.Min(over, pending.Count - skip);
+            if (over <= 0) return default;
+
+            var from = pending[skip].Time;
+            var to = pending[skip + over - 1].Time;
+            DroppedFrom ??= from;
+            DroppedTo = to;
             // Same gap when nothing was written since the last drop; a new one when some pings reached the disk in between.
-            if (gaps.Count > 0 && !writtenSinceDrop) gaps[^1] = (gaps[^1].From, pending[over - 1].Time);
-            else gaps.Add((pending[0].Time, pending[over - 1].Time));
+            if (gaps.Count > 0 && !writtenSinceDrop) gaps[^1] = (gaps[^1].From, to);
+            else gaps.Add((from, to));
             writtenSinceDrop = false;
             if (lastError is not null) droppedWhileFailing = true;
             Dropped += over;
-            pending.RemoveRange(0, over);
+            pending.RemoveRange(skip, over);
+            return (from, to, over);
         }
 
         // What all the retired logs together may hold in memory: one log is capped at MaxPending, and a folder that stays unwritable
@@ -214,27 +227,27 @@ namespace PingTool
         {
             int lost = 0;
             DateTimeOffset? from = null, to = null;
-            while (retired.Count > 0)
+            // One pass, the oldest log first: what a log holds that is being written right now cannot be given up (see inFlight), so it is
+            // left and the next log is looked at; the cap is held again at the next try.
+            foreach (var log in retired.ToList())
             {
                 int total = retired.Sum(r => r.Pending);
                 if (total <= MaxRetiredPending) break;
 
-                var oldest = retired[0];
-                lock (oldest.queue)
+                lock (log.queue)
                 {
                     // Counted under the lock that guards the queue: a flush in the background can have written (and removed) entries since
                     // `total` was read, and a number taken before the lock could be longer than what is left.
-                    int drop = Math.Min(total - MaxRetiredPending, oldest.pending.Count);
-                    if (drop > 0)
+                    int drop = Math.Min(total - MaxRetiredPending, log.pending.Count);
+                    if (drop > 0 && log.DropOldestLocked(drop) is { Count: > 0 } gone)
                     {
-                        from ??= oldest.pending[0].Time;
-                        to = oldest.pending[drop - 1].Time;
-                        oldest.DropOldestLocked(drop);
-                        lost += drop;
+                        from ??= gone.From;
+                        to = gone.To;
+                        lost += gone.Count;
                     }
                 }
 
-                if (oldest.Pending == 0) retired.RemoveAt(0);
+                if (log.Pending == 0) retired.Remove(log);
             }
 
             return lost == 0 ? null : string.Create(CultureInfo.CurrentCulture,
@@ -416,10 +429,22 @@ namespace PingTool
 
         private bool FlushOnce()
         {
+            try { return FlushCore(); }
+            finally { lock (queue) inFlight = 0; }   // whatever happened to the write, nothing is "being written" any more
+        }
+
+        private bool FlushCore()
+        {
             lastError = null;
-            // What is queued now; what arrives while the disk is being written waits for the next flush.
+            // What is queued now; what arrives while the disk is being written waits for the next flush. The batch is the front of the queue
+            // and stays in it until the write is over; it is not given up meanwhile (see inFlight).
             List<LogEntry> batch;
-            lock (queue) batch = pending.ToList();
+            lock (queue)
+            {
+                batch = pending.ToList();
+                inFlight = batch.Count;
+            }
+
             if (batch.Count == 0) return true;
 
             // Distinct hosts get distinct files (FileName adds a hash when it had to change the name); rows carry their host anyway.
@@ -509,6 +534,7 @@ namespace PingTool
 
             lock (queue)
             {
+                inFlight = 0;   // before the removal: what stays of the batch is a plain waiting entry again
                 if (written.Count > 0) writtenSinceDrop = true;   // what is dropped after this is a new gap
                 pending.RemoveAll(written.Contains);
                 return pending.Count == 0;
