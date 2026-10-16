@@ -27,7 +27,9 @@ namespace PingTool
 
             // A long address (a URL, a full IPv6 address) is cut with "..." and the whole of it comes up as a tooltip (AutoEllipsis does
             // both), instead of being cut off flat: the person must be able to tell which target this is.
-            Controls.Add(new Label { Text = address, ForeColor = Color.Silver, AutoSize = false, AutoEllipsis = true, Location = new Point(12, 10), Size = new Size(356, 18), AccessibleName = "Address of the target: " + address });
+            // UseMnemonic = false: an address is shown as it is. With the default, the "&" of a URL (?a=1&b=2) is taken for the mark of a keyboard
+            // shortcut and dropped, so the target does not read as the one the person chose.
+            Controls.Add(new Label { Text = address, UseMnemonic = false, ForeColor = Color.Silver, AutoSize = false, AutoEllipsis = true, Location = new Point(12, 10), Size = new Size(356, 18), AccessibleName = "Address of the target: " + address });
             // The & makes the next letter an access key (Alt+N, Alt+S, Alt+L, Alt+D): a label takes the focus to the box that follows it.
             Controls.Add(new Label { Text = "&Name (shown in the list, the alerts and the report)", ForeColor = Color.White, AutoSize = true, Location = new Point(12, 36) });
             label = new TextBox

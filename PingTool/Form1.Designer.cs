@@ -126,6 +126,7 @@
             // lblStats
             // 
             lblStats.AutoSize = true;
+            lblStats.UseMnemonic = false;   // it shows the address of the host: a "&" in it is a character, not a keyboard shortcut
             lblStats.ForeColor = Color.White;
             lblStats.Location = new Point(30, 190);
             lblStats.Name = "lblStats";
@@ -469,6 +470,7 @@
             // lblDiagnosis
             //
             lblDiagnosis.AutoSize = false;
+            lblDiagnosis.UseMnemonic = false;   // it names the targets (an address with a "&" in it): shown as they are
             lblDiagnosis.ForeColor = Color.Silver;
             lblDiagnosis.Location = new Point(300, 276);
             lblDiagnosis.Name = "lblDiagnosis";

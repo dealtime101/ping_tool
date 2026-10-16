@@ -436,8 +436,9 @@
          1.21.358 = the watch of the network of the PC follows all the IPv4 gateways of a card, not the first one only (PIN507.110)
          1.21.359 = an outage that only touches the period (ended at its start, began at its end) is no longer counted as one of it (PIN507.111)
          1.21.360 = the "<0.1" and ">99.9" limits of the loss format take the decimal mark of the culture asked for (PIN507.112)
-         1.21.361 = the MOS takes the one-way delay as half of the mean round trip of the pings, as the model asks, so a long link is no longer judged twice as slow (PIN507.113) -->
-    <Version>1.21.361</Version>
+         1.21.361 = the MOS takes the one-way delay as half of the mean round trip of the pings, as the model asks, so a long link is no longer judged twice as slow (PIN507.113)
+         1.21.362 = the labels that show an address or a host name no longer take its "&" for a keyboard shortcut (PIN507.114) -->
+    <Version>1.21.362</Version>
   </PropertyGroup>
 
   <ItemGroup>

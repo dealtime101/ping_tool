@@ -155,6 +155,7 @@ namespace PingTool
             var lblSummary = new Label
             {
                 Text = summary,
+                UseMnemonic = false,   // the sentence may name a host: a "&" in its address is a character
                 ForeColor = Color.White,
                 // As wide as the window and two lines high: the sentence wraps instead of running past the edge (a typical one is
                 // about 100 characters, as wide as the window at its minimum size; the longest the format makes is 119).

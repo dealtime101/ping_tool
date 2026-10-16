@@ -193,7 +193,7 @@ namespace PingTool
         private readonly TimelineChart chart = new() { Location = new Point(10, 42), Size = new Size(740, 246), AccessibleName = Loc.T("timeline.chart"), Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right };
         // The summary (up to four lines with the peak and the incidents, the network changes and, when the log let pings go, the note about it):
         // this size is only where it starts, LayoutBottom gives it the height its text needs.
-        private readonly Label summary = new() { ForeColor = Color.White, AutoSize = false, Location = new Point(10, 294), Size = new Size(740, 106), Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right };
+        private readonly Label summary = new() { UseMnemonic = false, ForeColor = Color.White, AutoSize = false, Location = new Point(10, 294), Size = new Size(740, 106), Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right };
 
         // droppedNote: what to say when the log has let its oldest pings go (null = nothing lost).
         public TimelineForm(IReadOnlyCollection<LogEntry> entries, IReadOnlyList<Incident> incidents, IEnumerable<string> hosts, string? selected,
