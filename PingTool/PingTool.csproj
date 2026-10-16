@@ -388,8 +388,9 @@
          1.21.310 = a webhook queue that is full counts the dropped alerts on the sending thread and tells the subscribers from another one (PIN507.30)
          1.21.311 = the web probe reads nothing beyond its search limit: a server that stops sending there no longer turns the result into a timeout (PIN507.31)
          1.21.312 = the diagnosis takes the gateway of a card taken for virtual when it is the one the system sends the Internet traffic through and no real card has a gateway (PIN507.32)
-         1.21.313 = a card with an IPv6 gateway and IPv4 DNS servers is an IPv6 connection: its gateway is found and the IPv6 references used (PIN507.33) -->
-    <Version>1.21.313</Version>
+         1.21.313 = a card with an IPv6 gateway and IPv4 DNS servers is an IPv6 connection: its gateway is found and the IPv6 references used (PIN507.33)
+         1.21.314 = an outage is closed at the first ping that answers even when no Up came with it, so later failures cannot rewrite it (PIN507.34) -->
+    <Version>1.21.314</Version>
   </PropertyGroup>
 
   <ItemGroup>

@@ -68,9 +68,6 @@ namespace PingTool
                 else StreakCauses.Add((cause, 1));
             }
             public Incident? Outage;
-            // The first ping that answered while the outage above was still open (no "Up" came with it): when that outage really ended,
-            // should a new "Down" arrive before any "Up".
-            public DateTimeOffset? AnsweredWhileDown;
             public Incident? Slow;
             // How many of each kind this host has had: the next incident's "#", without counting the whole list each time.
             public int Outages, Slowdowns;
@@ -127,19 +124,18 @@ namespace PingTool
                     {
                         // Dated by the same first failure: the host never answered in between, so it is ONE outage that goes on.
                         if (t.Outage.Start >= begin) { t.Outage.FailedPings = t.StreakCount; t.Outage.Cause = Top(t.StreakCauses); break; }
-                        // A ping answered in between (the streak restarted): the first outage ended with that answer (at the latest when the
-                        // new run of failures began).
-                        t.Outage.End = t.AnsweredWhileDown is { } answered && answered <= begin ? answered : begin;
+                        // The streak restarted, so a ping answered in between and the outage was closed there (see the end of this method);
+                        // this stays as a last resort: it ends when the new run of failures began.
+                        t.Outage.End = begin;
                     }
 
-                    t.AnsweredWhileDown = null;
                     t.Outage = Open(t, host, IncidentKind.Outage, begin, 0, null);
                     t.Outage.FailedPings = t.StreakCount;
                     t.Outage.Cause = Top(t.StreakCauses);
                     break;
 
                 case HostChange.Up:
-                    if (t.Outage is not null) { t.Outage.End = time; t.Outage = null; t.AnsweredWhileDown = null; }
+                    if (t.Outage is not null) { t.Outage.End = time; t.Outage = null; }
                     break;
 
                 case HostChange.Degraded:
@@ -156,7 +152,10 @@ namespace PingTool
 
             if (ok)
             {
-                if (t.Outage is not null) t.AnsweredWhileDown ??= time;
+                // An outage ends at the first ping that answers, as the report says. Normally the monitor says "Up" with that ping and the
+                // outage is already closed above; one still open here had no "Up" (the monitor was replaced while the host stayed down):
+                // closing it now keeps the failures that come next from being counted on it.
+                if (t.Outage is not null) { t.Outage.End = time; t.Outage = null; }
                 t.StreakStart = null;
                 t.StreakCount = 0;
                 t.StreakCauses.Clear();
@@ -173,7 +172,6 @@ namespace PingTool
             t.StreakStart = null;
             t.StreakCount = 0;
             t.StreakCauses.Clear();
-            t.AnsweredWhileDown = null;
         }
 
         // Says whether a moment is inside a maintenance window: an incident that begins there is marked planned.
