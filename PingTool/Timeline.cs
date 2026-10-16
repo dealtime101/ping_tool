@@ -219,8 +219,10 @@ namespace PingTool
 
         // Round times for the time axis (every 5 min, every hour...), in LOCAL time so that "10:00"
         // is really 10 o'clock whatever the UTC offset. At most maxTicks marks (at least 1 is allowed: a zero or negative limit means 1).
-        public static IReadOnlyList<(DateTimeOffset Time, string Label)> Ticks(DateTimeOffset from, DateTimeOffset to, int maxTicks)
+        public static IReadOnlyList<(DateTimeOffset Time, string Label)> Ticks(DateTimeOffset from, DateTimeOffset to, int maxTicks,
+                                                                                 TimeZoneInfo? zone = null)
         {
+            zone ??= TimeZoneInfo.Local;
             int max = Math.Max(1, maxTicks);
             double span = Math.Max(1, (to - from).TotalSeconds);
             long step = TickSteps.FirstOrDefault(s => span / s <= max);
@@ -231,21 +233,23 @@ namespace PingTool
             // come out (10 s, limit 2: marks at 0, 5 and 10). A coarser step until what is really produced fits.
             while (true)
             {
-                var ticks = TicksAt(from, to, step);
+                var ticks = TicksAt(from, to, step, zone);
                 if (ticks.Count <= max) return ticks;
                 long next = TickSteps.FirstOrDefault(s => s > step);
                 step = next != 0 ? next : step * 2;   // past the listed steps the step is whole days: doubling keeps it so
             }
         }
 
-        private static List<(DateTimeOffset Time, string Label)> TicksAt(DateTimeOffset from, DateTimeOffset to, long step)
+        private static List<(DateTimeOffset Time, string Label)> TicksAt(DateTimeOffset from, DateTimeOffset to, long step, TimeZoneInfo zone)
         {
             double span = Math.Max(1, (to - from).TotalSeconds);
-            var local = from.ToLocalTime();
-            var origin = new DateTimeOffset(local.Year, local.Month, local.Day, 0, 0, 0, local.Offset);
-            double firstIndex = Math.Ceiling((local - origin).TotalSeconds / step);
+            var local = TimeZoneInfo.ConvertTime(from, zone);
+            var localTo = TimeZoneInfo.ConvertTime(to, zone);
+            // Steps shorter than a day are counted on the WALL clock of the local day (00:00, 06:00, 12:00...), each mark getting the offset
+            // that applies at ITS time: the offset of the start of the session is not the one of midnight on a day the clock changes.
+            double firstIndex = Math.Ceiling(local.TimeOfDay.TotalSeconds / step);
 
-            bool withDate = to.ToLocalTime().Date != local.Date || span >= 86400;
+            bool withDate = localTo.Date != local.Date || span >= 86400;
             string format = step < 60 ? "HH:mm:ss" : "HH:mm";
             if (withDate) format = MonthDay(CultureInfo.CurrentCulture) + " " + format;
 
@@ -260,16 +264,24 @@ namespace PingTool
                 if (days)
                 {
                     var day = local.Date.AddDays(k * stepDays);   // unspecified kind: a calendar date, no offset yet
-                    t = new DateTimeOffset(day, TimeZoneInfo.Local.GetUtcOffset(day));
+                    t = new DateTimeOffset(day, zone.GetUtcOffset(day));
                 }
                 else
                 {
-                    // The instant is exact; what is shown is that instant on the local clock of THAT moment, not with the
-                    // offset the session started with.
-                    t = (origin + TimeSpan.FromSeconds(k * step)).ToLocalTime();
+                    var wall = local.Date.AddSeconds(k * step);
+                    if (zone.IsInvalidTime(wall))   // the hour skipped by the clock change has no mark
+                    {
+                        if (wall > localTo.DateTime) break;
+                        continue;
+                    }
+
+                    // An hour that happens twice is marked once, at its first occurrence (the larger offset).
+                    var offset = zone.IsAmbiguousTime(wall) ? zone.GetAmbiguousTimeOffsets(wall).Max() : zone.GetUtcOffset(wall);
+                    t = new DateTimeOffset(wall, offset);
                 }
 
                 if (t > to) break;
+                if (t < from) continue;
                 ticks.Add((t, t.ToString(format, CultureInfo.CurrentCulture)));
             }
 
