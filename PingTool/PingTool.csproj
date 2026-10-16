@@ -391,8 +391,9 @@
          1.21.313 = a card with an IPv6 gateway and IPv4 DNS servers is an IPv6 connection: its gateway is found and the IPv6 references used (PIN507.33)
          1.21.314 = an outage is closed at the first ping that answers even when no Up came with it, so later failures cannot rewrite it (PIN507.34)
          1.21.315 = the silence that makes a hole in a log is read from enough pings and never above six hours (PIN507.35)
-         1.21.316 = a headless run whose final report cannot be written ends with the error code, not the code of what it saw (PIN507.36) -->
-    <Version>1.21.316</Version>
+         1.21.316 = a headless run whose final report cannot be written ends with the error code, not the code of what it saw (PIN507.36)
+         1.21.317 = a cancellation raised by the alert or report callback of a headless run is a failed alert or report, not the end of the run (PIN507.37) -->
+    <Version>1.21.317</Version>
   </PropertyGroup>
 
   <ItemGroup>

@@ -131,9 +131,13 @@ namespace PingTool
                     if (toRaise is not null)
                     {
                         try { alert!(toRaise); }
-                        catch (Exception ex) when (ex is not OperationCanceledException)
+                        catch (Exception ex)
                         {
-                            if (Interlocked.Exchange(ref alertProblemSaid, 1) == 0)
+                            // An OperationCanceledException from the callback (its own timeout, a send that gave up) is a failed alert like any
+                            // other: the run was not cancelled, and letting it out would end this host's loop and the final report with it. When
+                            // the run IS over, it is just the end and there is nothing to say.
+                            bool theEnd = ex is OperationCanceledException && run.Token.IsCancellationRequested;
+                            if (!theEnd && Interlocked.Exchange(ref alertProblemSaid, 1) == 0)
                                 Console.Error.WriteLine("An alert could not be raised, the monitoring goes on: " + ex.GetType().Name + ": " + ex.Message);
                         }
                     }
@@ -152,7 +156,7 @@ namespace PingTool
             bool SafeCheckpoint(ReportData data)
             {
                 try { checkpoint!(data); return true; }
-                catch (Exception ex) when (ex is not OperationCanceledException)
+                catch (Exception ex)   // an OperationCanceledException of the callback's own too: it is a report that was not written
                 {
                     if (Interlocked.Exchange(ref checkpointProblemSaid, 1) == 0)
                         Console.Error.WriteLine("A report checkpoint could not be written, the next one will be tried: " + ex.GetType().Name + ": " + ex.Message);
