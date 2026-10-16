@@ -414,8 +414,9 @@
          1.21.336 = started minimized, the warnings of the launch (a settings file that could not be read, addresses left out, no gateway) all go in one balloon (PIN507.81)
          1.21.337 = the report of the window is built and written off the window's thread, so a slow share no longer freezes the window or the timing of the probes (PIN507.82)
          1.21.338 = a new page of the graph legend empties and hides the tip of the row the pointer was on (PIN507.83)
-         1.21.339 = pings of the batch being written to the log are not given up meanwhile, so they are never counted lost when they reach the disk (PIN507.84) -->
-    <Version>1.21.339</Version>
+         1.21.339 = pings of the batch being written to the log are not given up meanwhile, so they are never counted lost when they reach the disk (PIN507.84)
+         1.21.340 = the style of the worst hours of the report grid is valid CSS (colour apart from the two layers of pattern) (PIN507.87) -->
+    <Version>1.21.340</Version>
   </PropertyGroup>
 
   <ItemGroup>

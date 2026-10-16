@@ -80,7 +80,9 @@ namespace PingTool
                 // up to 5 % = stripes one way, up to 30 % = stripes the other way, more = both ways (a mesh). The legend squares are the same classes.
                 + ".h1{background:#f2e394 repeating-linear-gradient(45deg,transparent 0 3px,rgba(0,0,0,.35) 3px 4px)}"
                 + ".h2{background:#f0a95a repeating-linear-gradient(-45deg,transparent 0 3px,rgba(0,0,0,.4) 3px 4px)}"
-                + ".h3{background:#d9534f repeating-linear-gradient(45deg,transparent 0 3px,rgba(0,0,0,.45) 3px 4px),repeating-linear-gradient(-45deg,transparent 0 3px,rgba(0,0,0,.45) 3px 4px)}"
+                // Two layers: the colour can only be in the LAST layer of the shorthand, so it is given on its own (a colour in the first layer
+                // made the whole declaration invalid, and the worst hours came out with no red and no mesh at all).
+                + ".h3{background-color:#d9534f;background-image:repeating-linear-gradient(45deg,transparent 0 3px,rgba(0,0,0,.45) 3px 4px),repeating-linear-gradient(-45deg,transparent 0 3px,rgba(0,0,0,.45) 3px 4px)}"
                 + ".gl{display:inline-block;width:12px;height:12px;border:1px solid #bbb;vertical-align:middle}"
                 + "pre{background:#f6f6f6;border:1px solid #ccc;padding:8px;font-size:12px;overflow-x:auto}</style></head><body>");
 
