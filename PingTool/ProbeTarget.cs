@@ -219,6 +219,9 @@ namespace PingTool
             var seen = new HashSet<string>();
             foreach (string part in text.Split('&'))
             {
+                // An empty segment (a & at the end, two in a row) sets nothing: it is not an option, so it is not an unknown one, and nothing is
+                // left silently unchecked by skipping it (a typo is still refused; "#" alone was already accepted).
+                if (part.Length == 0) continue;
                 int eq = part.IndexOf('=', StringComparison.Ordinal);
                 string key = (eq < 0 ? part : part[..eq]).ToLowerInvariant();
                 string value = eq < 0 ? "" : part[(eq + 1)..];
@@ -327,6 +330,7 @@ namespace PingTool
 
             foreach (string part in text.Split('&'))
             {
+                if (part.Length == 0) continue;   // an empty segment sets nothing: see TryHttpOptions
                 int eq = part.IndexOf('=', StringComparison.Ordinal);
                 string key = (eq < 0 ? part : part[..eq]).ToLowerInvariant();
                 string value = eq < 0 ? "" : part[(eq + 1)..];

@@ -548,8 +548,9 @@
          1.21.470 = the tip and the click of the legend of the comparison graph are on each row as drawn, no longer on a rectangle from the leftmost row, so the curve beside a short name is no longer taken for the legend (PIN507.326)
          1.21.471 = the address box has one accessible name, the one the code of the window gives it: the second one, added to the designer file with the access keys, was always replaced by it (PIN507.256)
          1.21.472 = the two comments of the timeline window agree on the lines of its summary: six at most, four from the description and two more (PIN507.328)
-         1.21.473 = a slowdown with no average (not one reply in the window) says "no reply" in the list of incidents and in the report, as the alert does, and no longer "avg - ms" (PIN507.330) -->
-    <Version>1.21.473</Version>
+         1.21.473 = a slowdown with no average (not one reply in the window) says "no reply" in the list of incidents and in the report, as the alert does, and no longer "avg - ms" (PIN507.330)
+         1.21.474 = an empty segment after the # of a web or dns address (a & at the end, two in a row) is no longer taken for an unknown option (PIN507.331) -->
+    <Version>1.21.474</Version>
   </PropertyGroup>
 
   <ItemGroup>
