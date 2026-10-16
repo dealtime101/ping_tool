@@ -254,7 +254,7 @@ namespace PingTool
                 // that answered another probe in 8.
                 long? best = answered.Count == 0 ? null : answered.Where(x => x.Status == reply.Status && Equals(x.Address, reply.Address)).Min(x => (long?)x.RttMs);
                 hops.Add(new Hop(ttl, address, best, reply.Status, reply.Detail, also));
-                progress?.Invoke(hops);   // the hops known so far; the caller reads them before the next await
+                progress?.Invoke(hops.ToArray());   // the hops known so far, as a copy: a caller that keeps it or reads it later sees these hops, not the list that grows
                 if (reply.Status is HopStatus.Reached or HopStatus.Unreachable or HopStatus.Failed) break;
 
                 silent = reply.Status == HopStatus.Timeout ? silent + 1 : 0;

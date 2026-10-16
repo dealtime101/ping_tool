@@ -69,7 +69,7 @@ namespace PingTool
         {
             if (IsDisposed) return;
             hopsSeen = hops.Count;
-            var partial = new PathCapture { Host = session.Address, Target = ip, Time = DateTimeOffset.Now, Hops = hops.ToList() };
+            var partial = new PathCapture { Host = session.Address, Target = ip, Time = DateTimeOffset.Now, Hops = hops };
             ReplaceKeepingView("Tracing the route to " + session.Address + " (" + ip + "), " + hops.Count + " hop(s) so far...\r\n"
                 + string.Join("\r\n", partial.HopLines()));
         }
