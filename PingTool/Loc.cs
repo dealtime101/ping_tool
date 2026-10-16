@@ -66,6 +66,7 @@ namespace PingTool
             ["graph.trend.nodata"] = ("not measured", "non mesuré"),   // a stretch of the window in which no ping was made (a silence)
             ["graph.noreply"] = ("no reply", "aucune réponse"),
             ["graph.ms"] = ("{0} ms", "{0} ms"),
+            ["graph.p95"] = ("p95 {0}", "p95 {0}"),   // the label of the dotted line: the percentile is written p95 in both languages
             ["graph.legend.more"] = ("{0}-{1} of {2}: click or press Page Down for more", "{0}-{1} sur {2} : cliquez ou appuyez sur Page suivante pour voir la suite"),   // the line under a legend of more hosts than it shows
             ["graph.legend.page"] = ("{0}. The legend is on page {1} of {2}: Page Down shows the next one, Page Up the one before.", "{0}. La légende est à la page {1} sur {2} : Page suivante montre la suivante, Page précédente la précédente."),   // read by a screen reader with the figures of the graph
             // What the automatic log says to the person (balloons): our own sentences, the ones that name a folder, a file or a count.

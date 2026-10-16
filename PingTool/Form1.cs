@@ -1739,7 +1739,7 @@ namespace PingTool
 
             long top = Math.Max(50, series.Count == 0 ? 0 : series.Max(s => s.Samples.Count == 0 ? 0 : s.Samples.Max()));
             using var grey = new SolidBrush(palette.Text);
-            g.DrawString(top + " ms", Font, grey, 2, 0);
+            g.DrawString(Loc.T("graph.ms", top.ToString(CultureInfo.CurrentCulture)), Font, grey, 2, 0);   // the unit through the table, as the spoken summary of the graph does
             g.DrawString("0", Font, grey, 2, Height - Font.Height);
 
             for (int i = 0; i < series.Count; i++) DrawSeries(g, series[i], top, i);
@@ -1778,7 +1778,7 @@ namespace PingTool
             using var pen = new Pen(palette.Text) { DashStyle = System.Drawing.Drawing2D.DashStyle.Dot };
             g.DrawLine(pen, 0, y, Width, y);
 
-            string label = "p95 " + p95.ToString("0", CultureInfo.CurrentCulture);
+            string label = Loc.T("graph.p95", p95.ToString("0", CultureInfo.CurrentCulture));
             using var brush = new SolidBrush(palette.Text);
             g.DrawString(label, Font, brush, Width - g.MeasureString(label, Font).Width - 2, Math.Max(0, y - Font.Height));
         }
