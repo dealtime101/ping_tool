@@ -17,6 +17,11 @@ namespace PingTool
     // How close a certificate is to its end, in words. null = nothing to say.
     internal static class CertWatch
     {
+        // The sentence for a certificate whose end is past; null while it holds. A success never carries it: the default validation
+        // refuses an expired certificate, so the connection fails (see ProbeRunner.ExpiredCertificate, which says it as the cause).
+        public static string? Expired(string host, DateTime notAfterUtc, DateTime nowUtc) =>
+            notAfterUtc < nowUtc ? $"The certificate of {host} expired on {notAfterUtc.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}" : null;
+
         public static string? Warning(string host, DateTime notAfterUtc, DateTime nowUtc, int warnDays)
         {
             if (warnDays <= 0) return null;
@@ -25,7 +30,7 @@ namespace PingTool
             if (days >= warnDays) return null;
 
             string when = notAfterUtc.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
-            if (days < 0) return $"The certificate of {host} expired on {when}";
+            if (Expired(host, notAfterUtc, nowUtc) is { } expired) return expired;
             int whole = (int)Math.Floor(days);
             return whole == 0 ? $"The certificate of {host} expires today or tomorrow ({when})"
                 : $"The certificate of {host} expires in {whole.ToString(CultureInfo.InvariantCulture)} day{(whole == 1 ? "" : "s")} ({when})";
@@ -251,7 +256,16 @@ namespace PingTool
             request.Headers.ConnectionClose = true;
 
             var clock = Stopwatch.StartNew();
-            var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, deadline.Token);
+            HttpResponseMessage response;
+            try
+            {
+                response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, deadline.Token);
+            }
+            catch (HttpRequestException ex) when (ExpiredCertificate(request, ex) is { } expired)
+            {
+                return new ProbeOutcome(-1, expired, null);
+            }
+
             try
             {
                 // #final=: the redirects are followed by hand (5 at most), and the page they end on is the one that is judged.
@@ -265,7 +279,16 @@ namespace PingTool
                         reached = new Uri(reached!, next);
                         using var hop = new HttpRequestMessage(HttpMethod.Get, reached);
                         hop.Headers.ConnectionClose = true;
-                        var following = await client.SendAsync(hop, HttpCompletionOption.ResponseHeadersRead, deadline.Token);
+                        HttpResponseMessage following;
+                        try
+                        {
+                            following = await client.SendAsync(hop, HttpCompletionOption.ResponseHeadersRead, deadline.Token);
+                        }
+                        catch (HttpRequestException ex) when (ExpiredCertificate(hop, ex) is { } expired)
+                        {
+                            return new ProbeOutcome(-1, expired, null);
+                        }
+
                         response.Dispose();
                         response = following;
                     }
@@ -277,6 +300,21 @@ namespace PingTool
         }
 
         private const int MaxRedirects = 5;
+
+        // A secure connection refused for a certificate that has ended: the validation has already noted its end date (see
+        // ValidateServerCertificate) before it said no, so the failure can name the cause instead of "the remote certificate is invalid
+        // according to the validation procedure", which does not say that it is a matter of date, a thing a person can act on. Only when the
+        // refusal comes from the secure layer and the date has passed; any other refusal (an untrusted issuer, a wrong name) keeps its own text.
+        internal static PingFailure? ExpiredCertificate(HttpRequestMessage request, Exception ex)
+        {
+            if (!request.Options.TryGetValue(CertificateEnd, out DateTime end)) return null;
+            for (Exception? e = ex; e is not null; e = e.InnerException)
+                if (e is System.Security.Authentication.AuthenticationException)
+                    return CertWatch.Expired(request.RequestUri?.Host ?? "the server", end, DateTime.UtcNow) is { } text
+                        ? new PingFailure("TLS", text + ": the secure connection was refused")
+                        : null;
+            return null;
+        }
 
         // The answer against what the target expects: transport problems never get here (they throw), so each failure below is
         // the page being wrong, with its own name (HTTP, Status, Final URL, Redirect, Content, JSON).
