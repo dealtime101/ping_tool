@@ -27,9 +27,14 @@ namespace PingTool
 
         // The offset of the legend page after (forward) or before the one that shows `rows` entries from `first`, of `total`: after the last page
         // comes the first, before the first comes the last, the same round trip a click makes (LegendWindow holds the offset to what exists).
-        public static int NextLegendOffset(int total, int first, int rows, bool forward) =>
-            forward ? (first + rows >= total ? 0 : first + rows)
-                    : (first <= 0 ? Math.Max(0, total - rows) : Math.Max(0, first - rows));
+        // The pages start at multiples of `rows` (0, 4, 8...), but the last is held back to total - rows by LegendWindow (10 hosts, 4 rows: 0, 4,
+        // then 6, not 8): going back from it is the page that starts at the largest multiple BELOW it (4), not `first - rows` (2, which is no page).
+        public static int NextLegendOffset(int total, int first, int rows, bool forward)
+        {
+            if (forward) return first + rows >= total ? 0 : first + rows;
+            if (first <= 0) return Math.Max(0, total - rows);
+            return rows <= 0 ? 0 : (first - 1) / rows * rows;
+        }
 
         // "page 2 of 3" for the legend as shown: what a screen reader is told, since the page is only ever a picture.
         public static (int Page, int Pages) LegendPage(int total, int first, int rows)
