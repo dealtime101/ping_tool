@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Net;
+using System.Net.Sockets;
 
 namespace PingTool
 {
@@ -107,7 +108,8 @@ namespace PingTool
 
                     if (!TryHostPort(rest.TrimEnd('/'), out string host, out int port))
                     {
-                        error = "tcp:// needs a host and a port from 1 to 65535, for example tcp://example.com:443";
+                        error = "tcp:// needs a host and a port from 1 to 65535, for example tcp://example.com:443"
+                            + (rest.StartsWith('[') ? " (brackets are only for an IPv6 address, for example tcp://[2001:db8::1]:443)" : "");
                         return false;
                     }
 
@@ -378,6 +380,9 @@ namespace PingTool
                 int close = text.IndexOf(']', StringComparison.Ordinal);
                 if (close < 2 || close + 1 >= text.Length || text[close + 1] != ':') return false;
                 host = text[1..close];
+                // Brackets are how a URI writes an IPv6 LITERAL: a name or an IPv4 address in them ("[example.com]:443") is a mistake, not
+                // another way to write the host, and taking it for the host would hide it (a zone, "fe80::1%4", is part of the literal).
+                if (!IPAddress.TryParse(host, out var literal) || literal.AddressFamily != AddressFamily.InterNetworkV6) { host = ""; return false; }
                 portText = text[(close + 2)..];
             }
             else
