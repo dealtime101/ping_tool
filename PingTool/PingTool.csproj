@@ -434,8 +434,9 @@
          1.21.356 = the summary of the graph in French agrees "perdu" with the number of pings lost, not with the number of pings (PIN507.106)
          1.21.357 = the legend of the graph goes back to the page before also when the last page is incomplete (PIN507.109)
          1.21.358 = the watch of the network of the PC follows all the IPv4 gateways of a card, not the first one only (PIN507.110)
-         1.21.359 = an outage that only touches the period (ended at its start, began at its end) is no longer counted as one of it (PIN507.111) -->
-    <Version>1.21.359</Version>
+         1.21.359 = an outage that only touches the period (ended at its start, began at its end) is no longer counted as one of it (PIN507.111)
+         1.21.360 = the "<0.1" and ">99.9" limits of the loss format take the decimal mark of the culture asked for (PIN507.112) -->
+    <Version>1.21.360</Version>
   </PropertyGroup>
 
   <ItemGroup>

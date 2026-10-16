@@ -61,8 +61,9 @@ namespace PingTool
             if (percent <= 0) return "0";
             if (percent >= 100) return "100";
             double rounded = Math.Round(percent, 1, MidpointRounding.AwayFromZero);
-            if (rounded <= 0) return "<0.1";
-            if (rounded >= 100) return ">99.9";
+            // The limits are numbers like the others: in the decimal mark of the culture asked for ("<0,1" in French), not a fixed point.
+            if (rounded <= 0) return "<" + 0.1.ToString("0.#", culture);
+            if (rounded >= 100) return ">" + 99.9.ToString("0.#", culture);
             return rounded.ToString("0.#", culture);
         }
 
