@@ -28,9 +28,6 @@ namespace PingTool
     {
         public const int MaxProfiles = 20;
 
-        public static Profile? Find(IEnumerable<Profile> profiles, string name) =>
-            profiles.FirstOrDefault(p => string.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase));
-
         // The settings a profile shapes the probing with, for a run that does not use the window (the file is not touched).
         public static void ApplyTo(Settings settings, Profile profile)
         {

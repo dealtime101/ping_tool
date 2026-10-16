@@ -372,7 +372,7 @@
          1.21.294 = a box in the window turns the grouping of alerts on, the targets of a declared service are shown together, and one alert says when every target of a grouped outage is back (PIN507.7)
          1.21.295 = Mark an event: a timestamped note about something done by hand, on the timeline and in the report (PIN507.8)
          1.21.296 = Compare with another log: two periods of logs side by side per target, with better or worse in words and the reasons to read it with care (PIN507.9)
-         1.21.297 = Schedule a measurement (a Task Scheduler task for a headless run, --profile, {date} in --report) and maintenance windows that silence the alerts and mark incidents planned (PIN507.10) -->
+         1.21.297 = Schedule a measurement (a Task Scheduler task for a headless run, a profile option, {date} in the report name) and maintenance windows that silence the alerts and mark incidents planned (PIN507.10) -->
     <Version>1.21.297</Version>
   </PropertyGroup>
 
