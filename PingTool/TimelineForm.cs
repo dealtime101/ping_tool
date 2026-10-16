@@ -232,6 +232,8 @@ namespace PingTool
             hostBox.SelectedIndexChanged += (_, _) => Redraw();
             chart.SizeChanged += (_, _) => Redraw();   // a wider chart gets more columns
             Controls.AddRange(new Control[] { hostBox, chart, summary, note, close });
+            legendLabel = note;
+            ApplyColors();
 
             // The legend is as tall as its text needs at the width it has (a narrow window wraps it onto more lines, and a fixed height
             // cut the end off); the summary sits right above it and the chart takes what is left. Written in the pixels of the screen
@@ -298,5 +300,23 @@ namespace PingTool
         }
 
         private Action? layoutBottom;
+
+        private Label? legendLabel;
+
+        // The window, the summary and the legend take the colours of a high-contrast theme like the chart does (and go back to the dark
+        // palette when it is switched off), looked at again when the theme changes.
+        private void ApplyColors()
+        {
+            var palette = TimelinePalette.For(SystemInformation.HighContrast);
+            BackColor = palette.FormBack;
+            summary.ForeColor = palette.SummaryText;
+            if (legendLabel is not null) legendLabel.ForeColor = palette.NoteText;
+        }
+
+        protected override void OnSystemColorsChanged(EventArgs e)
+        {
+            base.OnSystemColorsChanged(e);
+            ApplyColors();
+        }
     }
 }

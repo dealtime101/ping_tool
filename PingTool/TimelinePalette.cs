@@ -16,6 +16,12 @@ namespace PingTool
 
         public bool HighContrast => highContrast;
 
+        // The window around the chart and the texts on it (the summary, the legend): the system's own in a high-contrast theme, where the
+        // user chose the colours that are readable for them, the dark grey and the white and silver of the other windows otherwise.
+        public Color FormBack => highContrast ? SystemColors.Control : Color.FromArgb(64, 64, 64);
+        public Color SummaryText => highContrast ? SystemColors.ControlText : Color.White;
+        public Color NoteText => highContrast ? SystemColors.ControlText : Color.Silver;
+
         public Color Back => highContrast ? SystemColors.Window : Color.FromArgb(40, 40, 40);
         public Color Text => highContrast ? SystemColors.WindowText : Color.Silver;
         public Color Axis => highContrast ? SystemColors.GrayText : Color.FromArgb(120, 192, 192, 192);
