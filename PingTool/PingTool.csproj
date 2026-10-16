@@ -507,8 +507,9 @@
          1.21.429 = the final route of the trace window is put in the box keeping the reader's view and selection, as the progress is (PIN507.216)
          1.21.430 = the history of a session and the times of its pings are read-only collections for a caller; only Add and Reset change them, together (PIN507.217)
          1.21.431 = the failures of the log viewer window (the other log, the comparison, the report) are shown over it with the error icon (PIN507.218)
-         1.21.432 = the comment on the access keys of the target options window says what each kind does (labels take the focus, check boxes tick); no change in the program (PIN507.221) -->
-    <Version>1.21.432</Version>
+         1.21.432 = the comment on the access keys of the target options window says what each kind does (labels take the focus, check boxes tick); no change in the program (PIN507.221)
+         1.21.433 = the export of the log is written from one picture of it, taken when it begins, instead of walking the live queue (PIN507.222) -->
+    <Version>1.21.433</Version>
   </PropertyGroup>
 
   <ItemGroup>
