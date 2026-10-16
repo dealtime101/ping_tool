@@ -8,7 +8,14 @@ namespace PingTool
     internal static class PingLogReader
     {
         public const long MaxPlausibleRttMs = 3_600_000;   // one hour: no probe waits for an answer that long
-        public const int MaxEntries = 2_000_000;   // about 23 days of one ping a second: a bigger file is not a PingTool log
+        // A bound on what is held in memory when logs are opened (the entries, then the replay of them): the same for one file and for the
+        // files opened together (LoadLogs counts the total). The files PingTool writes are one per host and day, some 86,400 pings at one a
+        // second, so this is some 23 days of one host in one file: a bigger file is not a PingTool log.
+        public const int MaxEntries = 2_000_000;
+
+        // What is said of a file over the bound: it counts pings, not lines (the lines of a remark or a blank line are not pings).
+        internal static string TooManyPings() =>
+            "This file has more than " + MaxEntries.ToString("N0", CultureInfo.CurrentCulture) + " pings: too many to be a PingTool log.";
 
         // Several files at once (one per host and day) are fine: the caller concatenates the entries.
         public static bool TryParse(string csv, out List<LogEntry> entries, out string error)
@@ -56,7 +63,7 @@ namespace PingTool
                 // hand-made line, and would be replayed as a lost ping whose cause is "OK", which skews the loss and the incidents. The
                 // other way round (a time on a row that names a failure) is read as the failure it names: nothing is skewed by it.
                 if (rtt is null && Unprotect(r[2]) == "OK") { error = $"Line {line}: the status is OK but there is no round-trip time (a ping that answered has one)."; return false; }
-                if (entries.Count >= MaxEntries) { error = "This file has more than " + MaxEntries.ToString("N0", CultureInfo.CurrentCulture) + " lines: too many to be a PingTool log."; return false; }
+                if (entries.Count >= MaxEntries) { error = TooManyPings(); return false; }
                 entries.Add(new LogEntry(time, Unprotect(r[1]), Unprotect(r[2]), rtt, Unprotect(r[4])));
             }
 
