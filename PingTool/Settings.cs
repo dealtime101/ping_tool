@@ -185,6 +185,36 @@ namespace PingTool
             return null;
         }
 
+        // settings.json -> settings.json.unread-20261003-142501-123 (a counter if that name is taken): a copy of the original is NEVER
+        // overwritten, a second one (another window that also failed to read the file, in the same millisecond) takes the next name.
+        // Returns the copy, or null when there was no file to keep. Throws when the copy could not be made. copy is File.Copy without
+        // overwrite, a parameter so that the collision can be replayed.
+        internal static string? CopyAside(string full, Action<string, string>? copy = null)
+        {
+            copy ??= (from, to) => File.Copy(from, to, overwrite: false);
+            string stamp = DateTime.Now.ToString("yyyyMMdd-HHmmss-fff", CultureInfo.InvariantCulture);
+            for (int n = 0; n < 100; n++)
+            {
+                string target = full + ".unread-" + stamp + (n == 0 ? "" : "-" + n.ToString(CultureInfo.InvariantCulture));
+                try
+                {
+                    copy(full, target);
+                    return target;
+                }
+                catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
+                {
+                    return null;
+                }
+                catch (IOException) when (File.Exists(target)) { }   // the name was taken: the next one will do
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                {
+                    throw new IOException("The settings file could not be read when PingTool started and a copy of it could not be made: it was not replaced.", ex);
+                }
+            }
+
+            throw new IOException("The settings file could not be read when PingTool started and no free name was found for a copy of it: it was not replaced.");
+        }
+
         private static string Short(string message) => message.Length <= 160 ? message : message[..160] + "...";
 
         // Makes whatever was read usable: numbers pulled into range, lists free of nulls, blanks,
@@ -333,16 +363,7 @@ namespace PingTool
             // (the user's hosts and profiles stay in the original, whatever happens to this run).
             // No File.Exists as the condition: it answers false when the permissions forbid even the check, for a file that is there.
             // The copy is tried, and only a "not found" says there is nothing to keep.
-            if (mustKeepCopy)
-            {
-                string copy = full + ".unread-" + DateTime.Now.ToString("yyyyMMdd-HHmmss-fff", CultureInfo.InvariantCulture);
-                try { File.Copy(full, copy, overwrite: true); }
-                catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException) { }
-                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-                {
-                    throw new IOException("The settings file could not be read when PingTool started and a copy of it could not be made: it was not replaced.", ex);
-                }
-            }
+            if (mustKeepCopy) CopyAside(full);
 
             mustKeepCopy = false;   // the original is safe now (or there was none): later saves are ordinary ones
 
