@@ -135,19 +135,26 @@ namespace PingTool
 
         public int Gaps => gaps.Count;
 
+        // Whether a write error was on record when pings were given up. If none was, the queue filled because writing did not keep up (a
+        // slow or stalled drive), not because the folder refused the writes: the sentence must not say "not writable" then.
+        private bool droppedWhileFailing;
+
         // The sentence for the user; null when nothing was lost.
         public string? DropNote
         {
             get
             {
                 if (Dropped == 0) return null;
+                string reason = droppedWhileFailing
+                    ? "the log folder was not writable for too long"
+                    : "writing to the log folder did not keep up and no write error was reported (a slow or stalled drive?)";
                 string Span((DateTimeOffset From, DateTimeOffset To) g) => string.Create(CultureInfo.CurrentCulture, $"from {g.From.ToLocalTime():G} to {g.To.ToLocalTime():G}");
                 if (gaps.Count == 1)
-                    return $"{Dropped} ping(s) {Span(gaps[0])} could not be saved to the log files: the log folder was not writable for too long. The log has a gap there.";
+                    return $"{Dropped} ping(s) {Span(gaps[0])} could not be saved to the log files: {reason}. The log has a gap there.";
 
                 // At most three are named; the rest is counted, so the sentence stays one a balloon can hold.
                 string named = string.Join("; ", gaps.Take(3).Select(Span)) + (gaps.Count > 3 ? $"; and {gaps.Count - 3} more" : "");
-                return $"{Dropped} ping(s) could not be saved to the log files: the log folder was not writable for too long. The log has {gaps.Count} gaps, {named}; what was written between them is in the files.";
+                return $"{Dropped} ping(s) could not be saved to the log files: {reason}. The log has {gaps.Count} gaps, {named}; what was written between them is in the files.";
             }
         }
 
@@ -162,7 +169,8 @@ namespace PingTool
             }
         }
 
-        // The oldest `over` entries are given up (the folder stayed unwritable too long, or the memory budget is spent). Under `queue`.
+        // The oldest `over` entries are given up (the folder stayed unwritable too long, or writing did not keep up and the memory budget is
+        // spent: told apart by whether a write error was on record, see droppedWhileFailing). Under `queue`.
         private void DropOldestLocked(int over)
         {
             DroppedFrom ??= pending[0].Time;
@@ -171,6 +179,7 @@ namespace PingTool
             if (gaps.Count > 0 && !writtenSinceDrop) gaps[^1] = (gaps[^1].From, pending[over - 1].Time);
             else gaps.Add((pending[0].Time, pending[over - 1].Time));
             writtenSinceDrop = false;
+            if (lastError is not null) droppedWhileFailing = true;
             Dropped += over;
             pending.RemoveRange(0, over);
         }
