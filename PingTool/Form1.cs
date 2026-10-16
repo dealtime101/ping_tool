@@ -1685,8 +1685,12 @@ namespace PingTool
                 get
                 {
                     string text = GraphSummary.Describe(owner.series);
-                    if (!owner.compare || owner.series.Count <= owner.legendRows) return text;
-                    var (page, pages) = GraphLayout.LegendPage(owner.series.Count, owner.legendFirst, owner.legendRows);
+                    // From the page WANTED (legendOffset), held to what exists as the paint does, and not from what was drawn last (legendFirst,
+                    // legendRows): a page turned now is announced before the repaint, and a reader that asks then would be told the page before
+                    // it (or, after Show, a legend of no rows: page 1 of 1).
+                    var (first, rows) = GraphLayout.LegendWindow(owner.series.Count, owner.legendOffset, MaxLegend);
+                    if (!owner.compare || owner.series.Count <= rows) return text;
+                    var (page, pages) = GraphLayout.LegendPage(owner.series.Count, first, rows);
                     return Loc.T("graph.legend.page", text, page, pages);
                 }
             }
@@ -1821,7 +1825,9 @@ namespace PingTool
         // One way to change the page, for the mouse and the keyboard alike: a screen reader is told the page changed whichever was used.
         private void TurnLegendPage(bool forward)
         {
-            legendOffset = GraphLayout.NextLegendOffset(series.Count, legendFirst, legendRows, forward);
+            // From the page wanted, not the one drawn last: two turns before the repaint (a key held down) are two pages, not the same one twice.
+            var (first, rows) = GraphLayout.LegendWindow(series.Count, legendOffset, MaxLegend);
+            legendOffset = GraphLayout.NextLegendOffset(series.Count, first, rows, forward);
             ForgetLegendTip();
             Invalidate();
             AccessibilityNotifyClients(AccessibleEvents.DescriptionChange, -1);
