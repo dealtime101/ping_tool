@@ -28,6 +28,10 @@ namespace PingTool
             // ends the user information (a password may hold an unencoded one; the path and the query, after it, never count).
             int at = authority.LastIndexOf('@');
             string userInfo = at < 0 ? "" : authority[..(at + 1)], host = at < 0 ? authority : authority[(at + 1)..];
+            // An address with a host and nothing after it IS the root: https://site, https://site/ and https://site?x=1 / https://site/?x=1
+            // are the same resource, and typing one next to the other must not make two targets with two histories. The path starts with
+            // "/" in the key, whichever way it was written (a query or a fragment right after the host gets it in front).
+            if (host.Length > 0 && (tail.Length == 0 || tail[0] != '/')) tail = "/" + tail;
             return scheme + "://" + userInfo + host.ToLowerInvariant() + tail;
         }
 

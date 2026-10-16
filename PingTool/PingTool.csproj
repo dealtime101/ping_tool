@@ -516,8 +516,9 @@
          1.21.438 = a column of the timeline with few lost pings is drawn with a red that has 3:1 against the dark plot at the least, instead of 1.5:1 (PIN507.229)
          1.21.439 = the bars of latency and the axis of the timeline are drawn with a silver that has 3:1 against the dark plot at the least (PIN507.230)
          1.21.440 = in a high-contrast theme a slowdown is drawn as large squares, no longer as fine dots that were taken for the dotted line of a change of network (PIN507.231)
-         1.21.441 = a negative index of a line of the graph gets the colour of the first line in a high-contrast theme, like its pattern, instead of the last colour (PIN507.232) -->
-    <Version>1.21.441</Version>
+         1.21.441 = a negative index of a line of the graph gets the colour of the first line in a high-contrast theme, like its pattern, instead of the last colour (PIN507.232)
+         1.21.442 = a web address with no path and the same with a slash are the same target (PIN507.235) -->
+    <Version>1.21.442</Version>
   </PropertyGroup>
 
   <ItemGroup>
