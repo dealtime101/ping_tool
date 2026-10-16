@@ -99,7 +99,9 @@ namespace PingTool
                 string text = File.ReadAllText(path);   // IOException, UnauthorizedAccess and a path NotSupported all come from here: a file problem
                 try
                 {
-                    var s = JsonSerializer.Deserialize<Settings>(text, ReadOptions) ?? new Settings();
+                    // A document that is just `null` is valid JSON and holds no settings: like any other file that is not settings it is kept
+                    // aside and said, not taken for "nothing to read" (which the next save would replace without a word).
+                    var s = JsonSerializer.Deserialize<Settings>(text, ReadOptions) ?? throw new JsonException("The file holds null, not settings.");
                     s.Normalize();
                     s.stamp = Stamp(path);   // what the file was when it was read: a save finds out whether another window wrote it since
                     return s;
