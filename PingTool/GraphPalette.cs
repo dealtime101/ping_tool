@@ -17,16 +17,42 @@ namespace PingTool
         public Color Text => highContrast ? SystemColors.WindowText : Color.Silver;
 
         // The colour of the n-th line: its own in the dark palette; one of four system colours in high contrast.
+        // Highlight is the background of a selection and GrayText the colour of a disabled text: a theme is not bound to make either of them
+        // readable on its window (a custom one may not), so a colour that does not contrast enough with the window gives way to the text colour,
+        // and the pattern of the line (Dash) keeps the lines apart.
         public Color Series(int index, Color own) => !highContrast ? own : (index % HighContrastColours) switch
         {
             0 => SystemColors.WindowText,
-            1 => SystemColors.HotTrack,
-            2 => SystemColors.Highlight,
-            _ => SystemColors.GrayText,
+            1 => Readable(SystemColors.HotTrack, SystemColors.WindowText, SystemColors.Window),
+            2 => Readable(SystemColors.Highlight, SystemColors.WindowText, SystemColors.Window),
+            _ => Readable(SystemColors.GrayText, SystemColors.WindowText, SystemColors.Window),
         };
 
+        // The least contrast a line needs against its background (WCAG asks 3:1 for graphical objects).
+        public const double MinContrast = 3.0;
+
+        internal static Color Readable(Color candidate, Color text, Color back) => Contrast(candidate, back) >= MinContrast ? candidate : text;
+
+        // The contrast ratio of two colours, 1 (alike) to 21 (black on white), from their relative luminance as WCAG defines it.
+        internal static double Contrast(Color a, Color b)
+        {
+            double la = Luminance(a), lb = Luminance(b);
+            return (Math.Max(la, lb) + 0.05) / (Math.Min(la, lb) + 0.05);
+        }
+
+        private static double Luminance(Color c)
+        {
+            static double Channel(byte v)
+            {
+                double s = v / 255.0;
+                return s <= 0.03928 ? s / 12.92 : Math.Pow((s + 0.055) / 1.055, 2.4);
+            }
+
+            return 0.2126 * Channel(c.R) + 0.7152 * Channel(c.G) + 0.0722 * Channel(c.B);
+        }
+
         // A lost ping: red when one host is shown, its host's colour when several are compared (so you can tell whose it is).
-        public Color Loss(bool compare, Color seriesColor) => compare ? seriesColor : highContrast ? SystemColors.HotTrack : Color.Red;
+        public Color Loss(bool compare, Color seriesColor) => compare ? seriesColor : highContrast ? Readable(SystemColors.HotTrack, SystemColors.WindowText, SystemColors.Window) : Color.Red;
 
         // The line pattern of the n-th line, as an index into Patterns (0 solid, 1 dash, 2 dot, 3 dash-dot). The colours come round every
         // `colours` lines; the pattern changes each time they do, so that no two lines look alike before colours x patterns lines

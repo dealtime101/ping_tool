@@ -394,8 +394,9 @@
          1.21.316 = a headless run whose final report cannot be written ends with the error code, not the code of what it saw (PIN507.36)
          1.21.317 = a cancellation raised by the alert or report callback of a headless run is a failed alert or report, not the end of the run (PIN507.37)
          1.21.318 = the protection of a CSV field against formulas looks past a long run of apostrophes in one pass instead of one call and one copy for each (PIN507.39)
-         1.21.319 = in high contrast the first four lines of the graph differ by pattern too, not only by the colours of the theme (PIN507.40) -->
-    <Version>1.21.319</Version>
+         1.21.319 = in high contrast the first four lines of the graph differ by pattern too, not only by the colours of the theme (PIN507.40)
+         1.21.320 = in high contrast a line colour of the theme that does not stand out from the window (3 to 1) gives way to the text colour (PIN507.41) -->
+    <Version>1.21.320</Version>
   </PropertyGroup>
 
   <ItemGroup>
