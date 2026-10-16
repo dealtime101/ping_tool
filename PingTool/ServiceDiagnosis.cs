@@ -18,7 +18,7 @@ namespace PingTool
         public static List<string> For(IReadOnlyList<Target> targets)
         {
             var said = new List<string>();
-            var data = targets.Where(t => t.HasData && t.Host.Length > 0 && !t.NoRecord && !(t.Ip is { } ip && IPAddress.IsLoopback(ip.IsIPv4MappedToIPv6 ? ip.MapToIPv4() : ip))).ToList();
+            var data = targets.Where(t => t.HasData && t.Host.Length > 0 && !t.NoRecord && !t.IsOwn && !(t.Ip is { } ip && IPAddress.IsLoopback(ip.IsIPv4MappedToIPv6 ? ip.MapToIPv4() : ip))).ToList();
             if (data.Count < 2 || data.All(t => t.State == HostState.Down)) return said;
 
             // A declared service gathers its targets whatever their host names; without one, the targets of a host name are the service.

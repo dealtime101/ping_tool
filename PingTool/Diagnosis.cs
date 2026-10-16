@@ -12,9 +12,11 @@ namespace PingTool
     // NetworksKnown: the cards were read and have networks, so "not in any of them" means something: a private address that is not
     // on the link is then a ROUTED one (a network behind the router, or at the far end of a VPN), whose path is not known. Without it
     // (the cards could not be read) the ranges of the addresses alone decide, as they always did.
+    // IsOwn: the address is one of this PC's own (exactly): like a loopback address, it is answered by the PC's own stack, so it says nothing
+    // about the link, the router or the Internet.
     internal sealed record Target(string Name, IPAddress? Ip, HostState State, bool HasData, bool OnLink = false,
         ProbeKind Kind = ProbeKind.Icmp, string Host = "", int Port = 0, string? Service = null, int Family = 0, bool NoRecord = false,
-        bool NetworksKnown = false);
+        bool NetworksKnown = false, bool IsOwn = false);
 
     // The networks this PC is directly attached to, read from its cards (address and prefix length), kept for a while: the diagnosis is
     // asked for at every refresh and the cards do not change that often.
@@ -97,6 +99,19 @@ namespace PingTool
         }
 
         public static bool IsOnLink(IPAddress ip) => Contains(ip, Current());
+
+        // True when `ip` is exactly an address of one of this PC's cards (any prefix; the zone of an IPv6 address is not part of the comparison).
+        public static bool IsOwn(IPAddress ip)
+        {
+            var wanted = (ip.IsIPv4MappedToIPv6 ? ip.MapToIPv4() : ip).GetAddressBytes();
+            foreach (var (address, _) in Current())
+            {
+                var mine = address.IsIPv4MappedToIPv6 ? address.MapToIPv4() : address;
+                if (mine.AddressFamily == (wanted.Length == 4 ? AddressFamily.InterNetwork : AddressFamily.InterNetworkV6) && mine.GetAddressBytes().AsSpan().SequenceEqual(wanted)) return true;
+            }
+
+            return false;
+        }
 
         // True when the cards were read and have networks: "not in any of them" then says that the address is not on the link.
         public static bool IsKnown() => Current().Count > 0;
@@ -193,8 +208,9 @@ namespace PingTool
         {
             // A loopback target (127.0.0.1, ::1) answers from this PC's own stack whatever its network card does: it proves nothing about
             // the link, the router or the Internet, and would make "Local targets answer" true with the cable unplugged. It is left
-            // out of the comparison (the window still shows its state).
-            var targets = all.Where(t => t.HasData && !(t.Ip is { } ip && IsLoopback(ip))).ToList();
+            // out of the comparison (the window still shows its state). So is an address of this PC's own cards (IsOwn): the system answers
+            // a ping to it from its own stack too, and "the local target answers" would be said of the PC itself, not of a device on the link.
+            var targets = all.Where(t => t.HasData && !t.IsOwn && !(t.Ip is { } ip && IsLoopback(ip))).ToList();
             int n = targets.Count;
             if (n < 2) return null;
 
