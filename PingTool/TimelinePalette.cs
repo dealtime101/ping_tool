@@ -24,21 +24,25 @@ namespace PingTool
 
         public Color Back => highContrast ? SystemColors.Window : Color.FromArgb(40, 40, 40);
         public Color Text => highContrast ? SystemColors.WindowText : Color.Silver;
-        public Color Axis => highContrast ? SystemColors.GrayText : Color.FromArgb(120, 192, 192, 192);
-        public Color Bars => highContrast ? SystemColors.GrayText : Color.FromArgb(90, 192, 192, 192);
+        // GrayText is a disabled text and Highlight a selection background: a theme need not make them stand out from its window, so each
+        // colour taken from the theme gives way to the text colour when its contrast with the window is under 3:1 (see GraphPalette.Readable).
+        private static Color Fit(Color themeColour) => GraphPalette.Readable(themeColour, SystemColors.WindowText, SystemColors.Window);
+
+        public Color Axis => highContrast ? Fit(SystemColors.GrayText) : Color.FromArgb(120, 192, 192, 192);
+        public Color Bars => highContrast ? Fit(SystemColors.GrayText) : Color.FromArgb(90, 192, 192, 192);
         public Color Average => highContrast ? SystemColors.WindowText : Color.LimeGreen;
-        public Color Network => highContrast ? SystemColors.Highlight : Color.Cyan;
-        public Color CutMark => highContrast ? SystemColors.HotTrack : Color.OrangeRed;
+        public Color Network => highContrast ? Fit(SystemColors.Highlight) : Color.Cyan;
+        public Color CutMark => highContrast ? Fit(SystemColors.HotTrack) : Color.OrangeRed;
 
         // The share of lost pings in a column: the stronger the red, the larger the share; in high contrast one opaque colour, the width of
         // the bar and its position at the bottom say the rest.
-        public Color Loss(double fraction) => highContrast ? SystemColors.HotTrack : Color.FromArgb((int)(70 + 185 * Math.Clamp(fraction, 0, 1)), 255, 99, 71);
+        public Color Loss(double fraction) => highContrast ? Fit(SystemColors.HotTrack) : Color.FromArgb((int)(70 + 185 * Math.Clamp(fraction, 0, 1)), 255, 99, 71);
 
         // The two colours of the hatching of an outage.
-        public (Color Fore, Color Back) OutageHatch => highContrast ? (SystemColors.HotTrack, SystemColors.Window) : (Color.FromArgb(170, 255, 99, 71), Color.FromArgb(50, 255, 99, 71));
+        public (Color Fore, Color Back) OutageHatch => highContrast ? (Fit(SystemColors.HotTrack), SystemColors.Window) : (Color.FromArgb(170, 255, 99, 71), Color.FromArgb(50, 255, 99, 71));
 
         // A slowdown: a plain tint normally; in high contrast a tint is not legible, a dotted pattern (not the outage's stripes) is.
         public bool SlowdownIsHatched => highContrast;
-        public Color SlowdownColor => highContrast ? SystemColors.Highlight : Color.FromArgb(60, 255, 165, 0);
+        public Color SlowdownColor => highContrast ? Fit(SystemColors.Highlight) : Color.FromArgb(60, 255, 165, 0);
     }
 }

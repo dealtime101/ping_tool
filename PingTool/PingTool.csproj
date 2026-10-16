@@ -404,8 +404,9 @@
          1.21.326 = in the crash log a repeat is counted only while the entry it points at is in the file: a deleted or rotated file gets the error in full again (PIN507.54)
          1.21.327 = the crash log takes out of an exception text the secrets of the usual forms: user and password of an address, queries, tokens, and the webhook addresses (PIN507.55)
          1.21.328 = more than twelve compared hosts widen the strip of loss ticks, one pixel each up to a third of the graph, so that they keep their own places (PIN507.56)
-         1.21.329 = the availability merges outages that cover the same time before adding them up (PIN507.58) -->
-    <Version>1.21.329</Version>
+         1.21.329 = the availability merges outages that cover the same time before adding them up (PIN507.58)
+         1.21.330 = in high contrast the colours of the timeline taken from the theme give way to the text colour when they do not stand out from the window (PIN507.60) -->
+    <Version>1.21.330</Version>
   </PropertyGroup>
 
   <ItemGroup>
