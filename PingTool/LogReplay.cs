@@ -177,6 +177,8 @@ namespace PingTool
         // gaps between its pings), and never less than five minutes, so that a few missed pings are not a hole.
         public static readonly TimeSpan MinGap = TimeSpan.FromMinutes(5);
         public const int GapFactor = 10;
+        public const int MinStepsForCadence = 5;                       // gaps between pings needed to call one of them "the usual one"
+        public static readonly TimeSpan MaxGap = TimeSpan.FromHours(6);   // however slow the cadence, a silence this long is a hole
 
         internal static Dictionary<string, TimeSpan> GapLimits(IReadOnlyList<LogEntry> ordered)
         {
@@ -187,8 +189,11 @@ namespace PingTool
                 var steps = new List<TimeSpan>(times.Count);
                 for (int i = 1; i < times.Count; i++) steps.Add(times[i] - times[i - 1]);
                 steps.Sort();
-                var usual = steps.Count == 0 ? TimeSpan.Zero : steps[steps.Count / 2];
-                limits[host.Key] = usual * GapFactor > MinGap ? usual * GapFactor : MinGap;
+                // A cadence is only read from enough steps: with two pings two days apart the only step IS the gap, and ten times it would
+                // make a limit of twenty days that no hole could exceed. Too few steps, or a limit above MaxGap: the limits that hold anyway.
+                var usual = steps.Count < MinStepsForCadence ? TimeSpan.Zero : steps[steps.Count / 2];
+                var limit = usual * GapFactor > MinGap ? usual * GapFactor : MinGap;
+                limits[host.Key] = limit > MaxGap ? MaxGap : limit;
             }
 
             return limits;
