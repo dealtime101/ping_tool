@@ -18,7 +18,7 @@ namespace PingTool
             {
                 Process.Start(new ProcessStartInfo(path) { UseShellExecute = true })?.Dispose();
             }
-            catch (Exception ex) when (ex is Win32Exception or InvalidOperationException or FileNotFoundException)
+            catch (Exception ex) when (OpenFailure.Is(ex))
             {
                 MessageBox.Show(owner, "Could not open the file: " + ex.Message + "\n\nIt is saved at " + path, "PingTool");
             }

@@ -405,8 +405,9 @@
          1.21.327 = the crash log takes out of an exception text the secrets of the usual forms: user and password of an address, queries, tokens, and the webhook addresses (PIN507.55)
          1.21.328 = more than twelve compared hosts widen the strip of loss ticks, one pixel each up to a third of the graph, so that they keep their own places (PIN507.56)
          1.21.329 = the availability merges outages that cover the same time before adding them up (PIN507.58)
-         1.21.330 = in high contrast the colours of the timeline taken from the theme give way to the text colour when they do not stand out from the window (PIN507.60) -->
-    <Version>1.21.330</Version>
+         1.21.330 = in high contrast the colours of the timeline taken from the theme give way to the text colour when they do not stand out from the window (PIN507.60)
+         1.21.331 = a refused permission, a missing folder or a path the system does not take, when opening a saved file, ends as the box that says where the file is (PIN507.63) -->
+    <Version>1.21.331</Version>
   </PropertyGroup>
 
   <ItemGroup>
