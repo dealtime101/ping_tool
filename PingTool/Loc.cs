@@ -59,6 +59,7 @@ namespace PingTool
             ["graph.line.many"] = ("{0}: {1}{2}, {3} of the last {4} pings lost{5}", "{0} : {1}{2}, {6} sur les {4} derniers pings{5}"),
             ["graph.trend"] = ("; over the window, oldest first: {0}", " ; sur la fenêtre, du plus ancien au plus récent : {0}"),
             ["graph.trend.part"] = ("{0} {1}", "{0}, {1}"),   // {1} is a count.lost phrase
+            ["graph.trend.nodata"] = ("not measured", "non mesuré"),   // a stretch of the window in which no ping was made (a silence)
             ["graph.noreply"] = ("no reply", "aucune réponse"),
             ["graph.ms"] = ("{0} ms", "{0} ms"),
             ["stats.waiting"] =("Last pings: waiting for data", "Derniers pings : en attente de données"),
