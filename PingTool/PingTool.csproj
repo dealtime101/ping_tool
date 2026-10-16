@@ -469,8 +469,9 @@
          1.21.391 = the heading of the network path of an incident in the report names the target as the incident table does, with its name and its address (PIN507.163)
          1.21.392 = under each grid of the loss by hour, the hours with lost pings as plain text, for whoever cannot hover a square (PIN507.164)
          1.21.393 = the marks of the time axis of the timeline are written in the clock of the culture (12 or 24 hours), not always in 24 hours (PIN507.166)
-         1.21.394 = a trace asked never to give up (a limit of 0 or less) goes on to the hop limit instead of stopping at its first hop (PIN507.167) -->
-    <Version>1.21.394</Version>
+         1.21.394 = a trace asked never to give up (a limit of 0 or less) goes on to the hop limit instead of stopping at its first hop (PIN507.167)
+         1.21.395 = the time of a hop of a trace is the best of the probes of the router the line names, not of another router that answered the same distance (PIN507.169) -->
+    <Version>1.21.395</Version>
   </PropertyGroup>
 
   <ItemGroup>

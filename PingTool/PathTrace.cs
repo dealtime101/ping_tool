@@ -249,7 +249,10 @@ namespace PingTool
                 var address = reply.Address ?? (reply.Status == HopStatus.Unreachable ? null : answered.FirstOrDefault(x => x.Address is not null)?.Address);
                 var also = answered.Where(x => x.Address is not null).Select(x => x.Address!).Distinct().ToList();
                 if (address is not null) { also.Remove(address); also.Insert(0, address); }
-                long? best = answered.Count == 0 ? null : answered.Min(x => x.RttMs);
+                // The time of the hop is the best of the probes that say what the line says (the same kind of answer, from the same
+                // router): on a load-balanced path a router that let a probe expire in 5 ms must not give its time to the destination
+                // that answered another probe in 8.
+                long? best = answered.Count == 0 ? null : answered.Where(x => x.Status == reply.Status && Equals(x.Address, reply.Address)).Min(x => (long?)x.RttMs);
                 hops.Add(new Hop(ttl, address, best, reply.Status, reply.Detail, also));
                 progress?.Invoke(hops);   // the hops known so far; the caller reads them before the next await
                 if (reply.Status is HopStatus.Reached or HopStatus.Unreachable or HopStatus.Failed) break;
