@@ -24,7 +24,7 @@ namespace PingTool
             error = "";
             // Row by row: a file that is far too big (or that is not a log at all) is refused at the limit, not after every row of it has
             // been turned into a list of strings.
-            using var rows = Rows(csv.TrimStart('﻿')).GetEnumerator();
+            using var rows = Rows(csv.TrimStart((char)0xFEFF)).GetEnumerator();   // a byte order mark that came through as a character (named by its number: the character is invisible)
 
             if (!rows.MoveNext() || string.Join(",", rows.Current.Fields) != PingLog.CsvHeader)
             {

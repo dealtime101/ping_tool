@@ -71,7 +71,8 @@ namespace PingTool
             else if (string.Equals(name, DiagnosticTargets.ProfileName, StringComparison.OrdinalIgnoreCase))
                 error = "That name is reserved for the built-in diagnosis: choose another.";
             else if (name.Length > MaxNameUnits) error = $"The name is limited to {MaxNameLength} characters.";
-            // The length is what the user sees, in characters as they are shown ("👨‍👩‍👧" is one), not in UTF-16 units (that one is eight).
+            // The length is what the user sees, in characters as they are shown (a family emoji, three people joined by U+200D, is one), not in
+            // UTF-16 units (that one is eight). Written in words, not with the emoji itself: the joiners in it are invisible in an editor.
             else if (new StringInfo(name).LengthInTextElements > MaxNameLength) error = $"The name is limited to {MaxNameLength} characters.";
             else if (HasInvisible(name)) error = "The name cannot contain control or invisible formatting characters.";
 
