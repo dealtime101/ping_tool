@@ -14,13 +14,18 @@ namespace PingTool
     internal readonly record struct RecentStats(int Samples, int Lost, double? P50, double? P95, double? P99, double? Jitter, double? Mean = null)
     {
         // MOS 1..5 from the simplified ITU-T G.107 E-model (Cole and Rosenbluth): effective one-way latency =
-        // mean + 2 x jitter + 10 ms, R = 93.2 minus the delay term minus 2.5 per percent of loss. Given only once there
+        // one-way delay + 2 x jitter + 10 ms, R = 93.2 minus the delay term minus 2.5 per percent of loss. Given only once there
         // are MinForPercentiles replies, like the percentiles: fewer would be a guess about a call nobody made.
+        // A ping measures the ROUND trip, and the model wants the delay one way: it is taken as half the mean reply time, which supposes
+        // that the way there and the way back take the same time (a call over an asymmetric link would be off). The jitter is kept as
+        // measured on the round trips, which can only make the estimate more careful. The MOS stays an estimate from ICMP pings, not
+        // the measure of a call.
         public double? Mos => Mean is double mean && Samples > 0 ? MosOf(mean, Jitter ?? 0, 100.0 * Lost / Samples) : null;
 
+        // meanMs is the mean reply time of the pings: a round trip.
         internal static double MosOf(double meanMs, double jitterMs, double lossPercent)
         {
-            double latency = meanMs + 2 * jitterMs + 10;
+            double latency = meanMs / 2 + 2 * jitterMs + 10;
             double r = (latency < 160 ? 93.2 - latency / 40 : 93.2 - (latency - 120) / 10) - 2.5 * lossPercent;
             if (r <= 0) return 1;
             if (r >= 100) return 4.5;
