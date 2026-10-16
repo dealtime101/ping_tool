@@ -49,6 +49,7 @@ namespace PingTool
             ["timeline.close"] = ("Close", "Fermer"),
             ["timeline.target"] = ("Target", "Cible"),
             ["timeline.chart"] = ("Session timeline", "Chronologie de la session"),
+            ["timeline.chart.of"] = ("{0}: {1}", "{0} : {1}"),   // the name of the chart for a screen reader: what it is, then the target it shows now
             ["graph.empty"] = ("No data yet: start pinging.", "Aucune donnée pour l'instant : lancez les pings."),
             ["graph.selected"] = ("Selected target", "Cible sélectionnée"),
             ["graph.noping"] = ("{0}: no ping yet", "{0} : aucun ping pour l'instant"),

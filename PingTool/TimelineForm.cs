@@ -48,6 +48,15 @@ namespace PingTool
 
         protected override AccessibleObject CreateAccessibilityInstance() => new TimelineAccessibleObject(this);
 
+        // The chart now shows another target: its name says which (the figures it reads out are computed when asked, but a screen reader that
+        // already holds the old name and description is only told to ask again by an event).
+        public void Announce(string name)
+        {
+            AccessibleName = name;
+            AccessibilityNotifyClients(AccessibleEvents.NameChange, -1);
+            AccessibilityNotifyClients(AccessibleEvents.DescriptionChange, -1);
+        }
+
         protected override void OnGotFocus(EventArgs e) { base.OnGotFocus(e); Invalidate(); }
         protected override void OnLostFocus(EventArgs e) { base.OnLostFocus(e); Invalidate(); }
 
@@ -290,10 +299,18 @@ namespace PingTool
         // again at every paint, from the size the chart has then), so a resize that does not change the number of columns, which is
         // most of the pixels of a drag, does not go through the whole log again.
         private (string Host, int Columns)? built;
+        private string? announcedHost;
 
         private void Redraw()
         {
             if (hostBox.SelectedItem is not string host) return;
+
+            // Another target: the chart's name says which one and a screen reader is told (not at a resize, which keeps the target).
+            if (announcedHost != host)
+            {
+                announcedHost = host;
+                chart.Announce(Loc.T("timeline.chart.of", Loc.T("timeline.chart"), host));
+            }
 
             // About one column per 4 pixels. The width of the plot depends on the left margin, which is measured from the label of the
             // top of the scale, which comes with the data (the scale is cut or not): so the first pass counts the columns with the

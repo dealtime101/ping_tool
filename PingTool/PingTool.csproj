@@ -555,8 +555,9 @@
          1.21.477 = the two ping statuses that are not ICMP messages, hardware error and unknown, are told as what they are and no longer as "ICMP error" (PIN507.334)
          1.21.478 = the hour that the clocks skip when they go forward is told as an hour that does not exist in the grid of the report, and no longer as "no ping" (PIN507.336)
          1.21.479 = the unit at the top of the graph and the label of its dotted p95 line are asked of the table of texts, as the spoken summary of the graph already asked the unit; the text is the same in both languages (PIN507.339)
-         1.21.480 = the main window takes the colours of the system in a high-contrast theme of Windows, at the start and when the theme changes, as the graph, the timeline and the incidents windows already did; in the usual theme nothing changes (PIN507.343) -->
-    <Version>1.21.480</Version>
+         1.21.480 = the main window takes the colours of the system in a high-contrast theme of Windows, at the start and when the theme changes, as the graph, the timeline and the incidents windows already did; in the usual theme nothing changes (PIN507.343)
+         1.21.481 = the timeline chart names the target it shows and tells a screen reader when it changes (PIN507.345) -->
+    <Version>1.21.481</Version>
   </PropertyGroup>
 
   <ItemGroup>
