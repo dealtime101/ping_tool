@@ -58,6 +58,12 @@ namespace PingTool
             if (duration <= TimeSpan.Zero || duration > StartupOptions.MaxDuration)
                 throw new ArgumentException($"The duration must be longer than zero and no longer than {(int)StartupOptions.MaxDuration.TotalDays} days.");
 
+            // The time between two checkpoints is a duration like the other: with zero the report would be built and written in a tight loop
+            // for the whole run (a processor and a disk busy for nothing), and a negative one makes the delay throw an exception that
+            // nobody catches there, which loses the final report. Past the ceiling the delay would refuse it too.
+            if (checkpointEvery is { } every && (every <= TimeSpan.Zero || every > StartupOptions.MaxDuration))
+                throw new ArgumentException($"The time between checkpoints must be longer than zero and no longer than {(int)StartupOptions.MaxDuration.TotalDays} days.");
+
             var targets = new List<(string Address, ProbeTarget Target)>();
             foreach (string address in addresses.Distinct(TargetKey.Comparer))
             {
