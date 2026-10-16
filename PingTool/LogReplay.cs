@@ -7,6 +7,7 @@ namespace PingTool
     // again after PingTool was closed (or crashed): the same incident detection and the same report as live.
     internal static class PingLogReader
     {
+        public const long MaxPlausibleRttMs = 3_600_000;   // one hour: no probe waits for an answer that long
         public const int MaxEntries = 2_000_000;   // about 23 days of one ping a second: a bigger file is not a PingTool log
 
         // Several files at once (one per host and day) are fine: the caller concatenates the entries.
@@ -41,6 +42,9 @@ namespace PingTool
                 {
                     if (!long.TryParse(r[3], NumberStyles.None, CultureInfo.InvariantCulture, out long ms))
                     { error = $"Line {line}: the round-trip time \"{Clip(r[3])}\" is not a number."; return false; }
+                    // NumberStyles.None takes no sign, so a negative time (-1, the marker of a failure in memory) is already "not a number";
+                    // what is bounded here is the other end: a time of years would drown every average of the replay.
+                    if (ms > MaxPlausibleRttMs) { error = $"Line {line}: the round-trip time {ms.ToString(CultureInfo.InvariantCulture)} ms is not plausible (more than one hour)."; return false; }
                     rtt = ms;
                 }
 
