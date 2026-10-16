@@ -47,6 +47,10 @@ namespace PingTool
             var client = new HttpClient(new HttpClientHandler
             {
                 AllowAutoRedirect = false,
+                // A page that comes packed (gzip, deflate, brotli) is searched, and read as JSON, in its text, not in its packed bytes. The
+                // request says what it can unpack, and the limit of what is read (MaxBodyBytes) is counted on the text: a few kilobytes that
+                // unpack to gigabytes are cut at the limit, the stream being unpacked as it is read.
+                AutomaticDecompression = DecompressionMethods.All,
                 ServerCertificateCustomValidationCallback = ValidateServerCertificate,
             }) { Timeout = Timeout.InfiniteTimeSpan };
             client.DefaultRequestHeaders.UserAgent.ParseAdd("PingTool/" + AppVersion.Number);
@@ -63,6 +67,7 @@ namespace PingTool
             var handler = new SocketsHttpHandler
             {
                 AllowAutoRedirect = false,
+                AutomaticDecompression = DecompressionMethods.All,   // as for the plain client
                 ConnectCallback = async (context, ct) =>
                 {
                     string host = context.DnsEndPoint.Host;

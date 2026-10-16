@@ -447,8 +447,9 @@
          1.21.369 = a notice of the report is ended with a full stop only when it has no mark of its own (PIN507.122)
          1.21.370 = the window of the timeline copies the pings, incidents and network changes it is given, so that it is a real snapshot (PIN507.124)
          1.21.371 = two webhooks on the same host and port carry their place in the list in the results and in the failures, so the one that failed is named (PIN507.125)
-         1.21.372 = closing a webhook sender twice is harmless (PIN507.126) -->
-    <Version>1.21.372</Version>
+         1.21.372 = closing a webhook sender twice is harmless (PIN507.126)
+         1.21.373 = a page that comes packed (gzip, deflate, brotli) is searched and read as JSON in its text (PIN507.127) -->
+    <Version>1.21.373</Version>
   </PropertyGroup>
 
   <ItemGroup>
