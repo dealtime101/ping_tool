@@ -5,7 +5,9 @@ namespace PingTool
     // One clock hour of one host: the pings sent and lost in it. Hour = the start of the hour on the PC's wall clock.
     // Repeats = how many real hours this clock hour stands for: 2 for the hour that happens twice when the clocks go back (the grid has
     // one column per clock hour, so it shows the worse of the two and says so).
-    internal sealed record HourCell(DateTime Hour, long Sent, long Lost, int Repeats = 1)
+    // Offset = the UTC offset of the real hour these figures are those of (null when it is not known): the two hours that share a clock
+    // time are told apart by it. Seen = how many of the real hours had pings: 2 for a repeated hour measured in both, 1 when only one was.
+    internal sealed record HourCell(DateTime Hour, long Sent, long Lost, int Repeats = 1, TimeSpan? Offset = null, int Seen = 1)
     {
         public double LossPercent => Sent == 0 ? 0 : 100.0 * Lost / Sent;
     }
@@ -77,8 +79,10 @@ namespace PingTool
         // One row per CALENDAR day, the most recent MaxGridDays of them from the first day with data (or the last 31 days if there are more),
         // 24 cells each (null = no ping that hour). A day with no ping at all (the PC was off, the tool stopped) is a row of empty cells:
         // leaving it out would close the gap on screen and let "the last 31 days" reach back much further than 31 days.
-        public static List<(DateTime Day, HourCell?[] Hours)> Grid(IEnumerable<HourCell> cells)
+        // zone: the time zone the clock hours are in (the PC's), a parameter so that the hour that happens twice can be tested.
+        public static List<(DateTime Day, HourCell?[] Hours)> Grid(IEnumerable<HourCell> cells, TimeZoneInfo? zone = null)
         {
+            zone ??= TimeZoneInfo.Local;
             var byDay = cells.GroupBy(c => c.Hour.Date).ToDictionary(g => g.Key, g => g.ToList());
             var rows = new List<(DateTime, HourCell?[])>();
             if (byDay.Count == 0) return rows;
@@ -98,8 +102,15 @@ namespace PingTool
                         // The hour that happens twice when the clocks go back (two real hours, one column): the figures of ONE hour, the worse
                         // one, so that a bad hour is not averaged away by the good one, and the cell says it stands for two (Title).
                         hours[cell.Hour.Hour] = previous is null ? cell
-                            : (cell.LossPercent > previous.LossPercent ? cell : previous) with { Repeats = previous.Repeats + cell.Repeats };
+                            : (cell.LossPercent > previous.LossPercent ? cell : previous)
+                                with { Repeats = previous.Repeats + cell.Repeats, Seen = previous.Seen + cell.Seen };
                     }
+
+                // A clock hour that happens twice but was measured in one of its two only: a single figure, and it must not read as an
+                // ordinary hour (the other one of the two is not in the data, and which one this is would be lost).
+                for (int h = 0; h < 24; h++)
+                    if (hours[h] is { Repeats: 1 } single && zone.IsAmbiguousTime(day.AddHours(h)))
+                        hours[h] = single with { Repeats = 2 };
 
                 rows.Add((day, hours));
             }
@@ -111,6 +122,8 @@ namespace PingTool
             cell is null || cell.Sent == 0
                 ? string.Create(CultureInfo.InvariantCulture, $"{day:yyyy-MM-dd} {hour:00}:00 - no ping")
                 : string.Create(CultureInfo.InvariantCulture, $"{day:yyyy-MM-dd} {hour:00}:00 - {FormatLoss(cell.LossPercent, CultureInfo.InvariantCulture)}% lost ({cell.Lost} of {cell.Sent})")
-                    + (cell.Repeats > 1 ? " - this clock hour happened twice (the clocks went back): the worse of the two is shown" : "");
+                    + (cell.Repeats <= 1 ? ""
+                        : cell.Seen > 1 ? " - this clock hour happened twice (the clocks went back): the worse of the two is shown"
+                        : " - this clock hour happened twice (the clocks went back) and only one of the two has pings" + (cell.Offset is { } o ? $" (UTC{(o < TimeSpan.Zero ? "-" : "+")}{o.Duration():hh\\:mm})" : ""));
     }
 }

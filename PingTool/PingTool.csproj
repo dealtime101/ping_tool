@@ -438,8 +438,9 @@
          1.21.360 = the "<0.1" and ">99.9" limits of the loss format take the decimal mark of the culture asked for (PIN507.112)
          1.21.361 = the MOS takes the one-way delay as half of the mean round trip of the pings, as the model asks, so a long link is no longer judged twice as slow (PIN507.113)
          1.21.362 = the labels that show an address or a host name no longer take its "&" for a keyboard shortcut (PIN507.114)
-         1.21.363 = the description of the curve is cut by stretches of time when the graph places the pings by their times, and says where nothing was measured (PIN507.115) -->
-    <Version>1.21.363</Version>
+         1.21.363 = the description of the curve is cut by stretches of time when the graph places the pings by their times, and says where nothing was measured (PIN507.115)
+         1.21.364 = the hours of the grid keep their UTC offset, and a clock hour that happened twice says so even when only one of the two was measured (PIN507.116) -->
+    <Version>1.21.364</Version>
   </PropertyGroup>
 
   <ItemGroup>

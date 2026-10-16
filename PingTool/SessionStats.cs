@@ -33,7 +33,7 @@ namespace PingTool
         // hour is never averaged with a good one in the data. The report grid, which has one column per clock hour, decides how to show them.
         private readonly SortedDictionary<DateTimeOffset, (long Sent, long Lost)> hours = new();
         public IReadOnlyList<HourCell> Hours => hours.Select(kv => new HourCell(
-            new DateTime(kv.Key.Year, kv.Key.Month, kv.Key.Day, kv.Key.Hour, 0, 0, DateTimeKind.Unspecified), kv.Value.Sent, kv.Value.Lost)).ToList();
+            new DateTime(kv.Key.Year, kv.Key.Month, kv.Key.Day, kv.Key.Hour, 0, 0, DateTimeKind.Unspecified), kv.Value.Sent, kv.Value.Lost, Offset: kv.Key.Offset)).ToList();
 
         // ping < 0 means timeout / failure.
         // at = when the ping was made: it feeds the hour-by-day figures of the report (no time given = not counted there).
