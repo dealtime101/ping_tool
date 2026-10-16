@@ -12,15 +12,28 @@ namespace PingTool
         {
             try
             {
-                using var stream = typeof(AppIcon).Assembly.GetManifestResourceStream(ResourceName);
+                var assembly = typeof(AppIcon).Assembly;
+                using var stream = assembly.GetManifestResourceStream(ResourceName);
                 if (stream is not null) return size is Size s ? new Icon(stream, s) : new Icon(stream);
+
+                // A resource that is not found: the generic icon, as before, but not in silence (see Report).
+                Report(new FileNotFoundException(ResourceNote.Missing(ResourceName, assembly.GetManifestResourceNames())));
             }
             catch (Exception ex) when (ex is ArgumentException or IOException or InvalidOperationException)
             {
-                System.Diagnostics.Debug.WriteLine("Icon not loaded: " + ex.Message);
+                Report(ex);
             }
 
             return (Icon)SystemIcons.Application.Clone();
+        }
+
+        // A Debug line does not exist in a Release build, so the reason an icon is missing was never anywhere. Said to the trace (a listener
+        // or a debugger shows it, in Release too) and to the crash log, the file that is attached to a bug report, where a repeat of the
+        // same text (the window and the notification area both ask for the icon) is counted and not written twice.
+        private static void Report(Exception reason)
+        {
+            System.Diagnostics.Trace.TraceWarning("Icon not loaded: " + reason.Message);
+            CrashLog.TryAppend(CrashLog.DefaultPath, CrashLog.Entry(reason, DateTimeOffset.Now, AppVersion.Display, fatal: false));
         }
     }
 }

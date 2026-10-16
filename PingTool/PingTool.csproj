@@ -520,8 +520,9 @@
          1.21.442 = a web address with no path and the same with a slash are the same target (PIN507.235)
          1.21.443 = the port a scheme has anyway, written out (https :443, http :80), is no longer another target (PIN507.237)
          1.21.444 = the script that draws the icon finds the project from where it is and not from the folder it is run in (PIN507.238; no change to the program)
-         1.21.445 = the icon: on the small sizes (16 and 24 px) the dot is apart from the end of the pulse and no longer fused with it; the script checks every size (PIN507.239) -->
-    <Version>1.21.445</Version>
+         1.21.445 = the icon: on the small sizes (16 and 24 px) the dot is apart from the end of the pulse and no longer fused with it; the script checks every size (PIN507.239)
+         1.21.446 = an icon resource that is not found is said (trace and crash log) with the names the build has, instead of the generic icon in silence (PIN507.240) -->
+    <Version>1.21.446</Version>
   </PropertyGroup>
 
   <ItemGroup>
