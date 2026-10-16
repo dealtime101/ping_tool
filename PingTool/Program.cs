@@ -106,8 +106,23 @@ namespace PingTool
             try
             {
                 var settings = Settings.Load(Settings.DefaultPath);
-                if (o.IntervalMs is int ms) settings.IntervalMs = Limits.Clamp(ms, Limits.IntervalMs);
                 if (settings.LoadProblem is { } loadProblem) Console.Error.WriteLine(loadProblem);
+
+                // --profile: the settings of a saved profile for this run (the file is not changed); what the command line says wins.
+                Profile? profile = null;
+                if (o.ProfileName is { } wanted)
+                {
+                    profile = ProfileBook.Find(settings.Profiles, wanted);
+                    if (profile is null)
+                    {
+                        Console.Error.WriteLine($"No saved profile is named \"{wanted}\" in {Settings.DefaultPath}.");
+                        return HeadlessRunner.ErrorCode;
+                    }
+
+                    ProfileBook.ApplyTo(settings, profile);
+                }
+
+                if (o.IntervalMs is int ms) settings.IntervalMs = Limits.Clamp(ms, Limits.IntervalMs);
 
                 var found = new List<string>();
                 if (o.Diagnose)
@@ -117,13 +132,13 @@ namespace PingTool
                 }
 
                 var hosts = found.Concat(o.Hosts).ToList();
-                if (hosts.Count == 0) hosts = settings.Hosts;
+                if (hosts.Count == 0) hosts = profile?.Hosts ?? settings.Hosts;
 
                 using var webhooks = settings.Webhooks.Count == 0 ? null
                     : new WebhookSender(settings.Webhooks.Select(w => WebhookPayload.TryParseUrl(w, out var url) ? url : null).OfType<Uri>(), AppVersion.Number);
                 if (webhooks is not null) webhooks.Failed += (label, reason) => Console.Error.WriteLine($"Alert not delivered to the webhook {label}: {reason}");
 
-                string? reportPath = o.ReportPath is null ? null : Path.GetFullPath(o.ReportPath);
+                string? reportPath = o.ReportPath is null ? null : Path.GetFullPath(ScheduledMeasure.ExpandReportPath(o.ReportPath, DateTimeOffset.Now));
                 bool reportFailed = false;
                 var pseudonyms = new List<string>();   // --hide: what the pseudonyms of the last report stand for (never in the report itself)
                 void WriteReport(ReportData data)

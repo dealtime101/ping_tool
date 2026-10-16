@@ -27,6 +27,22 @@ namespace PingTool
     internal static class ProfileBook
     {
         public const int MaxProfiles = 20;
+
+        public static Profile? Find(IEnumerable<Profile> profiles, string name) =>
+            profiles.FirstOrDefault(p => string.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase));
+
+        // The settings a profile shapes the probing with, for a run that does not use the window (the file is not touched).
+        public static void ApplyTo(Settings settings, Profile profile)
+        {
+            settings.IntervalMs = Limits.Clamp(profile.IntervalMs, Limits.IntervalMs);
+            settings.TimeoutMs = profile.TimeoutMs;
+            settings.PacketSize = profile.PacketSize;
+            settings.DegradedLatencyMs = profile.DegradedLatencyMs;
+            settings.DegradedLossPercent = profile.DegradedLossPercent;
+            settings.DegradedMos = Limits.ClampMos(profile.DegradedMos);
+            settings.DownAfter = profile.DownAfter;
+            settings.TargetOptions = new Dictionary<string, TargetOptions>(profile.TargetOptions, TargetKey.Comparer);
+        }
         public const int MaxNameLength = 40;
 
         public static bool TryName(string? input, out string name, out string error)

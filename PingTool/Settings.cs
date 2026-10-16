@@ -74,6 +74,11 @@ namespace PingTool
         // Several targets going down (or coming back) within this many seconds are told as ONE alert (see AlertGrouper); 0 = each on its own.
         // Edited in settings.json.
         public int AlertGroupSeconds { get; set; }
+        // Times when a fault is expected, such as "Sat,Sun 00:00-06:00" or "Mon-Fri 02:00-03:30" (see MaintenanceWindows): no alert is
+        // raised in them, and an incident that begins in one is marked planned. Edited in settings.json.
+        public List<string> Maintenance { get; set; } = new();
+
+        public MaintenanceWindows GetMaintenance() => MaintenanceWindows.Parse(Maintenance, out _);
         public int DownAfter { get; set; } = HostMonitor.DefaultDownAfter;
 
         // A readable name and limits of their own for some targets, by address (see TargetOptions).
@@ -205,6 +210,10 @@ namespace PingTool
             if (good.Count < raw.Count)
                 AddProblem($"{raw.Count - good.Count} webhook address(es) in settings.json were ignored: only distinct http:// or https:// addresses are used (at most {MaxWebhooks}).");
             Webhooks = good;
+            Maintenance = (Maintenance ?? new List<string>()).Where(w => !string.IsNullOrWhiteSpace(w)).Select(w => w.Trim()).ToList();
+            MaintenanceWindows.Parse(Maintenance, out var badWindows);
+            if (badWindows.Count > 0)
+                AddProblem($"{badWindows.Count} maintenance window(s) in settings.json were ignored (write them like \"Mon-Fri 02:00-03:30\" or \"22:00-02:00\", at most {MaintenanceWindows.MaxWindows}): {string.Join("; ", badWindows.Take(3))}.");
             ActiveProfile ??= "";
             Recent = (Recent ?? new List<string>())
                 .Where(a => !string.IsNullOrWhiteSpace(a)).Select(a => a.Trim())

@@ -46,6 +46,7 @@ namespace PingTool
         private WebhookSender? webhooks;
         private readonly HashSet<string> webhookWarned = new();
         private readonly IncidentLog incidents = new();
+        private MaintenanceWindows maintenance = MaintenanceWindows.None;
         // Route captures running in the background; the run waits for them before releasing its token.
         private List<Task> pathCaptures = new();
         private readonly Settings settings = Settings.Load(Settings.DefaultPath);
@@ -175,10 +176,13 @@ namespace PingTool
             hostMenu.Items.Add("Name and limits of this host...").Click += (_, _) => EditSelectedTarget();
             var markItem = hostMenu.Items.Add("Mark an event...");
             markItem.Click += (_, _) => MarkEvent();
-            // The host entries need a host; the note does not (it can apply to every target), but only a run has a session to keep it in.
+            var scheduleItem = hostMenu.Items.Add("Schedule a measurement...");
+            scheduleItem.Click += (_, _) => ScheduleMeasurement();
+            // The host entries need a host; the note does not (it can apply to every target), but only a run has a session to keep it in;
+            // scheduling needs neither.
             hostMenu.Opening += (_, e) =>
             {
-                foreach (ToolStripItem item in hostMenu.Items) item.Enabled = selected is not null || item == markItem;
+                foreach (ToolStripItem item in hostMenu.Items) item.Enabled = selected is not null || item == markItem || item == scheduleItem;
                 markItem.Enabled = isRunning;
             };
             lstHosts.ContextMenuStrip = hostMenu;
@@ -327,6 +331,8 @@ namespace PingTool
             numSlow.Value = Math.Clamp(settings.DegradedLatencyMs, (int)numSlow.Minimum, (int)numSlow.Maximum);
             numLoss.Value = Math.Clamp(settings.DegradedLossPercent, (int)numLoss.Minimum, (int)numLoss.Maximum);
             numMos.Value = (decimal)Limits.ClampMos(settings.DegradedMos);
+            maintenance = settings.GetMaintenance();
+            incidents.PlannedWhen = maintenance.IsActive;
             // The box turns the grouping on or off; the length of the window is the one of settings.json (10 s when it was never set).
             groupSeconds = settings.AlertGroupSeconds > 0 ? settings.AlertGroupSeconds : DefaultGroupSeconds;
             chkGroup.Checked = settings.AlertGroupSeconds > 0;
@@ -1264,6 +1270,16 @@ namespace PingTool
             SaveSettings();
         }
 
+        // A task of the Task Scheduler that runs PingTool without a window (see ScheduledMeasure). The targets are saved first: that is
+        // what the task reads when it starts.
+        private void ScheduleMeasurement()
+        {
+            SaveSettings();
+            string folderDefault = settings.LogFolder.Length > 0 ? Path.Combine(settings.LogFolder, "reports") : Path.Combine(AutoLog.DefaultFolder, "reports");
+            using var dialog = new ScheduleForm(settings.Profiles.Select(p => p.Name).ToList(), folderDefault);
+            dialog.ShowDialog(this);
+        }
+
         // A note of something done by hand, kept with the events of the run (timeline, report). Not saved after the run: the events are not.
         private void MarkEvent()
         {
@@ -1446,6 +1462,9 @@ namespace PingTool
         private void Alert(HostSession session, HostChange change, TimeSpan? outage)
         {
             if (closing || change == HostChange.None || !chkAlert.Checked) return;
+            // In a maintenance window the incident is recorded (marked planned) but nobody is told. The windows are those read from
+            // settings.json when PingTool started.
+            if (maintenance.IsActive(DateTimeOffset.Now)) return;
 
             var monitor = session.Monitor;
             string text = AlertMessage.For(session.DisplayName, change, monitor.WindowLossPercent, monitor.WindowAvgMs, outage, monitor.Voice);

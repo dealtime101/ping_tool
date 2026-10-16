@@ -7,7 +7,7 @@ namespace PingTool
     // Hosts and --interval are for THIS launch only: they win over the saved settings, which stay as
     // they were (a shortcut must not overwrite the list the user built in the window).
     internal sealed record StartupOptions(IReadOnlyList<string> Hosts, bool Start, bool Minimized, int? IntervalMs, bool TestWebhooks = false, bool Diagnose = false,
-        bool Headless = false, TimeSpan? Duration = null, string? ReportPath = null, ReportMasking? Hide = null)
+        bool Headless = false, TimeSpan? Duration = null, string? ReportPath = null, ReportMasking? Hide = null, string? ProfileName = null)
     {
         public static readonly TimeSpan MinDuration = TimeSpan.FromSeconds(5);
         public static readonly TimeSpan MaxDuration = TimeSpan.FromDays(30);
@@ -42,6 +42,8 @@ namespace PingTool
             "  --headless         no window: probe for --duration, write --report, exit (exit code 0 = no incident, 1 = an outage or a slowdown, 2 = error)\r\n" +
             "  --duration <t>     with --headless: how long to probe, 5s to 30d (30s, 10m, 8h, 2d)\r\n" +
             "  --report <file>    with --headless: where to write the HTML report at the end (refreshed every 10 minutes meanwhile)\r\n" +
+            "  --profile <name>   with --headless: probe the targets and use the settings of that saved profile (the targets given here still win)\r\n" +
+            "                     {date} in the --report file name becomes the start time (yyyyMMdd-HHmm): one report per run of a scheduled task\r\n" +
             "  --hide <what>      with --report: hide from the reader of the report targets, ips, cards, computer (a comma list, or all); the key goes to the error output\r\n" +
             "  --diagnose         monitor the default gateway, the DNS servers and a few Internet references (to see where a fault is)\r\n" +
             "  --test-webhooks    send a test alert to the webhooks of settings.json, show the result and exit\r\n" +
@@ -60,6 +62,7 @@ namespace PingTool
             TimeSpan? duration = null;
             string? reportPath = null;
             ReportMasking? hide = null;
+            string? profileName = null;
 
             for (int i = 0; i < args.Count; i++)
             {
@@ -106,6 +109,15 @@ namespace PingTool
                         }
 
                         reportPath = path.Trim();
+                        break;
+                    case "--profile":
+                        if (!ProfileBook.TryName(inline ?? (i + 1 < args.Count ? args[++i] : null), out string profileText, out _))
+                        {
+                            message = "--profile needs the name of a saved profile, for example --profile \"Night watch\"";
+                            return false;
+                        }
+
+                        profileName = profileText;
                         break;
                     case "--hide":
                         if (!ReportMasking.TryParse(inline ?? (i + 1 < args.Count ? args[++i] : null), out var masking))
@@ -167,7 +179,13 @@ namespace PingTool
                 return false;
             }
 
-            options = new StartupOptions(hosts, start, minimized, interval, testWebhooks, diagnose, headless, duration, reportPath, hide);
+            if (profileName is not null && !headless)
+            {
+                message = "--profile only works with --headless.";
+                return false;
+            }
+
+            options = new StartupOptions(hosts, start, minimized, interval, testWebhooks, diagnose, headless, duration, reportPath, hide, profileName);
             return true;
         }
     }

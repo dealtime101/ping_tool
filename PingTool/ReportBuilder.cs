@@ -119,6 +119,23 @@ namespace PingTool
                     + "reply after it (one still going on counts up to the end of the period); a slowdown is not counted as down. Ping loss = lost pings over pings sent.</small></p>");
             }
 
+            // Outages that began in a maintenance window are counted above, as they were real: here are the figures without them, so that an
+            // expected interruption is told apart from a fault. Nothing is removed from the incidents below.
+            if (d.Hosts.Count > 0 && d.Incidents.Any(i => i.Planned && i.Kind == IncidentKind.Outage))
+            {
+                h.AppendLine("<h3>Without the maintenance windows</h3>");
+                h.AppendLine("<table><tr><th>Target</th><th>Availability</th><th>Outages</th><th>Total down</th></tr>");
+                foreach (var x in d.Hosts)
+                {
+                    var unplanned = Availability.For(x.Address, d.Incidents.Where(i => !i.Planned), d.RunStart, end);
+                    h.AppendLine(c, $"<tr><td>{Who(x)}</td><td class=\"n\">{(unplanned.AvailabilityPercent is null ? "-" : Pct(unplanned.AvailabilityPercent.Value) + " %")}</td>"
+                        + $"<td class=\"n\">{unplanned.Outages.ToString(c)}</td><td class=\"n\">{E(IncidentLog.FormatDuration(unplanned.TotalDown))}</td></tr>");
+                }
+
+                h.AppendLine("</table>");
+                h.AppendLine("<p><small>Incidents that began in a maintenance window (the MaintenanceWindows of settings.json) are marked \"planned\" in the list of incidents and left out of this table; no alert was raised for them.</small></p>");
+            }
+
             h.AppendLine("<h2>Where is the fault?</h2>");
             if (d.Diagnosis is null)
                 h.AppendLine("<p>Not enough targets to compare yet: at least two must have been pinged.</p>");
@@ -199,7 +216,7 @@ namespace PingTool
                     string detail = outage ? i.Cause : $"{Availability.FormatLoss(i.LossPercent, c)}% loss, average {N(i.AvgMs)} ms";
                     h.AppendLine(c, $"<tr><td>{(d.Hosts.FirstOrDefault(x => TargetKey.Same(x.Address, i.Host)) is { } named ? Who(named) : E(i.Host))}</td><td>{(outage ? "Outage" : "Slowdown")}</td><td>{E(T(i.Start))}</td>"
                         + $"<td>{(i.End is null ? "ongoing" : E(T(i.End.Value)))}</td><td>{E(IncidentLog.FormatDuration(i.Duration(end)))}</td>"
-                        + $"<td class=\"n\">{(outage ? i.FailedPings.ToString(c) : "-")}</td><td>{E(detail)}</td><td class=\"n\">{i.Occurrence.ToString(c)}</td></tr>");
+                        + $"<td class=\"n\">{(outage ? i.FailedPings.ToString(c) : "-")}</td><td>{E(detail + (i.Planned ? " (planned maintenance)" : ""))}</td><td class=\"n\">{i.Occurrence.ToString(c)}</td></tr>");
                 }
 
                 h.AppendLine("</table>");

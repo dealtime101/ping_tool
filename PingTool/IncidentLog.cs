@@ -38,6 +38,9 @@ namespace PingTool
         public string PathText() =>
             PathTextOverride ?? (Path is null ? "" : Path.Describe() + (PathNotes.Count > 0 ? "\n" + string.Join("\n", PathNotes) : ""));
 
+        // It began inside a maintenance window (see MaintenanceWindows): expected, listed apart in the report. It is still an incident.
+        public bool Planned { get; init; }
+
         public bool Ongoing => End is null;
         public TimeSpan Duration(DateTimeOffset now) => (End ?? now) - Start;
     }
@@ -173,6 +176,9 @@ namespace PingTool
             t.AnsweredWhileDown = null;
         }
 
+        // Says whether a moment is inside a maintenance window: an incident that begins there is marked planned.
+        public Func<DateTimeOffset, bool>? PlannedWhen { get; set; }
+
         private Incident Open(Track t, string host, IncidentKind kind, DateTimeOffset start, double loss, double? avg)
         {
             var incident = new Incident
@@ -183,6 +189,7 @@ namespace PingTool
                 LossPercent = loss,
                 AvgMs = avg,
                 Occurrence = kind == IncidentKind.Outage ? ++t.Outages : ++t.Slowdowns,
+                Planned = PlannedWhen?.Invoke(start) ?? false,
             };
             incidents.Add(incident);
             return incident;

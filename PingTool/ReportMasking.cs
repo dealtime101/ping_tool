@@ -90,6 +90,7 @@ namespace PingTool
                 LossPercent = i.LossPercent,
                 AvgMs = i.AvgMs,
                 Occurrence = i.Occurrence,
+                Planned = i.Planned,
                 Path = i.Path,   // only there for "has a route"; what the report shows is PathTextOverride
                 PathTextOverride = i.Path is null ? null : s.Text(i.PathText()),
             }).ToList();

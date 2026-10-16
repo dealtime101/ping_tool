@@ -68,7 +68,8 @@ namespace PingTool
                 sessions.Add(new HostSession(address, slow, loss, down, settings.DegradedMos) { Options = options });
             }
 
-            var incidents = new IncidentLog();
+            var maintenance = settings.GetMaintenance();
+            var incidents = new IncidentLog { PlannedWhen = maintenance.IsActive };
             var gate = new object();   // the probes run side by side; what they feed is not made for that
             var start = clock();
 
@@ -115,7 +116,8 @@ namespace PingTool
                         session.Notice = warning;
                         var change = session.Monitor.Update(ping);
                         incidents.Observe(now, session.Address, ping, session.LastFailure, change, session.Monitor.WindowLossPercent, session.Monitor.WindowAvgMs);
-                        if (change != HostChange.None && alert is not null)
+                        // In a maintenance window the incident is recorded (marked planned) but nobody is told.
+                        if (change != HostChange.None && alert is not null && !maintenance.IsActive(now))
                         {
                             TimeSpan? outage = change == HostChange.Up
                                 ? incidents.Incidents.LastOrDefault(i => i.Host == session.Address && i.Kind == IncidentKind.Outage)?.Duration(now) : null;
