@@ -156,7 +156,7 @@ namespace PingTool
             h.AppendLine("</table>");
 
             foreach (var x in d.Hosts.Where(x => x.Notice is not null))
-                h.AppendLine(c, $"<p class=\"box\"><b>{Who(x)}</b>: {E(x.Notice!)}.</p>");
+                h.AppendLine(c, $"<p class=\"box\"><b>{Who(x)}</b>: {E(EndSentence(x.Notice!))}</p>");
 
             h.AppendLine("<h2>Latency over the last pings</h2>");
             h.AppendLine(c, $"<p><small>Each graph has its own scale (top = the highest value of that target, but never less than {MinScaleMs.ToString(c)} ms). A red tick on the baseline is a lost ping.</small></p>");
@@ -273,6 +273,18 @@ namespace PingTool
 
         private static void Row(StringBuilder h, string label, string value, Func<string, string> e) =>
             h.AppendLine(CultureInfo.InvariantCulture, $"<tr><th scope=\"row\">{e(label)}</th><td>{e(value)}</td></tr>");
+
+        // A notice is a sentence without its end (the producers write "The certificate of x expires in 3 days (2026-10-20)"): the report ends
+        // it with a full stop, unless it already ends with a mark (. ! ? or an ellipsis, also followed by a closing quote or bracket), so
+        // that a notice written with its own full stop is not shown with two.
+        internal static string EndSentence(string notice)
+        {
+            string text = notice.TrimEnd();
+            if (text.Length == 0) return text;
+            int last = text.Length - 1;
+            while (last >= 0 && text[last] is ')' or ']' or '"' or '\'' or '»' or '”' or '’') last--;
+            return last >= 0 && text[last] is '.' or '!' or '?' or '…' or '。' or '！' or '？' ? text : text + ".";
+        }
 
         // What the picture says, for a screen reader or a text-only mail client: the figures the eye reads off the curve.
         internal static string GraphAlt(string name, IReadOnlyList<long> history, long top, CultureInfo c)
