@@ -53,7 +53,7 @@ namespace PingTool
         // Everything below the top block: hidden in compact mode.
         private Control[] detailControls = Array.Empty<Control>();
 
-        private static readonly Size FullSize = new(620, 567);
+        private static readonly Size FullSize = new(620, 591);
         // Tall enough for address, big result, Start/Stop and the stats label.
         private static readonly Size CompactSize = new(284, 282);
         private readonly ToolTip toolTip = new();
@@ -95,7 +95,7 @@ namespace PingTool
             {
                 graphLatency, lblInterval, lblTimeout, lblSize, numInterval, numTimeout, numSize,
                 lblSlow, numSlow, lblLoss, numLoss, lblMos, numMos, lblDownAfter, numDownAfter,
-                chkAlert, chkSaveLog, lstHosts, btnAddHost, btnRemoveHost, btnExport, btnIncidents, btnReport, btnTimeline, btnOpenLog, btnImportProfiles, btnExportProfiles, cboProfile, btnSaveProfile, btnDeleteProfile, lblDiagnosis, chkCompare,
+                chkAlert, chkSaveLog, chkGroup, lstHosts, btnAddHost, btnRemoveHost, btnExport, btnIncidents, btnReport, btnTimeline, btnOpenLog, btnImportProfiles, btnExportProfiles, cboProfile, btnSaveProfile, btnDeleteProfile, lblDiagnosis, chkCompare,
             };
             notifyIcon.DoubleClick += (_, _) => RestoreFromTray();
             ApplyAnchors();
@@ -242,7 +242,7 @@ namespace PingTool
                 (graphLatency, T | B | L),
                 (lblInterval, B | L), (numInterval, B | L), (lblTimeout, B | L), (numTimeout, B | L), (lblSize, B | L), (numSize, B | L),
                 (lblSlow, B | L), (numSlow, B | L), (lblLoss, B | L), (numLoss, B | L), (lblMos, B | L), (numMos, B | L), (lblDownAfter, B | L), (numDownAfter, B | L),
-                (chkAlert, B | L), (chkSaveLog, B | L),
+                (chkAlert, B | L), (chkSaveLog, B | L), (chkGroup, B | L),
                 (cboProfile, T | L | R), (btnSaveProfile, T | R), (btnDeleteProfile, T | R),
                 (lstHosts, T | B | L | R), (lblDiagnosis, B | L | R),
                 (btnAddHost, B | L), (btnRemoveHost, B | R),
@@ -320,7 +320,12 @@ namespace PingTool
             numSlow.Value = Math.Clamp(settings.DegradedLatencyMs, (int)numSlow.Minimum, (int)numSlow.Maximum);
             numLoss.Value = Math.Clamp(settings.DegradedLossPercent, (int)numLoss.Minimum, (int)numLoss.Maximum);
             numMos.Value = (decimal)Limits.ClampMos(settings.DegradedMos);
-            alertGrouper.WindowSeconds = settings.AlertGroupSeconds;
+            // The box turns the grouping on or off; the length of the window is the one of settings.json (10 s when it was never set).
+            groupSeconds = settings.AlertGroupSeconds > 0 ? settings.AlertGroupSeconds : DefaultGroupSeconds;
+            chkGroup.Checked = settings.AlertGroupSeconds > 0;
+            alertGrouper.WindowSeconds = chkGroup.Checked ? groupSeconds : 0;
+            chkGroup.CheckedChanged += (_, _) => alertGrouper.WindowSeconds = chkGroup.Checked ? groupSeconds : 0;
+            toolTip.SetToolTip(chkGroup, $"When several targets go down (or come back) within {groupSeconds} s of each other, one balloon, sound and webhook message tells them together. Each keeps its own incident. Change the {groupSeconds} s with AlertGroupSeconds in settings.json.");
             toolTip.SetToolTip(numMos, "A host also counts as degraded when the voice quality (MOS, 1 to 4.5) of its last 10 pings falls below this. 0 = not used. About 4 is good, under 3.6 callers notice.");
             numDownAfter.Value = Math.Clamp(settings.DownAfter, (int)numDownAfter.Minimum, (int)numDownAfter.Maximum);
             chkAlert.Checked = settings.Alert;
@@ -375,6 +380,7 @@ namespace PingTool
             settings.DegradedMos = (double)numMos.Value;
             settings.DownAfter = (int)numDownAfter.Value;
             settings.Alert = chkAlert.Checked;
+            settings.AlertGroupSeconds = chkGroup.Checked ? groupSeconds : 0;
             settings.SaveLog = chkSaveLog.Checked;
             settings.Compact = chkCompact.Checked;
             // The size of the full window (what it was before compact mode, when compact now); a maximized window is not a size to keep.
@@ -770,6 +776,7 @@ namespace PingTool
 
                 isRunning = true;
                 hasRun = true;
+                alertGrouper.Reset();
                 btnStartStop.Text = "Stop";
                 SetSettingsEnabled(false);
                 ShowRunState();
@@ -1426,7 +1433,7 @@ namespace PingTool
 
             var monitor = session.Monitor;
             string text = AlertMessage.For(session.DisplayName, change, monitor.WindowLossPercent, monitor.WindowAvgMs, outage, monitor.Voice);
-            var alert = new HeldAlert(session.Address, session.DisplayName, change, text, outage, DateTimeOffset.Now);
+            var alert = new HeldAlert(session.Address, session.DisplayName, change, text, outage, DateTimeOffset.Now, session.Options?.Service);
 
             // The optional grouping: down and up alerts wait for the window to close, then go out as one (see AlertGrouper).
             if (alertGrouper.Hold(alert, out bool first))
@@ -1443,6 +1450,15 @@ namespace PingTool
         {
             var items = alertGrouper.Take(change);
             if (items.Count == 0 || !chkAlert.Checked) return;
+
+            // The targets of a group told as down are followed until every one is back: then one more alert says so.
+            alertGrouper.Announce(change == HostChange.Down ? items : Array.Empty<HeldAlert>());
+            if (change == HostChange.Up && alertGrouper.Recovered(items, DateTimeOffset.Now) is { } everyone)
+            {
+                Deliver(new HeldAlert(items[0].Address, "", change, everyone, null, DateTimeOffset.Now), summary: true);
+                return;
+            }
+
             if (items.Count == 1) { Deliver(items[0]); return; }
 
             // The summary goes to the webhooks as a notice for the whole group: the host field is the first address, as in a notice.
@@ -1464,6 +1480,8 @@ namespace PingTool
         }
 
         private readonly AlertGrouper alertGrouper = new();
+        private const int DefaultGroupSeconds = 10;
+        private int groupSeconds = DefaultGroupSeconds;
 
         // These two events come from a system thread: the window is only touched through BeginInvoke.
         private void OnNetworkAddressChanged(object? sender, EventArgs e) => NetworkSignal();

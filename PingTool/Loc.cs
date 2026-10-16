@@ -76,6 +76,7 @@ namespace PingTool
             ["alert.group.down"] = ("{0} targets are down: {1}", "{0} cibles ne répondent plus : {1}"),
             ["alert.group.up"] = ("{0} targets are back up: {1}", "{0} cibles répondent de nouveau : {1}"),
             ["alert.group.up.after"] = ("{0} targets are back up: {1} (the longest outage: {2})", "{0} cibles répondent de nouveau : {1} (la plus longue coupure : {2})"),
+            ["alert.group.allup"] = ("All {0} targets of the outage are back up (it lasted {1})", "Les {0} cibles de la panne répondent toutes de nouveau (elle a duré {1})"),
             ["alert.group.more"] = ("(+{0} more)", "(+{0} autres)"),
             ["alert.degraded"] = ("{0} is degraded: {1:0.#}% loss, average {2} ms over the last {3} pings", "{0} est dégradé : {1:0.#} % de perte, moyenne {2} ms sur les {3} derniers pings"),
             ["alert.degraded.noreply"] = ("{0} is degraded: {1:0.#}% loss, no reply in the last {2} pings", "{0} est dégradé : {1:0.#} % de perte, aucune réponse sur les {2} derniers pings"),

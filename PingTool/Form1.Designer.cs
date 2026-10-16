@@ -39,6 +39,7 @@
             lblSize = new Label();
             chkAlert = new CheckBox();
             chkSaveLog = new CheckBox();
+            chkGroup = new CheckBox();
             lstHosts = new ListView();
             cboProfile = new ComboBox();
             btnSaveProfile = new Button();
@@ -271,6 +272,16 @@
             chkSaveLog.Name = "chkSaveLog";
             chkSaveLog.TabIndex = 21;
             chkSaveLog.Text = "Save the log to disk (daily CSV per host)";
+            //
+            // chkGroup
+            //
+            chkGroup.AutoSize = true;
+            chkGroup.ForeColor = Color.White;
+            chkGroup.Location = new Point(30, 563);
+            chkGroup.Name = "chkGroup";
+            chkGroup.TabIndex = 22;
+            chkGroup.Text = "Tell the targets of one outage as one alert";
+            chkGroup.UseVisualStyleBackColor = true;
             //
             // lblDownAfter
             //
@@ -510,7 +521,7 @@
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             BackColor = Color.FromArgb(64, 64, 64);
-            ClientSize = new Size(620, 567);
+            ClientSize = new Size(620, 591);
             Controls.Add(chkCompare);
             Controls.Add(lblDiagnosis);
             Controls.Add(lblState);
@@ -531,6 +542,7 @@
             Controls.Add(numMos);
             Controls.Add(lblMos);
             Controls.Add(chkSaveLog);
+            Controls.Add(chkGroup);
             Controls.Add(chkAlert);
             Controls.Add(numDownAfter);
             Controls.Add(lblDownAfter);
@@ -579,6 +591,7 @@
         private Label lblSize;
         private CheckBox chkAlert;
         private CheckBox chkSaveLog;
+        private CheckBox chkGroup;
         private ListView lstHosts;
         private ColumnHeader colHost;
         private ColumnHeader colLast;
