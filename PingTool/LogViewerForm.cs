@@ -112,7 +112,7 @@ namespace PingTool
                 using var save = new SaveFileDialog { Filter = "HTML page (*.html)|*.html", FileName = $"pingtool-comparison-{DateTime.Now:yyyyMMdd-HHmmss}.html" };
                 if (save.ShowDialog(this) != DialogResult.OK) return;
 
-                File.WriteAllText(save.FileName, html, new System.Text.UTF8Encoding(false));
+                AtomicFile.WriteAllText(save.FileName, html);
                 FileOpener.OfferToOpen(this, "The comparison", save.FileName);
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)

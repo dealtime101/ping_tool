@@ -536,7 +536,7 @@ namespace PingTool
 
             try
             {
-                File.WriteAllText(dialog.FileName, ProfileExchange.Export(settings.Profiles), new System.Text.UTF8Encoding(false));
+                AtomicFile.WriteAllText(dialog.FileName, ProfileExchange.Export(settings.Profiles));
                 MessageBox.Show($"{settings.Profiles.Count} profile(s) written to {dialog.FileName}.", "PingTool");
             }
             catch (IOException ex)

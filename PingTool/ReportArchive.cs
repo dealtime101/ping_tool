@@ -21,12 +21,9 @@ namespace PingTool
             if (!string.Equals(Path.GetExtension(path), wanted, StringComparison.OrdinalIgnoreCase))
                 path = Path.GetExtension(path).Length == 0 ? path + wanted : Path.ChangeExtension(path, wanted);
 
-            if (zip)
-            {
-                using var file = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None);
-                Write(file, masked, entries, dropped);
-            }
-            else File.WriteAllText(path, ReportBuilder.Build(masked), new UTF8Encoding(false));
+            // Whole or not at all: an earlier report under that name is not emptied before the new one is complete.
+            if (zip) AtomicFile.Write(path, file => Write(file, masked, entries, dropped));
+            else AtomicFile.WriteAllText(path, ReportBuilder.Build(masked));
 
             return path;
         }

@@ -148,7 +148,7 @@ namespace PingTool
                     {
                         if (o.Hide is { } hide) data = ReportAnonymizer.Apply(data, hide, out pseudonyms);
                         Directory.CreateDirectory(Path.GetDirectoryName(reportPath)!);
-                        File.WriteAllText(reportPath, ReportBuilder.Build(data), new System.Text.UTF8Encoding(false));
+                        AtomicFile.WriteAllText(reportPath, ReportBuilder.Build(data));   // the report of the last checkpoint stays whole if this write fails
                         reportFailed = false;
                     }
                     catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException or ArgumentException)
