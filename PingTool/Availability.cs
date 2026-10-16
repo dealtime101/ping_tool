@@ -7,7 +7,8 @@ namespace PingTool
     // one column per clock hour, so it shows the worse of the two and says so).
     // Offset = the UTC offset of the real hour these figures are those of (null when it is not known): the two hours that share a clock
     // time are told apart by it. Seen = how many of the real hours had pings: 2 for a repeated hour measured in both, 1 when only one was.
-    internal sealed record HourCell(DateTime Hour, long Sent, long Lost, int Repeats = 1, TimeSpan? Offset = null, int Seen = 1)
+    // NoSuchHour = a clock hour that the clocks skipped (the day they went forward): nothing was missed, there was no such hour.
+    internal sealed record HourCell(DateTime Hour, long Sent, long Lost, int Repeats = 1, TimeSpan? Offset = null, int Seen = 1, bool NoSuchHour = false)
     {
         public double LossPercent => Sent == 0 ? 0 : 100.0 * Lost / Sent;
     }
@@ -112,11 +113,23 @@ namespace PingTool
                     if (hours[h] is { Repeats: 1 } single && zone.IsAmbiguousTime(day.AddHours(h)))
                         hours[h] = single with { Repeats = 2 };
 
+                // The hour the clocks skipped (02:00 to 03:00 the day they go forward) has no ping because it did not exist, which is not
+                // the same thing as a hour that was not measured: said so, instead of "no ping". An hour of which only a part was skipped
+                // (a change of half an hour) exists, and has its pings in the cell.
+                for (int h = 0; h < 24; h++)
+                    if (hours[h] is null && DoesNotExist(zone, day.AddHours(h)))
+                        hours[h] = new HourCell(day.AddHours(h), 0, 0, NoSuchHour: true);
+
                 rows.Add((day, hours));
             }
 
             return rows;
         }
+
+        // True when no minute of the clock hour starting at `start` existed: the start, the half and the last minute are all in the hour that the
+        // clocks skipped. A change of half an hour (Lord Howe) leaves the second half of the hour: that hour exists.
+        internal static bool DoesNotExist(TimeZoneInfo zone, DateTime start) =>
+            zone.IsInvalidTime(start) && zone.IsInvalidTime(start.AddMinutes(30)) && zone.IsInvalidTime(start.AddMinutes(59));
 
         // The hours of the grid in which pings were lost, one sentence each (the same as the hover text of the square), oldest first: for
         // whoever has no hover (a touch screen) and no screen reader, and cannot read a colour. Empty when no hour lost a ping.
@@ -126,7 +139,9 @@ namespace PingTool
                 .Select(hour => Title(row.Day, hour, row.Hours[hour]))));
 
         public static string Title(DateTime day, int hour, HourCell? cell) =>
-            cell is null || cell.Sent == 0
+            cell is { NoSuchHour: true }
+                ? string.Create(CultureInfo.InvariantCulture, $"{day:yyyy-MM-dd} {hour:00}:00 - this hour does not exist (the clocks went forward)")
+            : cell is null || cell.Sent == 0
                 ? string.Create(CultureInfo.InvariantCulture, $"{day:yyyy-MM-dd} {hour:00}:00 - no ping")
                 : string.Create(CultureInfo.InvariantCulture, $"{day:yyyy-MM-dd} {hour:00}:00 - {FormatLoss(cell.LossPercent, CultureInfo.InvariantCulture)}% lost ({cell.Lost} of {cell.Sent})")
                     + (cell.Repeats <= 1 ? ""

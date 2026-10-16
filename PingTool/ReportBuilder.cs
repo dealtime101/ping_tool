@@ -178,7 +178,7 @@ namespace PingTool
             if (grids.Count > 0)
             {
                 h.AppendLine("<h2>Loss by hour</h2>");
-                h.AppendLine("<p><small>Each square is one clock hour: <span class=\"hn gl\"></span> no ping, <span class=\"h0 gl\"></span> no loss, "
+                h.AppendLine("<p><small>Each square is one clock hour: <span class=\"hn gl\"></span> no ping (or an hour the clocks skipped, said when you hover it), <span class=\"h0 gl\"></span> no loss, "
                     + "<span class=\"h1 gl\"></span> up to 5 %, <span class=\"h2 gl\"></span> up to 30 %, <span class=\"h3 gl\"></span> more than 30 %. "
                     + "The stripes say it without the colours: one way, the other way, both ways. "
                     + $"The {Availability.MaxGridDays.ToString(c)} most recent days are shown. Hover a square for its figures, or open the text under the grid (they are also in the text of each square).</small></p>");
