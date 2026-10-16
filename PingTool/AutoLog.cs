@@ -206,9 +206,11 @@ namespace PingTool
                 if (total <= MaxRetiredPending) break;
 
                 var oldest = retired[0];
-                int drop = Math.Min(total - MaxRetiredPending, oldest.Pending);
                 lock (oldest.queue)
                 {
+                    // Counted under the lock that guards the queue: a flush in the background can have written (and removed) entries since
+                    // `total` was read, and a number taken before the lock could be longer than what is left.
+                    int drop = Math.Min(total - MaxRetiredPending, oldest.pending.Count);
                     if (drop > 0)
                     {
                         from ??= oldest.pending[0].Time;
