@@ -36,6 +36,12 @@ namespace PingTool
     // throws OperationCanceledException; every other failure comes back as a ProbeOutcome.
     internal static class ProbeRunner
     {
+        // How long a pooled connection of a client that lives as long as the program may be used: past it, the next request opens a new one
+        // and the name is resolved again. A connection that is used all the time never goes idle, so without this a program that runs
+        // for days keeps talking to the address the name had on the first day, after the service moved (a failover, a CDN).
+        // First in the class: the clients below are made by the initialisers of the fields, which run in the order of the text.
+        internal static readonly TimeSpan ConnectionLifetime = TimeSpan.FromMinutes(5);
+
         // One client for the whole program (a client per probe leaks sockets). No redirects: a 301
         // from the server means it answered, which is all this probe asks.
         private static readonly HttpClient Web = CreateWebClient();
@@ -64,9 +70,18 @@ namespace PingTool
 
         private static HttpClient CreateFamilyClient(int family)
         {
+            var handler = CreateFamilyHandler(family);
+            var client = new HttpClient(handler) { Timeout = Timeout.InfiniteTimeSpan };
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("PingTool/" + AppVersion.Number);
+            return client;
+        }
+
+        internal static SocketsHttpHandler CreateFamilyHandler(int family)
+        {
             var handler = new SocketsHttpHandler
             {
                 AllowAutoRedirect = false,
+                PooledConnectionLifetime = ConnectionLifetime,
                 AutomaticDecompression = DecompressionMethods.All,   // as for the plain client
                 ConnectCallback = async (context, ct) =>
                 {
@@ -91,9 +106,7 @@ namespace PingTool
                 },
             };
             handler.SslOptions.RemoteCertificateValidationCallback = (_, _, _, errors) => errors == SslPolicyErrors.None;
-            var client = new HttpClient(handler) { Timeout = Timeout.InfiniteTimeSpan };
-            client.DefaultRequestHeaders.UserAgent.ParseAdd("PingTool/" + AppVersion.Number);
-            return client;
+            return handler;
         }
 
         public static async Task<ProbeOutcome> RunAsync(ProbeTarget target, int timeoutMs, Ping ping, byte[]? buffer, CancellationToken token)

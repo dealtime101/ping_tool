@@ -171,6 +171,10 @@ namespace PingTool
 
         private readonly TimeSpan closeGrace;
 
+        // The handler of the real sender. The program may run for days with this one client: its connections are renewed after a few
+        // minutes (ConnectionLifetime), so that a receiver that moved to another address (a failover, a CDN) is reached again.
+        internal static SocketsHttpHandler CreateHandler() => new() { AllowAutoRedirect = false, PooledConnectionLifetime = ProbeRunner.ConnectionLifetime };
+
         public WebhookSender(IEnumerable<Uri> urls, string version, HttpMessageHandler? handler = null,
                              TimeSpan[]? retryDelays = null, TimeSpan? timeout = null, TimeSpan? closeGrace = null)
         {
@@ -179,7 +183,7 @@ namespace PingTool
             this.timeout = timeout ?? DefaultTimeout;
             this.retryDelays = retryDelays ?? DefaultRetryDelays;
             // No redirects: a POST that is redirected is turned into a GET by some servers, and the alert would be lost silently.
-            http = new HttpClient(handler ?? new SocketsHttpHandler { AllowAutoRedirect = false }) { Timeout = Timeout.InfiniteTimeSpan };
+            http = new HttpClient(handler ?? CreateHandler()) { Timeout = Timeout.InfiniteTimeSpan };
 
             var all = urls.ToList();
             var labels = WebhookPayload.Labels(all);
