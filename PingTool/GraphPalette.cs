@@ -31,7 +31,14 @@ namespace PingTool
         // The line pattern of the n-th line, as an index into Patterns (0 solid, 1 dash, 2 dot, 3 dash-dot). The colours come round every
         // `colours` lines; the pattern changes each time they do, so that no two lines look alike before colours x patterns lines
         // (24 in the dark palette, 16 in high contrast). The first round is solid in the dark palette.
-        public int Dash(int index) => (Math.Max(0, index) / Colours) % Patterns;
+        // In high contrast the four colours are the ones of the user's theme, and some themes give two of them alike or nearly: the first
+        // four lines must not rest on the colour alone, so the pattern moves on with every line AND with every round (i + i / 4), which
+        // still gives 16 different pairs of colour and pattern.
+        public int Dash(int index)
+        {
+            int i = Math.Max(0, index);
+            return highContrast ? (i + i / HighContrastColours) % Patterns : (i / Colours) % Patterns;
+        }
         public const int Patterns = 4;
         public const int HighContrastColours = 4;
         private int Colours => highContrast ? HighContrastColours : HostPalette.Count;
