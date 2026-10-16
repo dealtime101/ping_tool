@@ -39,6 +39,10 @@ namespace PingTool
             return (first + rows >= total ? pages : first / rows + 1, pages);
         }
 
+        // How high the strip of the loss ticks is for `count` compared hosts on a graph `height` high: SharedPixels, or one pixel per host
+        // when there are more, but never more than a third of the graph (the curves need the rest).
+        public static int StripPixels(int count, int height) => Math.Clamp(count, SharedPixels, Math.Max(SharedPixels, height / 3));
+
         // Where the tick of a lost ping is drawn (from the baseline upwards), as (y of the bottom end, y of the top end).
         // One host: as it always was. Several compared hosts end at the same "now": drawn in the same place, the last would hide
         // the others, so each host gets its OWN band of the shared strip above the baseline (host 0 lowest), the bands side by
@@ -50,10 +54,12 @@ namespace PingTool
             // The tick is as long as its band, so never less than one pixel: with 7 hosts or more the band is 1 and a tick from
             // "bottom" to "bottom - 1 + 1" was a line from a point to itself, which the pen (flat ends) does not draw at all. The bands
             // follow each other without a gap or an overlap (the top of one is the bottom of the next).
-            // The strip is SharedPixels high, whatever the number of hosts: beyond the bands it holds (12 of one pixel) the next hosts take
-            // the places of the first ones again (the colours repeat after six hosts anyway), instead of the ticks climbing out of the strip.
-            int band = Math.Clamp(SharedPixels / count, 1, 4);
-            int slots = Math.Max(1, SharedPixels / band);
+            // The strip is SharedPixels high up to twelve hosts (bands of one pixel at the narrowest); more hosts widen it, one pixel each, up
+            // to a third of the graph, so that each of them still has its own place. Beyond that the next hosts take the places of the first
+            // ones again (the colours repeat after six hosts anyway) instead of the ticks climbing out of the strip.
+            int strip = StripPixels(count, height);
+            int band = Math.Clamp(strip / count, 1, 4);
+            int slots = Math.Max(1, strip / band);
             float bottom = Math.Max(0, height - 1 - (Math.Max(0, index) % slots) * band);
             return (bottom, Math.Max(0, bottom - band));
         }
