@@ -430,8 +430,9 @@
          1.21.352 = a private address that is not in the network of any card of the PC (behind a router, at the far end of a VPN) is no longer taken for a local device by the diagnosis (PIN507.102)
          1.21.353 = the list of incidents selects one row at a time, so the route shown is always that of the incident marked (PIN507.103)
          1.21.354 = a report, an archive, a comparison or an export of profiles is written to a file of its own and then replaces the target, so a failing write no longer destroys the last good file (PIN507.104)
-         1.21.355 = the limit of a hole in a log is worked out without overflowing, whatever the dates of the pings (PIN507.105) -->
-    <Version>1.21.355</Version>
+         1.21.355 = the limit of a hole in a log is worked out without overflowing, whatever the dates of the pings (PIN507.105)
+         1.21.356 = the summary of the graph in French agrees "perdu" with the number of pings lost, not with the number of pings (PIN507.106) -->
+    <Version>1.21.356</Version>
   </PropertyGroup>
 
   <ItemGroup>

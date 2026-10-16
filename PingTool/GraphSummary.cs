@@ -36,7 +36,7 @@ namespace PingTool
             string trend = alone ? Trend(s.Samples, c) : "";
             // "ping" or "pings" with the count: a screen reader says this sentence aloud, and the first one it reads at the start of a run is "of the last 1 ping".
             // The words come from the language of the window (Loc), the numbers from the regional format.
-            return Loc.T(recent.Samples == 1 ? "graph.line.one" : "graph.line.many", who, lastText, p95, recent.Lost.ToString(c), recent.Samples.ToString(c), trend);
+            return Loc.T(recent.Samples == 1 ? "graph.line.one" : "graph.line.many", who, lastText, p95, recent.Lost.ToString(c), recent.Samples.ToString(c), trend, Loc.Lost(recent.Lost));
         }
 
         public const int TrendParts = 4;

@@ -53,9 +53,10 @@ namespace PingTool
             ["graph.last.lost"] = ("last ping lost", "dernier ping perdu"),
             ["graph.last"] = ("last {0} ms", "dernier ping : {0} ms"),
             ["graph.p95"] = (", 95th percentile {0} ms", ", 95e centile {0} ms"),
-            // {0} target, {1} last ping, {2} percentile, {3} lost, {4} how many pings, {5} trend; one ping and several pings are two sentences
+            // {0} target, {1} last ping, {2} percentile, {3} lost, {4} how many pings, {5} trend, {6} the lost count with its word ("1 perdu",
+            // "3 perdus": the agreement follows the number LOST, not the number of pings, see Loc.Lost); one ping and several pings are two sentences
             ["graph.line.one"] = ("{0}: {1}{2}, {3} of the last {4} ping lost{5}", "{0} : {1}{2}, {3} perdu sur {4} ping{5}"),
-            ["graph.line.many"] = ("{0}: {1}{2}, {3} of the last {4} pings lost{5}", "{0} : {1}{2}, {3} perdus sur les {4} derniers pings{5}"),
+            ["graph.line.many"] = ("{0}: {1}{2}, {3} of the last {4} pings lost{5}", "{0} : {1}{2}, {6} sur les {4} derniers pings{5}"),
             ["graph.trend"] = ("; over the window, oldest first: {0}", " ; sur la fenêtre, du plus ancien au plus récent : {0}"),
             ["graph.trend.part"] = ("{0} {1}", "{0}, {1}"),   // {1} is a count.lost phrase
             ["graph.noreply"] = ("no reply", "aucune réponse"),
