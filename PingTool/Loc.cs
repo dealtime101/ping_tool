@@ -28,6 +28,7 @@ namespace PingTool
             ["timeline.slowest"] = ("Highest average: {0} ms around {1}", "Moyenne la plus haute : {0} ms vers {1}"),
             ["timeline.lossiest"] = ("Most losses: {0}% of the pings ({1} of {2}) around {3}", "Le plus de pertes : {0} % des pings ({1} sur {2}) vers {3}"),
             ["timeline.peak"] = ("Highest reply: {0} ms, above the scale of the chart ({1} ms): those columns are cut at the top and marked.", "Réponse la plus haute : {0} ms, au-dessus de l'échelle du graphique ({1} ms) : ces colonnes sont coupées en haut et marquées."),
+            ["timeline.axis.top"] = ("{0} ms", "{0} ms"),   // the top value of the vertical axis; a language that writes the unit another way changes it here
             ["timeline.axis.clipped"] = ("{0} ms (peak {1})", "{0} ms (pic {1})"),
             ["timeline.incidents.none"] = ("No incident on this host in this period.", "Aucun incident sur cet hôte pendant cette période."),
             ["timeline.incidents"] = ("Incidents: {0}.", "Incidents : {0}."),

@@ -51,7 +51,7 @@ namespace PingTool
         protected override void OnGotFocus(EventArgs e) { base.OnGotFocus(e); Invalidate(); }
         protected override void OnLostFocus(EventArgs e) { base.OnLostFocus(e); Invalidate(); }
 
-        private static string TopLabel(TimelineData d) => d.IsClipped ? Loc.T("timeline.axis.clipped", d.TopMs, d.PeakMs) : d.TopMs + " ms";
+        private static string TopLabel(TimelineData d) => d.IsClipped ? Loc.T("timeline.axis.clipped", d.TopMs, d.PeakMs) : Loc.T("timeline.axis.top", d.TopMs);
 
         public int PlotWidth => Math.Max(20, Width - LeftMargin - RightMargin);
 
