@@ -106,7 +106,10 @@ namespace PingTool
             string? nothing = Timeline.NothingToDraw(data.IsEmpty, plotH);
             if (nothing is not null)
             {
-                g.DrawString(nothing, Font, grey, LeftMargin, TopMargin + Px(4));
+                // In the room there is, line by line: a long sentence (the French one is the longest) in a narrow chart, or at a high scale of
+                // the screen, goes on a second line and is not cut by the edge. Room for three lines; the control cuts what is below.
+                float room = Math.Max(Px(20), Width - LeftMargin - Px(6));
+                g.DrawString(nothing, Font, grey, new RectangleF(LeftMargin, TopMargin + Px(4), room, 3f * Font.Height));
                 return;
             }
 
