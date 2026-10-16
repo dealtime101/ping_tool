@@ -100,7 +100,6 @@
             cmbAddress.Size = new Size(220, 23);
             cmbAddress.TabIndex = 1;
             cmbAddress.Text = "google.ca";
-            cmbAddress.AccessibleName = "Address to monitor";
             // 
             // btnStartStop
             // 
