@@ -44,24 +44,30 @@ def dot_is_apart(frame: Image.Image, size: int) -> bool:
                 runs.append([x, x])
     return len(runs) >= 2 and runs[-1][0] - runs[-2][1] >= 2
 
-# Where the project is, found from where this script is (tools/ is next to PingTool/), not from the folder it was started in: from
-# anywhere else the relative name failed, or wrote an icon in a PingTool folder that was not this one.
-OUT = Path(__file__).resolve().parent.parent / "PingTool" / "PingTool.ico"
-if not OUT.parent.is_dir():
-    raise SystemExit(f"The folder {OUT.parent} is not there: this script belongs in tools/, next to the PingTool/ project folder.")
-frames = [draw(n) for n in SIZES]
-for n, frame in zip(SIZES, frames):
-    if not dot_is_apart(frame, n):
-        raise SystemExit(f"In the {n}px icon the dot touches the end of the line: the pulse would read as one blot at that size.")
-frames[-1].save(OUT, format="ICO", sizes=[(n, n) for n in SIZES], append_images=frames[:-1])
+def main() -> None:
+    # Where the project is, found from where this script is (tools/ is next to PingTool/), not from the folder it was started in: from
+    # anywhere else the relative name failed, or wrote an icon in a PingTool folder that was not this one.
+    out = Path(__file__).resolve().parent.parent / "PingTool" / "PingTool.ico"
+    if not out.parent.is_dir():
+        raise SystemExit(f"The folder {out.parent} is not there: this script belongs in tools/, next to the PingTool/ project folder.")
+    frames = [draw(n) for n in SIZES]
+    for n, frame in zip(SIZES, frames):
+        if not dot_is_apart(frame, n):
+            raise SystemExit(f"In the {n}px icon the dot touches the end of the line: the pulse would read as one blot at that size.")
+    frames[-1].save(out, format="ICO", sizes=[(n, n) for n in SIZES], append_images=frames[:-1])
 
-# Every size is drawn on its own (a thicker line on the small ones), and only a Pillow that takes append_images for ICO keeps them: an
-# older one reduces the biggest image to the other sizes instead, and the small icons come out thin with no sign of it. The file is read
-# back and each size compared with the picture drawn for it, so that the fault shows here and not in a notification area.
-written = Image.open(OUT)
-for n, frame in zip(SIZES, frames):
-    stored = written.ico.getimage((n, n)).convert("RGBA")
-    if ImageChops.difference(stored, frame.convert("RGBA")).getbbox() is not None:
-        raise SystemExit(f"The {n}px icon in {OUT} is not the one drawn for that size: this Pillow ({PIL.__version__}) does not keep "
-                         "append_images for ICO and reduced the big image instead. Update Pillow and run again.")
-print("wrote", OUT, SIZES, "- each size checked against the picture drawn for it")
+    # Every size is drawn on its own (a thicker line on the small ones), and only a Pillow that takes append_images for ICO keeps them: an
+    # older one reduces the biggest image to the other sizes instead, and the small icons come out thin with no sign of it. The file is read
+    # back and each size compared with the picture drawn for it, so that the fault shows here and not in a notification area.
+    written = Image.open(out)
+    for n, frame in zip(SIZES, frames):
+        stored = written.ico.getimage((n, n)).convert("RGBA")
+        if ImageChops.difference(stored, frame.convert("RGBA")).getbbox() is not None:
+            raise SystemExit(f"The {n}px icon in {out} is not the one drawn for that size: this Pillow ({PIL.__version__}) does not keep "
+                             "append_images for ICO and reduced the big image instead. Update Pillow and run again.")
+    print("wrote", out, SIZES, "- each size checked against the picture drawn for it")
+
+
+# Only when run: importing the script (to reuse draw(), or to read it) must not draw and overwrite the committed icon.
+if __name__ == "__main__":
+    main()

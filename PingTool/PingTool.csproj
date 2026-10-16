@@ -561,8 +561,9 @@
          1.21.483 = dns:// no longer asks CheckHostName whether a name is an address after IPAddress.TryParse said no: it never differed (PIN507.348)
          1.21.484 = the "shown once" flag of the unexpected-error box is taken with Interlocked, so two errors at once show it once (PIN507.350)
          1.21.485 = a French text of the table has a no-break space before : ; ? ! % and » and after «, so a line never begins with a lone "%" or ":" (PIN507.352)
-         1.21.486 = the IPv4-mapped address is turned into IPv4 by one rule in HostSession (Unmapped), used by SetIp and Describe, instead of two copies (PIN507.355) -->
-    <Version>1.21.486</Version>
+         1.21.486 = the IPv4-mapped address is turned into IPv4 by one rule in HostSession (Unmapped), used by SetIp and Describe, instead of two copies (PIN507.355)
+         1.21.487 = tools/make-icon.py draws and writes the icon only when it is run, not when it is imported (PIN507.360) -->
+    <Version>1.21.487</Version>
   </PropertyGroup>
 
   <ItemGroup>
