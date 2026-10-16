@@ -38,7 +38,7 @@ namespace PingTool
         private static readonly System.Text.RegularExpressions.Regex UserInfo = new(@"(?<=://)[^/\s:@]+:[^/\s@]+@", System.Text.RegularExpressions.RegexOptions.Compiled);
         private static readonly System.Text.RegularExpressions.Regex Query = new(@"(?<url>[a-z][a-z0-9+.-]*://[^\s?#""'<>]+)\?[^\s""'<>]*", System.Text.RegularExpressions.RegexOptions.Compiled | System.Text.RegularExpressions.RegexOptions.IgnoreCase);
         private static readonly System.Text.RegularExpressions.Regex Bearer = new(@"\b(Bearer|Basic)\s+[A-Za-z0-9._~+/=-]{8,}", System.Text.RegularExpressions.RegexOptions.Compiled | System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-        private static readonly System.Text.RegularExpressions.Regex Named = new(@"\b(?<name>token|password|passwd|secret|api[_-]?key|authorization|access[_-]?key)(?<sep>\s*[=:]\s*)(?<value>[^\s&;,""']+)", System.Text.RegularExpressions.RegexOptions.Compiled | System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        private static readonly System.Text.RegularExpressions.Regex Named = new(@"\b(?<name>token|password|passwd|secret|api[_-]?key|access[_-]?key)(?<sep>\s*[=:]\s*)(?<value>[^\s&;,""']+)", System.Text.RegularExpressions.RegexOptions.Compiled | System.Text.RegularExpressions.RegexOptions.IgnoreCase);
 
         // The file is attached to bug reports. What an exception says can hold a secret that the program does not know it holds: the user and
         // password of an address (https://user:pass@host), the query of an address (?token=...), an Authorization header, a value after
@@ -47,7 +47,7 @@ namespace PingTool
         internal static string RemoveSecrets(string text)
         {
             foreach (string secret in knownSecrets) text = text.Replace(secret, "(webhook address)", StringComparison.Ordinal);
-            text = UserInfo.Replace(text, "(user removed)@");
+            text = UserInfo.Replace(text, "***@");   // no space in it: the address must still read as one for the query rule below
             text = Query.Replace(text, "${url}?(query removed)");
             text = Bearer.Replace(text, "$1 (removed)");
             return Named.Replace(text, "${name}${sep}(removed)");
