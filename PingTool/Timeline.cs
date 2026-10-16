@@ -240,6 +240,14 @@ namespace PingTool
             }
         }
 
+        // The pattern of a mark of the axis, in the clock of the culture like the other times of the timeline ("6:00 PM" where people
+        // read 12 hours, "18:00" where they read 24): with seconds under a minute, with the day before it when the axis spans days.
+        internal static string AxisFormat(CultureInfo c, long step, bool withDate)
+        {
+            string time = step < 60 ? c.DateTimeFormat.LongTimePattern : c.DateTimeFormat.ShortTimePattern;
+            return withDate ? MonthDay(c) + " " + time : time;
+        }
+
         private static List<(DateTimeOffset Time, string Label)> TicksAt(DateTimeOffset from, DateTimeOffset to, long step, TimeZoneInfo zone)
         {
             double span = Math.Max(1, (to - from).TotalSeconds);
@@ -250,8 +258,7 @@ namespace PingTool
             double firstIndex = Math.Ceiling(local.TimeOfDay.TotalSeconds / step);
 
             bool withDate = localTo.Date != local.Date || span >= 86400;
-            string format = step < 60 ? "HH:mm:ss" : "HH:mm";
-            if (withDate) format = MonthDay(CultureInfo.CurrentCulture) + " " + format;
+            string format = AxisFormat(CultureInfo.CurrentCulture, step, withDate);
 
             // Whole days are counted on the local calendar: a day across a daylight-saving change lasts 23 or 25 hours,
             // and "midnight + 86400 s" would land at 23:00 or 01:00.
