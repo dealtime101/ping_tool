@@ -460,8 +460,9 @@
          1.21.382 = the remark row of an incomplete log has the five fields of the header, the reader taking the old row with one field as well (PIN507.141)
          1.21.383 = the alert of a degradation by the voice quality is told as such also when no average is given (PIN507.143)
          1.21.384 = the width of the Host column takes the screen scaling from its caller, with no default of 96 DPI to forget (PIN507.144)
-         1.21.385 = the script that draws the icon reads the file back and checks that each size is the picture drawn for it (PIN507.146; no change to the program) -->
-    <Version>1.21.385</Version>
+         1.21.385 = the script that draws the icon reads the file back and checks that each size is the picture drawn for it (PIN507.146; no change to the program)
+         1.21.386 = the contrast of a colour with an alpha channel is worked out on the colour as it looks over its background; one formula for the window and the graph (PIN507.147) -->
+    <Version>1.21.386</Version>
   </PropertyGroup>
 
   <ItemGroup>

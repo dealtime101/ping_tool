@@ -33,23 +33,9 @@ namespace PingTool
 
         internal static Color Readable(Color candidate, Color text, Color back) => Contrast(candidate, back) >= MinContrast ? candidate : text;
 
-        // The contrast ratio of two colours, 1 (alike) to 21 (black on white), from their relative luminance as WCAG defines it.
-        internal static double Contrast(Color a, Color b)
-        {
-            double la = Luminance(a), lb = Luminance(b);
-            return (Math.Max(la, lb) + 0.05) / (Math.Min(la, lb) + 0.05);
-        }
-
-        private static double Luminance(Color c)
-        {
-            static double Channel(byte v)
-            {
-                double s = v / 255.0;
-                return s <= 0.03928 ? s / 12.92 : Math.Pow((s + 0.055) / 1.055, 2.4);
-            }
-
-            return 0.2126 * Channel(c.R) + 0.7152 * Channel(c.G) + 0.0722 * Channel(c.B);
-        }
+        // The contrast ratio of two colours, 1 (alike) to 21 (black on white), from their relative luminance as WCAG defines it: the one
+        // formula of the program (UiColors.Contrast), which reads a colour with an alpha channel as it looks over the background.
+        internal static double Contrast(Color a, Color b) => UiColors.Contrast(a, b);
 
         // A lost ping: red when one host is shown, its host's colour when several are compared (so you can tell whose it is).
         public Color Loss(bool compare, Color seriesColor) => compare ? seriesColor : highContrast ? Readable(SystemColors.HotTrack, SystemColors.WindowText, SystemColors.Window) : Color.Red;
