@@ -257,8 +257,10 @@ namespace PingTool
                 .Distinct(TargetKey.Comparer).ToList();   // the same rule as MainForm.AddHost
             TargetOptions = PingTool.TargetOptions.Clean(TargetOptions!);
             var leftOut = new List<string>();
-            Profiles = ProfileBook.Sanitize(Profiles, leftOut);
+            var trimmed = new List<string>();
+            Profiles = ProfileBook.Sanitize(Profiles, leftOut, trimmed);
             if (leftOut.Count > 0) AddProblem(ProfileBook.DescribeLeftOut(leftOut));
+            if (trimmed.Count > 0) AddProblem(ProfileBook.DescribeTrimmed(trimmed));
         }
 
         // What loading had to say: several things can be said at once (a webhook left out AND a profile left out), each on its own line.

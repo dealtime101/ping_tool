@@ -214,7 +214,9 @@ namespace PingTool
         // a missing host list, more profiles than allowed. Keeps what is usable, first one wins.
         // leftOut: when given, receives one line per profile that was not kept and why, so that the caller can say it (nothing is lost
         // silently: a profile of a hand-edited file that vanishes with all its hosts, with no word, is worse than a refusal).
-        public static List<Profile> Sanitize(IEnumerable<Profile?>? loaded, List<string>? leftOut = null)
+        // trimmed: when given, receives one line per profile that was KEPT but with part of its content dropped (hosts beyond the limit, the
+        // names and limits of targets it does not hold), for DescribeTrimmed.
+        public static List<Profile> Sanitize(IEnumerable<Profile?>? loaded, List<string>? leftOut = null, List<string>? trimmed = null)
         {
             var clean = new List<Profile>();
             foreach (var p in loaded ?? Enumerable.Empty<Profile?>())
@@ -256,18 +258,35 @@ namespace PingTool
                 p.DegradedMos = Limits.ClampMos(p.DegradedMos);
                 p.DownAfter = Limits.Clamp(p.DownAfter, Limits.DownAfter);
                 // Same rules as an imported profile: one entry per address (case ignored), at most MaxHostsPerProfile.
-                p.Hosts = (p.Hosts ?? new List<string>()).Where(h => !string.IsNullOrWhiteSpace(h)).Select(h => h.Trim())
-                    .Distinct(TargetKey.Comparer).Take(ProfileExchange.MaxHostsPerProfile).ToList();
+                // A blank entry is not a target and a repeat of one is the same target: neither is a loss. Hosts beyond the limit are.
+                var distinctHosts = (p.Hosts ?? new List<string>()).Where(h => !string.IsNullOrWhiteSpace(h)).Select(h => h.Trim())
+                    .Distinct(TargetKey.Comparer).ToList();
+                p.Hosts = distinctHosts.Take(ProfileExchange.MaxHostsPerProfile).ToList();
                 // The names and limits are those "of some of the hosts above": an entry for an address the profile does not hold (left out,
                 // empty, or cut by the limit on hosts) would be applied to the table of the whole window when the profile is loaded.
                 var held = new HashSet<string>(p.Hosts, TargetKey.Comparer);
-                p.TargetOptions = PingTool.TargetOptions.Clean(p.TargetOptions!)
-                    .Where(entry => held.Contains(entry.Key)).ToDictionary(entry => entry.Key, entry => entry.Value, TargetKey.Comparer);
+                var cleaned = PingTool.TargetOptions.Clean(p.TargetOptions!);
+                p.TargetOptions = cleaned.Where(entry => held.Contains(entry.Key)).ToDictionary(entry => entry.Key, entry => entry.Value, TargetKey.Comparer);
+
+                // What the profile keeps is less than the file held: said, with the profile's name, not only done.
+                int cutHosts = distinctHosts.Count - p.Hosts.Count, cutOptions = cleaned.Count - p.TargetOptions.Count;
+                if (trimmed is not null && (cutHosts > 0 || cutOptions > 0))
+                {
+                    var parts = new List<string>();
+                    if (cutHosts > 0) parts.Add($"{cutHosts} host(s) beyond the limit of {ProfileExchange.MaxHostsPerProfile} per profile");
+                    if (cutOptions > 0) parts.Add($"{cutOptions} name(s) or limit(s) of targets that are not in the profile");
+                    trimmed.Add($"\"{Clip(name)}\": {string.Join(" and ", parts)}");
+                }
+
                 clean.Add(p);
             }
 
             return clean;
         }
+
+        // The sentence for the profiles that were loaded but not whole (see Sanitize): how many, then the first reasons.
+        public static string DescribeTrimmed(IReadOnlyList<string> trimmed) =>
+            $"{trimmed.Count} profile(s) in settings.json were loaded with part of their content left out: {string.Join("; ", trimmed.Take(3))}{(trimmed.Count > 3 ? $" (and {trimmed.Count - 3} more)" : "")}.";
 
         private static string Clip(string text) => text.Length <= 20 ? text : TextCut.Units(text, 20) + "...";
 
