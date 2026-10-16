@@ -269,7 +269,7 @@ namespace PingTool
 
             string typed = host.Trim();
             string safe = name.ToString().Trim('.', ' ');
-            if (safe.Length > MaxNameLength) safe = safe[..MaxNameLength].TrimEnd('.', ' ');
+            if (safe.Length > MaxNameLength) safe = TextCut.Units(safe, MaxNameLength).TrimEnd('.', ' ');   // a file name never ends on half an emoji
             if (safe.Length == 0) safe = "host";
 
             // A name that had to be changed (a character replaced, cut short) could be the same for another host ("x:1" and "x_1"):

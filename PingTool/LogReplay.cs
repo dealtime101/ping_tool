@@ -62,7 +62,7 @@ namespace PingTool
         private static string Unprotect(string field) =>
             field.Length > 1 && field[0] == '\'' && PingLog.NeedsProtection(field[1..]) ? field[1..] : field;
 
-        private static string Clip(string s) => s.Length <= 30 ? s : s[..30] + "...";
+        private static string Clip(string s) => s.Length <= 30 ? s : TextCut.Units(s, 30) + "...";
 
         // RFC 4180: quoted fields may hold commas, quotes ("") and line breaks.
         // One row at a time, as the reader asks for it (a row is handed over as soon as its line ends).

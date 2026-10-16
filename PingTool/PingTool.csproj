@@ -441,8 +441,9 @@
          1.21.363 = the description of the curve is cut by stretches of time when the graph places the pings by their times, and says where nothing was measured (PIN507.115)
          1.21.364 = the hours of the grid keep their UTC offset, and a clock hour that happened twice says so even when only one of the two was measured (PIN507.116)
          1.21.365 = the size a minimized or maximized window comes back to is worked out from the frame its style gives, not from the size of the window as it is (PIN507.117)
-         1.21.366 = the key of an http(s) target ignores the case of its host and not that of its user name and password (PIN507.118) -->
-    <Version>1.21.366</Version>
+         1.21.366 = the key of an http(s) target ignores the case of its host and not that of its user name and password (PIN507.118)
+         1.21.367 = a text of the user (a legend name, a note, a name quoted in a message, a log file name) is never cut through a character: one cut, TextCut (PIN507.119) -->
+    <Version>1.21.367</Version>
   </PropertyGroup>
 
   <ItemGroup>

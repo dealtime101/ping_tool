@@ -144,7 +144,7 @@ namespace PingTool
             // Kept for the message that says no gateway was found (Debug output does not exist in a release build): without it a missing
             // gateway reads as "the PC is not connected" when a card the router is on could not be read.
             LastCardProblem = skipped == 0 ? null : string.Create(CultureInfo.InvariantCulture,
-                $"{skipped} network card(s) could not be read ({(why is { Length: > 80 } ? why[..77] + "..." : why)}): the gateway may be on one of them.");
+                $"{skipped} network card(s) could not be read ({(why is { Length: > 80 } ? TextCut.Units(why, 77) + "..." : why)}): the gateway may be on one of them.");
             return snapshots;
         }
 

@@ -269,7 +269,7 @@ namespace PingTool
             return clean;
         }
 
-        private static string Clip(string text) => text.Length <= 20 ? text : text[..20] + "...";
+        private static string Clip(string text) => text.Length <= 20 ? text : TextCut.Units(text, 20) + "...";
 
         // The sentence for the start-up message: how many, then the first reasons (three at most, the rest counted).
         public static string DescribeLeftOut(IReadOnlyList<string> leftOut) =>

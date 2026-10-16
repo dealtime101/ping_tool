@@ -1805,18 +1805,9 @@ namespace PingTool
             }
         }
 
-        // The name cut (with an ellipsis) until it fits `room` pixels.
-        private string FitName(Graphics g, string name, float room)
-        {
-            if (g.MeasureString(name, Font).Width <= room) return name;
-            for (int n = name.Length - 1; n > 1; n--)
-            {
-                string cut = name[..n] + "…";
-                if (g.MeasureString(cut, Font).Width <= room) return cut;
-            }
-
-            return "…";
-        }
+        // The name cut (with an ellipsis) until it fits `room` pixels: a character at a time, never through the two halves of an emoji.
+        private string FitName(Graphics g, string name, float room) =>
+            TextCut.Ellipsize(name, text => g.MeasureString(text, Font).Width <= room);
 
         private bool InLegend(Point p) =>
             compare && series.Count > 0 && p.X >= legendLeft && p.Y < (legendRows + (series.Count > legendRows ? 1 : 0)) * Font.Height;

@@ -215,7 +215,7 @@ namespace PingTool
             throw new IOException("The settings file could not be read when PingTool started and no free name was found for a copy of it: it was not replaced.");
         }
 
-        private static string Short(string message) => message.Length <= 160 ? message : message[..160] + "...";
+        private static string Short(string message) => message.Length <= 160 ? message : TextCut.Units(message, 160) + "...";
 
         // Makes whatever was read usable: numbers pulled into range, lists free of nulls, blanks,
         // duplicates and excess ("Recent": null would otherwise throw later, far from the cause).

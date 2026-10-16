@@ -19,7 +19,7 @@ namespace PingTool
         {
             string clean = string.Join(' ', new string((note ?? "").Where(c => !char.IsControl(c) || char.IsWhiteSpace(c)).ToArray())
                 .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
-            if (clean.Length > MaxNoteLength) clean = clean[..MaxNoteLength];
+            if (clean.Length > MaxNoteLength) clean = TextCut.Units(clean, MaxNoteLength);   // not through an emoji
             if (clean.Length == 0) return null;
 
             return new NetworkEvent(time, target is null ? clean : target + ": " + clean, Note: true);
@@ -66,7 +66,7 @@ namespace PingTool
             {
                 if (failureSaid) return (last, null);
                 failureSaid = true;
-                string why = LastReadError is { Length: > 0 } reason ? reason.Length <= 80 ? reason : reason[..77] + "..." : "no reason given";
+                string why = LastReadError is { Length: > 0 } reason ? reason.Length <= 80 ? reason : TextCut.Units(reason, 77) + "..." : "no reason given";
                 return (last, $"The network cards could not be read ({why}): changes of the network are not recorded until they can be.");
             }
 
@@ -134,7 +134,7 @@ namespace PingTool
             // Only the cards with an IPv4 address are followed (see Snapshot): when none is left it is that which is said, not a "lost
             // connection" - a PC whose network is IPv6 may well still be connected.
             string line = after.Count == 0 ? "No network card with an IPv4 address is up now; " + string.Join("; ", parts) : string.Join("; ", parts);
-            return line.Length <= MaxTextLength ? line : line[..(MaxTextLength - 3)] + "...";
+            return line.Length <= MaxTextLength ? line : TextCut.Units(line, MaxTextLength - 3) + "...";   // the names of the cards are the user's: not through a character
         }
     }
 }
