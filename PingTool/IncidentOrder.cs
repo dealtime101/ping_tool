@@ -19,7 +19,7 @@ namespace PingTool
                 End => (a.End ?? DateTimeOffset.MaxValue).CompareTo(b.End ?? DateTimeOffset.MaxValue),   // an ongoing incident ends "last"
                 Duration => a.Duration(now).CompareTo(b.Duration(now)),
                 Failed => FailedOf(a).CompareTo(FailedOf(b)),
-                Cause => string.Compare(CauseOf(a), CauseOf(b), StringComparison.OrdinalIgnoreCase),   // the program's own English words and figures
+                Cause => CompareCause(a, b),
                 Number => a.Occurrence.CompareTo(b.Occurrence),
                 _ => 0,
             };
@@ -37,9 +37,19 @@ namespace PingTool
         // A slowdown has no failed pings: it counts as none, so it sorts below every outage.
         private static int FailedOf(Incident i) => i.Kind == IncidentKind.Outage ? i.FailedPings : -1;
 
-        // What the "Cause / detail" column shows is the cause of an outage and the figures of a slowdown: sort on the same text.
-        // (the text of the shared formatter the list itself uses, not a copy of it: the two cannot drift apart)
-        private static string CauseOf(Incident i) => IncidentLog.CauseText(i, System.Globalization.CultureInfo.CurrentCulture);
+        // What the "Cause / detail" column shows is the cause of an outage (words) and the figures of a slowdown (numbers). The outages go
+        // before the slowdowns (as in the column Type); the outages are put in the order of their cause, as text (the program's own English
+        // words), and the slowdowns in the order of their FIGURES, the loss and then the average: as text "950 ms" came after "1200 ms", and
+        // a thousands separator of the regional format could change the order.
+        private static int CompareCause(Incident a, Incident b)
+        {
+            int kinds = a.Kind.CompareTo(b.Kind);
+            if (kinds != 0) return kinds;
+            if (a.Kind == IncidentKind.Outage) return string.Compare(a.Cause, b.Cause, StringComparison.OrdinalIgnoreCase);
+
+            int loss = a.LossPercent.CompareTo(b.LossPercent);
+            return loss != 0 ? loss : (a.AvgMs ?? -1).CompareTo(b.AvgMs ?? -1);   // no average (a window with no reply) sorts first
+        }
 
         // The keyboard way to the same sort (a column header takes no focus, so a click is out of reach without a mouse): Ctrl+1 is the
         // first column, Ctrl+2 the second... digit is the number on the key, 1 to 9. null when there is no such column.
