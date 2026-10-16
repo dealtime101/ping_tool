@@ -348,5 +348,20 @@ namespace PingTool
             base.OnSystemColorsChanged(e);
             ApplyColors();
         }
+
+        // The text of the summary does not depend on the font or on the screen, but the height it needs does: laid out again when either
+        // changes (a change of size already does it), with the chart taking what is left. The language of the texts is that of Windows and
+        // does not change while the window is open.
+        protected override void OnFontChanged(EventArgs e)
+        {
+            base.OnFontChanged(e);
+            layoutBottom?.Invoke();
+        }
+
+        protected override void OnDpiChanged(DpiChangedEventArgs e)
+        {
+            base.OnDpiChanged(e);
+            layoutBottom?.Invoke();
+        }
     }
 }
