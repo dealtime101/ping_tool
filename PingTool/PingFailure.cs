@@ -54,10 +54,29 @@ namespace PingTool
             _ => new("Rejected", "The destination reports the protocol as unreachable or the traffic as prohibited (one status code covers both): either the host does not support the protocol (IPv4, not a filtering rule) or a filtering rule is in the way (IPv6). The address family is not known here: find out whether the target is reached over IPv4 or IPv6 to tell which."),
         };
 
+        // The first exception of type T in what was thrown: the exception itself, then its InnerException, and theirs, also through an
+        // AggregateException (a task that failed), the nearest first. The component that threw may wrap the error that explains it by
+        // any number of layers (the HTTP layer, a stream, a task), and looking at the first only called a refused connection "Error".
+        // Bounded: the search looks at 64 exceptions at most, so that a chain of any length (or one that came back on itself) ends.
+        internal static T? Find<T>(Exception ex) where T : Exception
+        {
+            var queue = new Queue<Exception>();
+            queue.Enqueue(ex);
+            for (int looked = 0; queue.Count > 0 && looked < 64; looked++)
+            {
+                var current = queue.Dequeue();
+                if (current is T found) return found;
+                if (current is AggregateException aggregate) foreach (var inner in aggregate.InnerExceptions) queue.Enqueue(inner);
+                else if (current.InnerException is { } next) queue.Enqueue(next);
+            }
+
+            return null;
+        }
+
         public static PingFailure From(Exception ex)
         {
             // Ping wraps the socket error that explains it.
-            var socket = ex as SocketException ?? ex.InnerException as SocketException;
+            var socket = Find<SocketException>(ex);
             return socket?.SocketErrorCode switch
             {
                 SocketError.HostNotFound
@@ -89,13 +108,13 @@ namespace PingTool
                 // A deadline that ran out is a Timeout whether the socket reported it or the HTTP layer did (a request that exceeds
                 // HttpClient.Timeout is a TaskCanceledException WITH a TimeoutException inside). A bare cancellation is not one:
                 // that is somebody pressing Stop.
-                _ when ex is TimeoutException || ex.InnerException is TimeoutException => Timeout,
+                _ when Find<TimeoutException>(ex) is not null => Timeout,
                 // The callers filter Stop out before they get here (ProbeRunner.RunAsync rethrows it, StartPinging and the headless loop
                 // catch it). One that still arrives is named for what it is, not shown as a fault of the network named "Error".
                 _ when ex is OperationCanceledException => new("Stopped", "The probe was cancelled before it finished (Stop or close), not a failure of the host"),
                 _ when ex is ArgumentException => new("Bad addr", "Invalid address: " + ex.Message),
                 // Raised by SslStream itself, or wrapped by the HTTP layer: both levels, as for the socket error above.
-                _ when (ex as System.Security.Authentication.AuthenticationException ?? ex.InnerException as System.Security.Authentication.AuthenticationException) is { } tls
+                _ when Find<System.Security.Authentication.AuthenticationException>(ex) is { } tls
                     => new("TLS", "The secure connection could not be set up: " + tls.Message),
                 _ => new("Error", ex.InnerException?.Message ?? ex.Message),
             };
