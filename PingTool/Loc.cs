@@ -65,8 +65,11 @@ namespace PingTool
             ["graph.ms"] = ("{0} ms", "{0} ms"),
             ["graph.legend.more"] = ("{0}-{1} of {2}: click or press Page Down for more", "{0}-{1} sur {2} : cliquez ou appuyez sur Page suivante pour voir la suite"),   // the line under a legend of more hosts than it shows
             ["stats.waiting"] =("Last pings: waiting for data", "Derniers pings : en attente de données"),
-            ["stats.need"] = ("Last {0}: need {1} replies for percentiles", "Derniers {0} : il faut {1} réponses pour les percentiles"),
-            ["stats.last"] = ("Last {0}: p50 {1}", "Derniers {0} : p50 {1}"),
+            // {0} of the next two is the window (stats.window.*): "Last 60" / "60 derniers pings" (the French puts the number first and agrees).
+            ["stats.need"] = ("{0}: need {1} replies for percentiles", "{0} : il faut {1} réponses pour les percentiles"),
+            ["stats.last"] = ("{0}: p50 {1}", "{0} : p50 {1}"),
+            ["stats.window.one"] = ("Last {0}", "{0} dernier ping"),
+            ["stats.window.many"] = ("Last {0}", "{0} derniers pings"),
             ["stats.p95needs"] = (" (p95 needs {0} replies)", " (le p95 demande {0} réponses)"),
             ["stats.jitter"] = ("Recent jitter {0} ms | loss {1}% ({2}/{3})", "Gigue récente {0} ms | perte {1} % ({2}/{3})"),
             ["stats.voice"] = (" | voice {0} ({1})", " | voix {0} ({1})"),
@@ -93,6 +96,8 @@ namespace PingTool
         // lives in the table: English has one form for "lost", French splits at 2).
         // English: "0 pings", "1 ping". French puts 0 with the singular, like 1: "0 ping", "1 ping", "2 pings".
         internal static string Pings(long n) => T((Language == "fr" ? n >= 2 : n != 1) ? "count.ping.many" : "count.ping.one", n.ToString(CultureInfo.CurrentCulture));
+        // "Last 60" / "60 derniers pings": the window of the recent figures, the count first in French and the adjective in agreement with it.
+        internal static string Window(long n) => T(n >= 2 ? "stats.window.many" : "stats.window.one", n.ToString(CultureInfo.CurrentCulture));
         internal static string Lost(long n) => T(n >= 2 ? "count.lost.many" : "count.lost.one", n.ToString(CultureInfo.CurrentCulture));
 
         // The text for a key in the current language, with its arguments formatted in the current regional format.

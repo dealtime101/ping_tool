@@ -492,8 +492,9 @@
          1.21.414 = the message for a log with too many pings counts pings, not lines, and the bound is explained; the files opened together were already bounded in total (PIN507.197)
          1.21.415 = a headless run asked for a duration of zero is refused with the reason, instead of ending as "No probe was made" (PIN507.199)
          1.21.416 = the time between two checkpoints of a headless run must be positive and within the ceiling, instead of a tight loop at zero or a lost final report below it (PIN507.200)
-         1.21.417 = the figures of a stretch of the trend are separated by a comma in English as they are in French, for the eye and for a screen reader (PIN507.202) -->
-    <Version>1.21.417</Version>
+         1.21.417 = the figures of a stretch of the trend are separated by a comma in English as they are in French, for the eye and for a screen reader (PIN507.202)
+         1.21.418 = the line of the recent figures says "60 derniers pings" in French instead of "Derniers 60", with the singular for one ping; English as it was (PIN507.203) -->
+    <Version>1.21.418</Version>
   </PropertyGroup>
 
   <ItemGroup>

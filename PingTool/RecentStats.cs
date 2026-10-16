@@ -95,8 +95,8 @@ namespace PingTool
             // The words follow the display language (Loc), the numbers the regional format, as everywhere else in the program.
             // The loss line is there even without percentiles: a host that answers nothing is exactly when it matters.
             string first = P50 is null
-                ? Loc.T("stats.need", Samples, MinForPercentiles)
-                : Loc.T("stats.last", Samples, N(P50))
+                ? Loc.T("stats.need", Loc.Window(Samples), MinForPercentiles)
+                : Loc.T("stats.last", Loc.Window(Samples), N(P50))
                     + (P95 is null ? "" : " / p95 " + N(P95)) + (P99 is null ? "" : " / p99 " + N(P99)) + " ms"
                     + (P95 is null ? Loc.T("stats.p95needs", MinForP95) : "");
             string voice = Mos is double mos ? Loc.T("stats.voice", Loc.T("stats.voice." + Verdict(mos)), mos.ToString("0.0", c)) : "";
