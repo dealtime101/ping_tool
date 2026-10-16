@@ -149,11 +149,13 @@ namespace PingTool
         public DateTimeOffset? DroppedTo { get; private set; }
 
         // The gaps themselves: a folder blocked, repaired, blocked again leaves two, and what was written in between is on the disk. A drop
-        // that follows the previous one with nothing written between them goes on the same gap. Touched on the window's thread only.
+        // that follows the previous one with nothing written between them goes on the same gap. Written under `queue` (by Add and by
+        // CapRetired, both on the window's thread today), and read under it too: a list that is read while it changes can throw, or give
+        // the last gap half changed, and nothing but a comment kept the readers on the window's thread.
         private readonly List<(DateTimeOffset From, DateTimeOffset To)> gaps = new();
         private volatile bool writtenSinceDrop;
 
-        public int Gaps => gaps.Count;
+        public int Gaps { get { lock (queue) return gaps.Count; } }
 
         // Whether a write error was on record when pings were given up. If none was, the queue filled because writing did not keep up (a
         // slow or stalled drive), not because the folder refused the writes: the sentence must not say "not writable" then.
@@ -168,15 +170,20 @@ namespace PingTool
         {
             get
             {
-                if (Dropped == 0) return null;
-                string reason = Loc.T(droppedWhileFailing ? "log.drop.reason.failing" : "log.drop.reason.slow");
-                string Span((DateTimeOffset From, DateTimeOffset To) g) => SpanText(g.From, g.To);
-                if (gaps.Count == 1)
-                    return Loc.T("log.drop.one", Dropped, Span(gaps[0]), reason);
+                // One look at the count, the reason and the gaps together, under the lock that the drops are made under: the sentence
+                // never counts more pings than the gaps it names, or names a gap that was changing.
+                lock (queue)
+                {
+                    if (Dropped == 0) return null;
+                    string reason = Loc.T(droppedWhileFailing ? "log.drop.reason.failing" : "log.drop.reason.slow");
+                    string Span((DateTimeOffset From, DateTimeOffset To) g) => SpanText(g.From, g.To);
+                    if (gaps.Count == 1)
+                        return Loc.T("log.drop.one", Dropped, Span(gaps[0]), reason);
 
-                // At most three are named; the rest is counted, so the sentence stays one a balloon can hold.
-                string named = string.Join("; ", gaps.Take(3).Select(Span)) + (gaps.Count > 3 ? Loc.T("log.drop.more", gaps.Count - 3) : "");
-                return Loc.T("log.drop.many", Dropped, reason, gaps.Count, named);
+                    // At most three are named; the rest is counted, so the sentence stays one a balloon can hold.
+                    string named = string.Join("; ", gaps.Take(3).Select(Span)) + (gaps.Count > 3 ? Loc.T("log.drop.more", gaps.Count - 3) : "");
+                    return Loc.T("log.drop.many", Dropped, reason, gaps.Count, named);
+                }
             }
         }
 
