@@ -8,8 +8,9 @@ namespace PingTool
     {
         public const int MinHostWidth = 60;
 
-        // MinHostWidth is written for 96 DPI like every size here: dpi (the control's DeviceDpi) scales it with the screen.
-        public static int HostWidth(int clientWidth, int scrollBarWidth, int otherColumnsWidth, int dpi = DpiScale.BaseDpi) =>
+        // MinHostWidth is written for 96 DPI like every size here: dpi (the control's DeviceDpi) scales it with the screen. There is no default
+        // for it: one that is left out would be taken for 96 on a screen that is not, and the column would be too narrow without a word.
+        public static int HostWidth(int clientWidth, int scrollBarWidth, int otherColumnsWidth, int dpi) =>
             Fill(clientWidth, scrollBarWidth, otherColumnsWidth, DpiScale.Scale(new Size(MinHostWidth, 0), dpi).Width);
 
         // The width of the one column that takes what the others leave (never below `min`).

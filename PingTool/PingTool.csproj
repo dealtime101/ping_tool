@@ -458,8 +458,9 @@
          1.21.380 = the silence that breaks the line of the time graph is a named threshold, and the comment says what the code does: two and a half intervals (PIN507.137)
          1.21.381 = the reason why the network cards could not be read comes with that reading, so a later failure never says the reason of an earlier one (PIN507.138)
          1.21.382 = the remark row of an incomplete log has the five fields of the header, the reader taking the old row with one field as well (PIN507.141)
-         1.21.383 = the alert of a degradation by the voice quality is told as such also when no average is given (PIN507.143) -->
-    <Version>1.21.383</Version>
+         1.21.383 = the alert of a degradation by the voice quality is told as such also when no average is given (PIN507.143)
+         1.21.384 = the width of the Host column takes the screen scaling from its caller, with no default of 96 DPI to forget (PIN507.144) -->
+    <Version>1.21.384</Version>
   </PropertyGroup>
 
   <ItemGroup>
