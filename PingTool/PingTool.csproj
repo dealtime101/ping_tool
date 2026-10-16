@@ -564,8 +564,9 @@
          1.21.486 = the IPv4-mapped address is turned into IPv4 by one rule in HostSession (Unmapped), used by SetIp and Describe, instead of two copies (PIN507.355)
          1.21.487 = tools/make-icon.py draws and writes the icon only when it is run, not when it is imported (PIN507.360)
          1.21.488 = the cap on the retired logs reads the pings of every log again under the lock of the one it cuts, so a flush that has just written some does not make it give up pings it no longer needs to (PIN507.363)
-         1.21.489 = taking back the rows of a failed write compares the length first: a file that grew by more than was written is not read into memory to learn that (PIN507.369) -->
-    <Version>1.21.489</Version>
+         1.21.489 = taking back the rows of a failed write compares the length first: a file that grew by more than was written is not read into memory to learn that (PIN507.369)
+         1.21.490 = after a window died holding the lock of a log file, the next flush reads that file whole to cut a row it left half written inside a quoted field (PIN507.372) -->
+    <Version>1.21.490</Version>
   </PropertyGroup>
 
   <ItemGroup>

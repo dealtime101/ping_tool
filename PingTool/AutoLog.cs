@@ -407,13 +407,18 @@ namespace PingTool
         private sealed class FileGate : IDisposable
         {
             private readonly Mutex mutex;
-            private FileGate(Mutex mutex) => this.mutex = mutex;
+            private FileGate(Mutex mutex, bool abandoned) { this.mutex = mutex; Abandoned = abandoned; }
+
+            // True when the window that held this lock before us died with it: it may have been in the middle of a write, so a row can be
+            // half written (inside a quoted field too), and the file is read whole to find where the last complete row ends.
+            public bool Abandoned { get; }
 
             public static FileGate? TryEnter(string path, TimeSpan wait)
             {
                 string name = "PingTool.AutoLog." + Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(
                     Encoding.UTF8.GetBytes(Path.GetFullPath(path).ToLowerInvariant())));
                 var mutex = new Mutex(false, name);
+                bool abandoned = false;
                 try
                 {
                     if (!mutex.WaitOne(wait)) { mutex.Dispose(); return null; }
@@ -421,6 +426,7 @@ namespace PingTool
                 catch (AbandonedMutexException)
                 {
                     // The other window died holding it: the lock is ours, and CutPartialLine deals with a row it left half written.
+                    abandoned = true;
                 }
                 catch
                 {
@@ -429,7 +435,7 @@ namespace PingTool
                     throw;
                 }
 
-                return new FileGate(mutex);
+                return new FileGate(mutex, abandoned);
             }
 
             public void Dispose()
@@ -524,7 +530,9 @@ namespace PingTool
 
                     // The first time a file is written to, the whole of it is read (a row cut by a crash can sit inside a quoted field). The file
                     // counts as done only once that worked: if reading or repairing it fails, the next try reads it whole again.
-                    CutPartialLine(path, deep: !touched.Contains(path));
+                    // Read whole too when the window that had the lock before us died holding it (gate.Abandoned): it may have been writing a
+                    // row with a line feed inside a quoted field, and the end of the file alone would take that line feed for the end of a row.
+                    CutPartialLine(path, deep: !touched.Contains(path) || gate.Abandoned);
                     touched.Add(path);
                     // ReadWrite sharing lets a spreadsheet that does not lock the file read it meanwhile.
                     using var stream = new FileStream(path, FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
