@@ -21,7 +21,7 @@ namespace PingTool
             else if (!warned && !closing)
             {
                 warned = true;
-                balloons.Add("Log file not written, will retry: " + lastError + (dropNote is { } lost ? " " + lost : ""));
+                balloons.Add(Loc.T("log.notwritten", lastError ?? "") + (dropNote is { } lost ? " " + lost : ""));
                 // The drops are in this balloon, with the cause: a second one made of the note alone would replace it at once, and the
                 // cause with it. They are counted as said, for the failure that is going on.
                 if (dropNote is not null) { reported = dropped; dropWarned = true; }

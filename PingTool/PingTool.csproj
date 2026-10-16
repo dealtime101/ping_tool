@@ -526,8 +526,9 @@
          1.21.448 = a route capture is not started with the token of a run that is over, so none of an old run can enter the list of the run in progress (PIN507.244)
          1.21.449 = a ping is shown with the token of the run that made it, not the field that a quick Stop then Start replaces, and the failure of an old loop no longer counts as a ping of the new run (PIN507.245)
          1.21.450 = the sentence a screen reader gets about the pages of the legend is in the language of the interface, as the line under the legend already was (PIN507.246)
-         1.21.451 = the legend page that a screen reader is told, and the page a key or a click turns from, are the page wanted and not the one drawn last: a page turned is announced with its own content before the repaint, and two turns before the repaint are two pages (PIN507.248) -->
-    <Version>1.21.451</Version>
+         1.21.451 = the legend page that a screen reader is told, and the page a key or a click turns from, are the page wanted and not the one drawn last: a page turned is announced with its own content before the repaint, and two turns before the repaint are two pages (PIN507.248)
+         1.21.452 = the balloons of the automatic log (the pings that could not be saved, the file not written, the rows that wait, the earlier runs given up) are in the language of the interface, in the table of texts (PIN507.250) -->
+    <Version>1.21.452</Version>
   </PropertyGroup>
 
   <ItemGroup>

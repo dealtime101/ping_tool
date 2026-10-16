@@ -952,7 +952,7 @@ namespace PingTool
                 if (!closing && !IsDisposed && !autoLogWarned)
                 {
                     autoLogWarned = true;
-                    ShowBalloon("Log file not written, will retry: " + ex.Message, ToolTipIcon.Warning);
+                    ShowBalloon(Loc.T("log.notwritten", ex.Message), ToolTipIcon.Warning);
                 }
             }
         }

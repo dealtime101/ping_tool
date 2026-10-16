@@ -67,6 +67,19 @@ namespace PingTool
             ["graph.ms"] = ("{0} ms", "{0} ms"),
             ["graph.legend.more"] = ("{0}-{1} of {2}: click or press Page Down for more", "{0}-{1} sur {2} : cliquez ou appuyez sur Page suivante pour voir la suite"),   // the line under a legend of more hosts than it shows
             ["graph.legend.page"] = ("{0}. The legend is on page {1} of {2}: Page Down shows the next one, Page Up the one before.", "{0}. La légende est à la page {1} sur {2} : Page suivante montre la suivante, Page précédente la précédente."),   // read by a screen reader with the figures of the graph
+            // What the automatic log says to the person (balloons): our own sentences, the ones that name a folder, a file or a count.
+            // The text of an error that the system gives (an exception) stays in the language of the system.
+            ["log.notwritten"] = ("Log file not written, will retry: {0}", "Fichier du journal non écrit, nouvel essai plus tard : {0}"),
+            ["log.drop.reason.failing"] = ("the log folder was not writable for too long", "le dossier du journal est resté trop longtemps inaccessible en écriture"),
+            ["log.drop.reason.slow"] = ("writing to the log folder did not keep up and no write error was reported (a slow or stalled drive?)", "l'écriture dans le dossier du journal n'a pas suivi et aucune erreur d'écriture n'a été signalée (disque lent ou bloqué ?)"),
+            ["log.drop.span"] = ("from {0} to {1}", "du {0} au {1}"),
+            ["log.drop.one"] = ("{0} ping(s) {1} could not be saved to the log files: {2}. The log has a gap there.", "{0} ping(s) {1} n'ont pas pu être enregistrés dans les fichiers du journal : {2}. Le journal a un trou à cet endroit."),
+            ["log.drop.many"] = ("{0} ping(s) could not be saved to the log files: {1}. The log has {2} gaps, {3}; what was written between them is in the files.", "{0} ping(s) n'ont pas pu être enregistrés dans les fichiers du journal : {1}. Le journal a {2} trous, {3} ; ce qui a été écrit entre eux est dans les fichiers."),
+            ["log.drop.more"] = ("; and {0} more", " ; et {0} de plus"),
+            ["log.retired.cap"] = ("{0} ping(s) from earlier runs ({1}) were given up: the log folder stayed unwritable through several runs, and what waits for it is kept to {2} pings. The log has a gap there.", "{0} ping(s) des lancements précédents ({1}) ont été abandonnés : le dossier du journal est resté inaccessible en écriture pendant plusieurs lancements, et ce qui l'attend est limité à {2} pings. Le journal a un trou à cet endroit."),
+            ["log.takeback.changed"] = ("Rows of an earlier failed write could not be taken back from {0} because the file changed meanwhile: some rows may appear twice.", "Des lignes d'une écriture précédente qui a échoué n'ont pas pu être retirées de {0} car le fichier a changé entre-temps : certaines lignes peuvent apparaître deux fois."),
+            ["log.takeback.wait"] = ("An earlier write to {0} left rows on disk that cannot be taken back yet ({1}); these rows wait so that they are not written twice.", "Une écriture précédente dans {0} a laissé des lignes sur le disque qui ne peuvent pas encore être retirées ({1}) ; ces lignes attendent pour ne pas être écrites deux fois."),
+            ["log.other.window"] = ("Another PingTool window is writing this file; these rows wait for the next flush.", "Une autre fenêtre PingTool écrit dans ce fichier ; ces lignes attendent la prochaine écriture."),
             ["stats.waiting"] =("Last pings: waiting for data", "Derniers pings : en attente de données"),
             // {0} of the next two is the window (stats.window.*): "Last 60" / "60 derniers pings" (the French puts the number first and agrees).
             ["stats.need"] = ("{0}: need {1} replies for percentiles", "{0} : il faut {1} réponses pour les percentiles"),

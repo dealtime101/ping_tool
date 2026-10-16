@@ -68,7 +68,7 @@ namespace PingTool
                 if (after > failed.Written.Length || !failed.Written.AsSpan(0, tail.Length).SequenceEqual(tail))
                 {
                     unrecovered.Remove(path);
-                    note = "Rows of an earlier failed write could not be taken back from " + Path.GetFileName(path) + " because the file changed meanwhile: some rows may appear twice.";
+                    note = Loc.T("log.takeback.changed", Path.GetFileName(path));
                     return true;
                 }
 
@@ -159,22 +159,24 @@ namespace PingTool
         // slow or stalled drive), not because the folder refused the writes: the sentence must not say "not writable" then.
         private bool droppedWhileFailing;
 
+        // "from 10/16/2026 4:00:00 AM to 10/16/2026 4:05:00 AM" in the language and the regional format of the person.
+        private static string SpanText(DateTimeOffset from, DateTimeOffset to) =>
+            Loc.T("log.drop.span", from.ToLocalTime().ToString("G", CultureInfo.CurrentCulture), to.ToLocalTime().ToString("G", CultureInfo.CurrentCulture));
+
         // The sentence for the user; null when nothing was lost.
         public string? DropNote
         {
             get
             {
                 if (Dropped == 0) return null;
-                string reason = droppedWhileFailing
-                    ? "the log folder was not writable for too long"
-                    : "writing to the log folder did not keep up and no write error was reported (a slow or stalled drive?)";
-                string Span((DateTimeOffset From, DateTimeOffset To) g) => string.Create(CultureInfo.CurrentCulture, $"from {g.From.ToLocalTime():G} to {g.To.ToLocalTime():G}");
+                string reason = Loc.T(droppedWhileFailing ? "log.drop.reason.failing" : "log.drop.reason.slow");
+                string Span((DateTimeOffset From, DateTimeOffset To) g) => SpanText(g.From, g.To);
                 if (gaps.Count == 1)
-                    return $"{Dropped} ping(s) {Span(gaps[0])} could not be saved to the log files: {reason}. The log has a gap there.";
+                    return Loc.T("log.drop.one", Dropped, Span(gaps[0]), reason);
 
                 // At most three are named; the rest is counted, so the sentence stays one a balloon can hold.
-                string named = string.Join("; ", gaps.Take(3).Select(Span)) + (gaps.Count > 3 ? $"; and {gaps.Count - 3} more" : "");
-                return $"{Dropped} ping(s) could not be saved to the log files: {reason}. The log has {gaps.Count} gaps, {named}; what was written between them is in the files.";
+                string named = string.Join("; ", gaps.Take(3).Select(Span)) + (gaps.Count > 3 ? Loc.T("log.drop.more", gaps.Count - 3) : "");
+                return Loc.T("log.drop.many", Dropped, reason, gaps.Count, named);
             }
         }
 
@@ -250,8 +252,7 @@ namespace PingTool
                 if (log.Pending == 0) retired.Remove(log);
             }
 
-            return lost == 0 ? null : string.Create(CultureInfo.CurrentCulture,
-                $"{lost} ping(s) from earlier runs (from {from!.Value.ToLocalTime():G} to {to!.Value.ToLocalTime():G}) were given up: the log folder stayed unwritable through several runs, and what waits for it is kept to {MaxRetiredPending} pings. The log has a gap there.");
+            return lost == 0 ? null : Loc.T("log.retired.cap", lost, SpanText(from!.Value, to!.Value), MaxRetiredPending);
         }
 
         // 6 bytes of the hash (12 hex characters, 48 bits), not 3: two typed hosts that change into the same name share a file only if their
@@ -470,7 +471,7 @@ namespace PingTool
                     using var gate = FileGate.TryEnter(path, TimeSpan.FromMilliseconds(250));
                     if (gate is null)
                     {
-                        lastError = "Another PingTool window is writing this file; these rows wait for the next flush.";
+                        lastError = Loc.T("log.other.window");
                         continue;
                     }
 
@@ -479,7 +480,7 @@ namespace PingTool
                         bool back = TakeBack(path, failed, out string? why);
                         if (!back)
                         {
-                            lastError = "An earlier write to " + Path.GetFileName(path) + " left rows on disk that cannot be taken back yet (" + why + "); these rows wait so that they are not written twice.";
+                            lastError = Loc.T("log.takeback.wait", Path.GetFileName(path), why ?? "");
                             continue;
                         }
 
