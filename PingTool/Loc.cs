@@ -123,11 +123,18 @@ namespace PingTool
         internal static bool HasPlace(string text) =>
             System.Text.RegularExpressions.Regex.IsMatch(text.Replace("{{", "", StringComparison.Ordinal).Replace("}}", "", StringComparison.Ordinal), @"\{\d");
 
+        // French puts a space before : ; ? ! % and » and after «, and a line must not break there: a "%" or a ":" alone at the start of
+        // the next line reads as a mistake. The table is written with plain spaces (the source stays readable and a test can compare it),
+        // and they become no-break spaces (U+00A0) here, once for all, in the one place where a French text leaves the table.
+        private static readonly System.Text.RegularExpressions.Regex FrenchBreakableSpace = new(" (?=[:;?!%»])|(?<=«) ");
+
+        internal static string FrenchSpaces(string text) => FrenchBreakableSpace.Replace(text, ((char)0xA0).ToString());
+
         // The text for a key in the current language, with its arguments formatted in the current regional format.
         public static string T(string key, params object[] args)
         {
             if (!Table.TryGetValue(key, out var pair)) return key;   // a missing key shows itself: ugly, and found at once
-            string text = Language == "fr" && pair.Fr.Length > 0 ? pair.Fr : pair.En;
+            string text = Language == "fr" && pair.Fr.Length > 0 ? FrenchSpaces(pair.Fr) : pair.En;
             if (args.Length == 0)
             {
                 // A text that is a plain sentence is returned as it is. One with a place to fill ({0}) that is called with nothing to put in

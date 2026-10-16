@@ -559,8 +559,9 @@
          1.21.481 = the timeline chart names the target it shows and tells a screen reader when it changes (PIN507.345)
          1.21.482 = the room under the timeline chart is worked out again when the font or the screen of the window changes, and not only when its size does (PIN507.346)
          1.21.483 = dns:// no longer asks CheckHostName whether a name is an address after IPAddress.TryParse said no: it never differed (PIN507.348)
-         1.21.484 = the "shown once" flag of the unexpected-error box is taken with Interlocked, so two errors at once show it once (PIN507.350) -->
-    <Version>1.21.484</Version>
+         1.21.484 = the "shown once" flag of the unexpected-error box is taken with Interlocked, so two errors at once show it once (PIN507.350)
+         1.21.485 = a French text of the table has a no-break space before : ; ? ! % and » and after «, so a line never begins with a lone "%" or ":" (PIN507.352) -->
+    <Version>1.21.485</Version>
   </PropertyGroup>
 
   <ItemGroup>
