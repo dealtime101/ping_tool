@@ -155,7 +155,7 @@ namespace PingTool
             ArgumentNullException.ThrowIfNull(entries);
             if (entries.Count == 0) throw new ArgumentException("A replay needs at least one ping: there is nothing to replay.", nameof(entries));
 
-            var sorted = entries.Select((e, i) => (e, i)).OrderBy(x => x.e.Time).ThenBy(x => x.i).Select(x => x.e).ToList();
+            var sorted = entries.OrderBy(e => e.Time).ToList();   // OrderBy is a stable sort (documented): pings of one instant keep the order of the file
             // The same ping twice (an export and the automatic log of the same night, the same file opened twice, files that overlap)
             // is one ping: a LogEntry is a record, so "identical" is every field alike, the first kept. Counted, so it can be said.
             var ordered = sorted.Distinct().ToList();
