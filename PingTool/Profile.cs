@@ -47,12 +47,27 @@ namespace PingTool
         // 512 is more than 40 of the longest emoji sequences in use.
         public const int MaxNameUnits = 512;
 
+        // The name as it is compared and kept: trimmed, and in the composed form of Unicode (NFC). "Café" typed with the accented letter and
+        // "Café" with an e and a combining accent (what a paste from a Mac file name or some keyboards gives) are drawn the same and are the
+        // same name to the person: kept apart, they would be two profiles that nobody can tell apart on screen. null when the text is not
+        // valid Unicode (a lone half of a surrogate pair), which no form can be made of.
+        internal static string? Canonical(string? text)
+        {
+            string trimmed = (text ?? "").Trim();
+            try { return trimmed.Normalize(NormalizationForm.FormC); }
+            catch (ArgumentException) { return null; }
+        }
+
+        // The same for a comparison, where a text that cannot be normalized is compared as it is.
+        private static string KeyOf(string? text) => Canonical(text) ?? (text ?? "").Trim();
+
         public static bool TryName(string? input, out string name, out string error)
         {
-            name = (input ?? "").Trim();
+            name = Canonical(input) ?? (input ?? "").Trim();
             error = "";
 
-            if (name.Length == 0) error = "Give the profile a name.";
+            if (Canonical(input) is null) error = "The name contains characters that are not valid text.";
+            else if (name.Length == 0) error = "Give the profile a name.";
             else if (string.Equals(name, DiagnosticTargets.ProfileName, StringComparison.OrdinalIgnoreCase))
                 error = "That name is reserved for the built-in diagnosis: choose another.";
             else if (name.Length > MaxNameUnits) error = $"The name is limited to {MaxNameLength} characters.";
@@ -187,15 +202,18 @@ namespace PingTool
             foreach (var (address, options) in profile.TargetOptions) table[address] = options;
         }
 
-        public static Profile? Find(IEnumerable<Profile> book, string? name) =>
-            book.FirstOrDefault(p => string.Equals(p.Name, name?.Trim(), StringComparison.OrdinalIgnoreCase));
+        public static Profile? Find(IEnumerable<Profile> book, string? name)
+        {
+            string key = KeyOf(name);
+            return book.FirstOrDefault(p => string.Equals(KeyOf(p.Name), key, StringComparison.OrdinalIgnoreCase));
+        }
 
         // Replaces the profile of the same name where it is, or appends. False when the book is full
         // (and the name is new): the caller says so, nothing is lost silently.
         public static bool Upsert(List<Profile> book, Profile profile)
         {
-            profile.Name = profile.Name.Trim();   // Find and Remove compare trimmed: the same profile must not be added twice
-            int at = book.FindIndex(p => string.Equals(p.Name, profile.Name, StringComparison.OrdinalIgnoreCase));
+            profile.Name = KeyOf(profile.Name);   // Find and Remove compare in the same form: the same profile must not be added twice
+            int at = book.FindIndex(p => string.Equals(KeyOf(p.Name), profile.Name, StringComparison.OrdinalIgnoreCase));
             if (at >= 0)
             {
                 book[at] = profile;
@@ -207,8 +225,11 @@ namespace PingTool
             return true;
         }
 
-        public static bool Remove(List<Profile> book, string? name) =>
-            book.RemoveAll(p => string.Equals(p.Name, name?.Trim(), StringComparison.OrdinalIgnoreCase)) > 0;
+        public static bool Remove(List<Profile> book, string? name)
+        {
+            string key = KeyOf(name);
+            return book.RemoveAll(p => string.Equals(KeyOf(p.Name), key, StringComparison.OrdinalIgnoreCase)) > 0;
+        }
 
         // What a hand-edited or damaged settings.json may contain: nulls, blank or repeated names,
         // a missing host list, more profiles than allowed. Keeps what is usable, first one wins.
