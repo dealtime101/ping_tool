@@ -13,6 +13,8 @@ namespace PingTool
             // box (a scheduled task would wait for ever): the message goes to the error output, and the exit code says it.
             // The handler of last resort comes first, so that nothing below can fail without leaving a trace in crash.log.
             AppDomain.CurrentDomain.UnhandledException += (_, e) => OnFatal(e.ExceptionObject);
+            // An error that came again and again is written at its 2nd, 10th, 100th time; the count reached since is said when the process ends.
+            AppDomain.CurrentDomain.ProcessExit += (_, _) => CrashLog.FlushRepeats();
 
             bool headlessAsked = args.Any(a => string.Equals(a, "--headless", StringComparison.OrdinalIgnoreCase));
             if (!StartupOptions.TryParse(args, out var startup, out string message))

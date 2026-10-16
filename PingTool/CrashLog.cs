@@ -116,12 +116,37 @@ namespace PingTool
             return n == 1;
         }
 
-        private static string RepeatNote(int count) =>
+        // How many repeats the last note in the file counts (1 = the entry alone). A repeat that is counted between two milestones is not in
+        // the file until a note says it: when another error comes, or the process ends (FlushRepeats), the count so far is written, so that
+        // "10 times so far" is not all the file says of an error that came 57 times.
+        private static int writtenRepeats;
+
+        private static string RepeatNote(int count, bool final = false) =>
             DateTimeOffset.Now.ToString("yyyy-MM-dd HH:mm:ss zzz", CultureInfo.InvariantCulture)
-            + " The same error again: " + count.ToString(CultureInfo.InvariantCulture) + " times so far (see the entry above).\r\n\r\n";
+            + " The same error again: " + count.ToString(CultureInfo.InvariantCulture) + (final ? " times in all" : " times so far") + " (see the entry above).\r\n\r\n";
+
+        // The count of the repeats that the file does not say yet, written; true when a note was written. Called when the process ends. Only
+        // while the entry that the note points at is in the file (a file deleted since holds none).
+        public static bool FlushRepeats(Action<string, string>? write = null, Func<string, bool>? exists = null)
+        {
+            try
+            {
+                lock (gate)
+                {
+                    if (lastSignature is null || lastPath is null || repeats <= writtenRepeats || !(exists ?? File.Exists)(lastPath)) return false;
+                    (write ?? ((p, text) => File.AppendAllText(p, text, new UTF8Encoding(false))))(lastPath, RepeatNote(repeats, final: true));
+                    writtenRepeats = repeats;
+                    return true;
+                }
+            }
+            catch (Exception)
+            {
+                return false;   // the last-resort handler never throws
+            }
+        }
 
         // Forgets the last error (what the tests use to start from nothing).
-        internal static void ForgetLast() { lock (gate) { lastSignature = null; lastPath = null; repeats = 0; } }
+        internal static void ForgetLast() { lock (gate) { lastSignature = null; lastPath = null; repeats = 0; writtenRepeats = 0; } }
 
         // False when it could not be written (no folder, disk full...): the caller says so, nothing is thrown. WHATEVER the cause: this is
         // the last-resort handler, called from the code that handles what nobody else caught, and an exception leaving it (a
@@ -142,6 +167,17 @@ namespace PingTool
                     string signature = SignatureOf(entry);
                     bool repeat = signature.Length > 0 && signature == lastSignature && path == lastPath && (exists ?? File.Exists)(path);
                     bool counted = repeat;
+                    // Another error: the count of the one before, if the file does not say it yet, is written first (it was counted, not written).
+                    if (!repeat && lastSignature is not null && lastPath is not null && repeats > writtenRepeats && (exists ?? File.Exists)(lastPath))
+                    {
+                        try
+                        {
+                            (write ?? ((p, text) => File.AppendAllText(p, text, new UTF8Encoding(false))))(lastPath, RepeatNote(repeats, final: true));
+                            writtenRepeats = repeats;
+                        }
+                        catch (Exception) { }   // a note that did not reach the file is lost; the new entry is the one that matters
+                    }
+
                     if (repeat)
                     {
                         repeats++;
@@ -188,7 +224,9 @@ namespace PingTool
                         lastSignature = signature.Length > 0 ? signature : null;
                         lastPath = path;
                         repeats = 1;
+                        writtenRepeats = 1;
                     }
+                    else if (reached && counted) writtenRepeats = repeats;   // the note of a milestone is in the file: the count it says
                 }
 
                 return true;
