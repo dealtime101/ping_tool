@@ -37,7 +37,7 @@ namespace PingTool
         public static readonly string Usage =
             "PingTool.exe [options] [target ...]\r\n\r\n" +
             "  --start            start monitoring as soon as the window is up\r\n" +
-            "  --minimized        start hidden in the notification area (double-click its icon to open)\r\n" +
+            "  --minimized        start hidden in the notification area (double-click its icon to open); it only hides the window, add --start to monitor too\r\n" +
             $"  --interval <ms>    time between probes, {Limits.IntervalMs.Min} to {Limits.IntervalMs.Max}\r\n" +
             "  --headless         no window: probe for --duration, write --report, exit (exit code 0 = no incident, 1 = an outage or a slowdown, 2 = error)\r\n" +
             "  --duration <t>     with --headless: how long to probe, 5s to 30d (30s, 10m, 8h, 2d)\r\n" +

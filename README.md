@@ -117,7 +117,7 @@ PingTool.exe --start --minimized 8.8.8.8 router.lan tcp://example.com:443
 | Option | Effect |
 |---|---|
 | `--start` | start monitoring as soon as the window is up |
-| `--minimized` | start hidden in the notification area (double-click the icon to open the window; alerts still show as balloons) |
+| `--minimized` | start hidden in the notification area (double-click the icon to open the window; alerts still show as balloons). It only hides the window: it does not start the monitoring, add `--start` for that (as in the example above) |
 | `--interval <ms>` | time between probes, 100 to 60 000 |
 | `--headless` | **no window**: probe for `--duration`, write the report, exit (see below) |
 | `--duration <time>` | with `--headless`: how long to probe, `5s` to `30d` (`30s`, `10m`, `8h`, `2d`) |

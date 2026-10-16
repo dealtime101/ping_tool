@@ -399,8 +399,9 @@
          1.21.321 = the built-in diagnosis is not written as the active profile of settings.json: the next start does not show it as applied with the targets of another network (PIN507.42)
          1.21.322 = the window of the timeline takes the colours of a high-contrast theme for itself, its summary and its legend, as the chart does (PIN507.44)
          1.21.323 = a save of the settings takes its turn between windows and takes in the profiles, names and recent addresses another window wrote since (PIN507.45)
-         1.21.324 = the diagnosis asks the system for the IPv6 address it sends the Internet traffic from too, to tell which card carries an IPv6 connection (PIN507.46) -->
-    <Version>1.21.324</Version>
+         1.21.324 = the diagnosis asks the system for the IPv6 address it sends the Internet traffic from too, to tell which card carries an IPv6 connection (PIN507.46)
+         1.21.325 = the usage text and the README say that the minimized option only hides the window and that the start option starts the monitoring (PIN507.53) -->
+    <Version>1.21.325</Version>
   </PropertyGroup>
 
   <ItemGroup>
