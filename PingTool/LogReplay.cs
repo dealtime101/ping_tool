@@ -52,6 +52,10 @@ namespace PingTool
                 }
 
                 if (r[1].Length == 0 || r[2].Length == 0) { error = $"Line {line}: the host or the status is empty."; return false; }
+                // A ping that answered has its time (the writer gives "OK" only with one): a row that says OK and gives none is a damaged or
+                // hand-made line, and would be replayed as a lost ping whose cause is "OK", which skews the loss and the incidents. The
+                // other way round (a time on a row that names a failure) is read as the failure it names: nothing is skewed by it.
+                if (rtt is null && Unprotect(r[2]) == "OK") { error = $"Line {line}: the status is OK but there is no round-trip time (a ping that answered has one)."; return false; }
                 if (entries.Count >= MaxEntries) { error = "This file has more than " + MaxEntries.ToString("N0", CultureInfo.CurrentCulture) + " lines: too many to be a PingTool log."; return false; }
                 entries.Add(new LogEntry(time, Unprotect(r[1]), Unprotect(r[2]), rtt, Unprotect(r[4])));
             }

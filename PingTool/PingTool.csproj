@@ -487,8 +487,9 @@
          1.21.409 = after a sort in the incidents window the selected incident is brought back into view and given the focus (PIN507.192)
          1.21.410 = the incidents window takes the system colours in a Windows high-contrast theme, like the timeline window, and follows a change of theme (PIN507.193)
          1.21.411 = the test of the webhooks (the option test-webhooks) shows a small window with a moving bar when the answers are slow (after half a second), instead of nothing for up to 20 s (PIN507.194)
-         1.21.412 = the box with the result of the webhook test has the information icon when every webhook answered and the error icon otherwise, and a title that says the outcome (PIN507.195) -->
-    <Version>1.21.412</Version>
+         1.21.412 = the box with the result of the webhook test has the information icon when every webhook answered and the error icon otherwise, and a title that says the outcome (PIN507.195)
+         1.21.413 = a log row that says OK and gives no round-trip time is refused with its line number, instead of being replayed as a lost ping named OK (PIN507.196) -->
+    <Version>1.21.413</Version>
   </PropertyGroup>
 
   <ItemGroup>
