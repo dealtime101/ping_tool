@@ -1825,7 +1825,17 @@ namespace PingTool
             base.OnMouseClick(e);
             if (!InLegend(e.Location) || series.Count <= legendRows) return;
             legendOffset = GraphLayout.NextLegendOffset(series.Count, legendFirst, legendRows, forward: true);   // the next page, round to the first
+            ForgetLegendTip();
             Invalidate();
+        }
+
+        // A new page puts other hosts under the pointer: the tip of the row it was on belongs to the page before. It is emptied and hidden;
+        // the next move of the mouse (or the first tip after the repaint) says the name of the host that is there now.
+        private void ForgetLegendTip()
+        {
+            legendTipText = "";
+            legendTip.SetToolTip(this, "");
+            legendTip.Hide(this);
         }
 
         // The same without a mouse: with the graph focused (Tab), Page Down shows the next page of the legend and Page Up the one before.
@@ -1838,6 +1848,7 @@ namespace PingTool
 
             legendOffset = GraphLayout.NextLegendOffset(series.Count, legendFirst, legendRows, forward: e.KeyCode == Keys.PageDown);
             e.Handled = true;
+            ForgetLegendTip();
             Invalidate();
             AccessibilityNotifyClients(AccessibleEvents.DescriptionChange, -1);   // a screen reader is told the page changed
         }
