@@ -143,7 +143,7 @@ namespace PingTool
                 {
                     snapshots.Add(read());
                 }
-                catch (Exception ex) when (ex is NetworkInformationException or PlatformNotSupportedException or InvalidOperationException)
+                catch (Exception ex) when (IsCardFailure(ex))
                 {
                     System.Diagnostics.Debug.WriteLine("A network card could not be read: " + ex.Message);
                     skipped++;
@@ -155,6 +155,14 @@ namespace PingTool
                 $"{skipped} network card(s) could not be read ({(why is { Length: > 80 } ? TextCut.Units(why, 77) + "..." : why)}): the gateway may be on one of them.");
             return snapshots;
         }
+
+        // What the system can answer when it is asked about a card or about the list of them, and the card (or the list) is what is wrong:
+        // the system's own error (Windows), a feature the platform does not have, a state the card is not in, and, where the properties are
+        // read from files (Linux, macOS), a file that is not there or may not be read; a socket the system refuses to open for it. These
+        // leave the card out and are said. Anything else (a null, an index) is a fault of ours and is not hidden here.
+        internal static bool IsCardFailure(Exception ex) =>
+            ex is NetworkInformationException or PlatformNotSupportedException or NotSupportedException or InvalidOperationException
+                or IOException or UnauthorizedAccessException or System.Net.Sockets.SocketException;
 
         // The message for "no gateway was found", with the reason when part of the cards could not be read.
         public static string NoGatewayTextOf(string? cardProblem) => cardProblem is { } problem ? NoGatewayMessage + " " + problem : NoGatewayMessage;
@@ -207,7 +215,7 @@ namespace PingTool
                     });
                 }
             }
-            catch (Exception ex) when (ex is NetworkInformationException or PlatformNotSupportedException or InvalidOperationException)
+            catch (Exception ex) when (IsCardFailure(ex))
             {
                 System.Diagnostics.Debug.WriteLine("Network cards could not be listed: " + ex.Message);
                 // Said like a card that could not be read (see ReadCards), so that the "no gateway" message gives the reason.
