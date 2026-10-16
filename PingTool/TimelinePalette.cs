@@ -31,8 +31,11 @@ namespace PingTool
         // colour taken from the theme gives way to the text colour when its contrast with the window is under 3:1 (see GraphPalette.Readable).
         private static Color Fit(Color themeColour) => GraphPalette.Readable(themeColour, SystemColors.WindowText, SystemColors.Window);
 
-        public Color Axis => highContrast ? Fit(SystemColors.GrayText) : Color.FromArgb(120, 192, 192, 192);
-        public Color Bars => highContrast ? Fit(SystemColors.GrayText) : Color.FromArgb(90, 192, 192, 192);
+        // The silver of the axis and of the bars of latency, translucent over the dark plot: the alpha is the least that keeps 3:1 against it
+        // (a graphic that carries information). The bars were at 90, which is 2.3:1; the axis at 120 was 2.98:1.
+        public const int AxisAlpha = 130, BarsAlpha = 140;
+        public Color Axis => highContrast ? Fit(SystemColors.GrayText) : Color.FromArgb(AxisAlpha, 192, 192, 192);
+        public Color Bars => highContrast ? Fit(SystemColors.GrayText) : Color.FromArgb(BarsAlpha, 192, 192, 192);
         public Color Average => highContrast ? SystemColors.WindowText : Color.LimeGreen;
         public Color Network => highContrast ? Fit(SystemColors.Highlight) : Color.Cyan;
         public Color CutMark => highContrast ? Fit(SystemColors.HotTrack) : Color.OrangeRed;

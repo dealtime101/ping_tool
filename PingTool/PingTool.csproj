@@ -513,8 +513,9 @@
          1.21.435 = the description of the graph says how many pings its trend covers (the whole curve), apart from the last 60 of the figures before it (PIN507.225)
          1.21.436 = the column Cause / detail of the incident list sorts the slowdowns by their loss and average as numbers, and the outages by their cause (PIN507.226)
          1.21.437 = two incidents of hosts that differ only by the case are no longer equal for the sort of the incident list: the exact spelling decides last (PIN507.228)
-         1.21.438 = a column of the timeline with few lost pings is drawn with a red that has 3:1 against the dark plot at the least, instead of 1.5:1 (PIN507.229) -->
-    <Version>1.21.438</Version>
+         1.21.438 = a column of the timeline with few lost pings is drawn with a red that has 3:1 against the dark plot at the least, instead of 1.5:1 (PIN507.229)
+         1.21.439 = the bars of latency and the axis of the timeline are drawn with a silver that has 3:1 against the dark plot at the least (PIN507.230) -->
+    <Version>1.21.439</Version>
   </PropertyGroup>
 
   <ItemGroup>
