@@ -501,8 +501,9 @@
          1.21.423 = start, minimized and test-webhooks combined with headless are refused with a message that names them, instead of being dropped in silence (PIN507.208)
          1.21.424 = the count of an error that came again is written in full when another error arrives and when the process ends, not only at its 2nd, 10th, 100th time (PIN507.209)
          1.21.425 = the user's profile folder is masked in the crash log as a folder, not as the beginning of another name (bob and bobby) (PIN507.210)
-         1.21.426 = the graph by rank draws the newest maxSamples pings when given more, instead of putting the oldest at a negative X outside the picture (PIN507.213) -->
-    <Version>1.21.426</Version>
+         1.21.426 = the graph by rank draws the newest maxSamples pings when given more, instead of putting the oldest at a negative X outside the picture (PIN507.213)
+         1.21.427 = the first good reading of the network cards after a failure that was told says that they can be read again, with what changed meanwhile (PIN507.214) -->
+    <Version>1.21.427</Version>
   </PropertyGroup>
 
   <ItemGroup>

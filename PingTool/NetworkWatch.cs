@@ -71,10 +71,20 @@ namespace PingTool
                 return (last, $"The network cards could not be read ({why}): changes of the network are not recorded until they can be.");
             }
 
+            // The first good reading after a failure that was SAID closes the period it opened: without it the events say when the cards
+            // stopped being read and never when they were again, and nobody can tell over which time the changes are unknown. What changed
+            // meanwhile follows when it is known (against what was known before the failure).
+            bool backAgain = failureSaid;
             failureSaid = false;
-            if (last is null) return (now, null);
-            return (now, Describe(last, now));
+            string? changes = last is null ? null : Describe(last, now);
+            if (!backAgain) return (now, changes);
+
+            string text = changes is null ? ReadAgain : ReadAgain + " " + changes;
+            return (now, text.Length <= MaxTextLength ? text : TextCut.Units(text, MaxTextLength - 3) + "...");
         }
+
+        // Said when the cards can be read again after a failure that was said.
+        internal const string ReadAgain = "The network cards can be read again.";
 
         // The tunnel cards Windows makes by itself (Teredo, 6to4, ISATAP: they come and go for no reason that matters). Not every card of
         // the type "Tunnel": a VPN adapter can be one, and its connecting, disconnecting or changing address is exactly what this watch is for.
