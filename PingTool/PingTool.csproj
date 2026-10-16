@@ -444,8 +444,9 @@
          1.21.366 = the key of an http(s) target ignores the case of its host and not that of its user name and password (PIN507.118)
          1.21.367 = a text of the user (a legend name, a note, a name quoted in a message, a log file name) is never cut through a character: one cut, TextCut (PIN507.119)
          1.21.368 = only the left button turns the page of the legend of the graph (PIN507.120)
-         1.21.369 = a notice of the report is ended with a full stop only when it has no mark of its own (PIN507.122) -->
-    <Version>1.21.369</Version>
+         1.21.369 = a notice of the report is ended with a full stop only when it has no mark of its own (PIN507.122)
+         1.21.370 = the window of the timeline copies the pings, incidents and network changes it is given, so that it is a real snapshot (PIN507.124) -->
+    <Version>1.21.370</Version>
   </PropertyGroup>
 
   <ItemGroup>

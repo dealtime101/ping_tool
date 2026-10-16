@@ -199,10 +199,13 @@ namespace PingTool
         public TimelineForm(IReadOnlyCollection<LogEntry> entries, IReadOnlyList<Incident> incidents, IEnumerable<string> hosts, string? selected,
                             string? droppedNote = null, IReadOnlyList<NetworkEvent>? networkEvents = null)
         {
-            this.networkEvents = networkEvents ?? Array.Empty<NetworkEvent>();
+            // A snapshot IS a copy made here: IReadOnlyList and IReadOnlyCollection only say that THIS code does not write to what it was given,
+            // not that nobody else does. A caller that handed over its live list would otherwise see the window redraw another session at the
+            // next resize or change of host. (The callers copy too; the window lives as long as its dialog, so the double copy is short-lived.)
+            this.networkEvents = networkEvents?.ToArray() ?? Array.Empty<NetworkEvent>();
             this.droppedNote = droppedNote;
-            this.entries = entries;
-            this.incidents = incidents;
+            this.entries = entries.ToArray();
+            this.incidents = incidents.ToArray();
 
             // Positions and sizes below are written for 96 DPI: the form scales them to the screen (like MainForm does), so
             // that the text, which does grow with the scaling, still has its room at 125 %, 150 % or 200 %.
