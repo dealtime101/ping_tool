@@ -401,8 +401,9 @@
          1.21.323 = a save of the settings takes its turn between windows and takes in the profiles, names and recent addresses another window wrote since (PIN507.45)
          1.21.324 = the diagnosis asks the system for the IPv6 address it sends the Internet traffic from too, to tell which card carries an IPv6 connection (PIN507.46)
          1.21.325 = the usage text and the README say that the minimized option only hides the window and that the start option starts the monitoring (PIN507.53)
-         1.21.326 = in the crash log a repeat is counted only while the entry it points at is in the file: a deleted or rotated file gets the error in full again (PIN507.54) -->
-    <Version>1.21.326</Version>
+         1.21.326 = in the crash log a repeat is counted only while the entry it points at is in the file: a deleted or rotated file gets the error in full again (PIN507.54)
+         1.21.327 = the crash log takes out of an exception text the secrets of the usual forms: user and password of an address, queries, tokens, and the webhook addresses (PIN507.55) -->
+    <Version>1.21.327</Version>
   </PropertyGroup>
 
   <ItemGroup>

@@ -25,8 +25,32 @@ namespace PingTool
             var text = new StringBuilder();
             text.Append(time.ToString("yyyy-MM-dd HH:mm:ss zzz", CultureInfo.InvariantCulture))
                 .Append(" PingTool ").Append(version).Append(fatal ? " - FATAL" : " - continued").Append("\r\n")
-                .Append(MaskProfile(Describe(exception), Environment.GetFolderPath(Environment.SpecialFolder.UserProfile))).Append("\r\n\r\n");
+                .Append(RemoveSecrets(MaskProfile(Describe(exception), Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)))).Append("\r\n\r\n");
             return text.ToString();
+        }
+
+        // The addresses of the webhooks (a secret: whoever has one can post to the channel), told by Settings when it reads them: wherever one
+        // shows in the text of an exception it is replaced.
+        private static string[] knownSecrets = Array.Empty<string>();
+
+        internal static void KnowSecrets(IEnumerable<string> secrets) => knownSecrets = secrets.Where(s => s.Length >= 8).Distinct(StringComparer.Ordinal).ToArray();
+
+        private static readonly System.Text.RegularExpressions.Regex UserInfo = new(@"(?<=://)[^/\s:@]+:[^/\s@]+@", System.Text.RegularExpressions.RegexOptions.Compiled);
+        private static readonly System.Text.RegularExpressions.Regex Query = new(@"(?<url>[a-z][a-z0-9+.-]*://[^\s?#""'<>]+)\?[^\s""'<>]*", System.Text.RegularExpressions.RegexOptions.Compiled | System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        private static readonly System.Text.RegularExpressions.Regex Bearer = new(@"\b(Bearer|Basic)\s+[A-Za-z0-9._~+/=-]{8,}", System.Text.RegularExpressions.RegexOptions.Compiled | System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        private static readonly System.Text.RegularExpressions.Regex Named = new(@"\b(?<name>token|password|passwd|secret|api[_-]?key|authorization|access[_-]?key)(?<sep>\s*[=:]\s*)(?<value>[^\s&;,""']+)", System.Text.RegularExpressions.RegexOptions.Compiled | System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+        // The file is attached to bug reports. What an exception says can hold a secret that the program does not know it holds: the user and
+        // password of an address (https://user:pass@host), the query of an address (?token=...), an Authorization header, a value after
+        // "password=" or "token=". These forms are taken out, and the webhook addresses of the settings. It is a list of forms, not of
+        // everything an exception may say: a secret that has none of these forms stays.
+        internal static string RemoveSecrets(string text)
+        {
+            foreach (string secret in knownSecrets) text = text.Replace(secret, "(webhook address)", StringComparison.Ordinal);
+            text = UserInfo.Replace(text, "(user removed)@");
+            text = Query.Replace(text, "${url}?(query removed)");
+            text = Bearer.Replace(text, "$1 (removed)");
+            return Named.Replace(text, "${name}${sep}(removed)");
         }
 
         // The file is the one a person attaches to a bug report: the folder of the user's profile (C:\Users\name\...) appears in the message

@@ -211,6 +211,7 @@ namespace PingTool
             if (good.Count < raw.Count)
                 AddProblem($"{raw.Count - good.Count} webhook address(es) in settings.json were ignored: only distinct http:// or https:// addresses are used (at most {MaxWebhooks}).");
             Webhooks = good;
+            CrashLog.KnowSecrets(good);   // an exception text must never carry one of them into crash.log
             Maintenance = (Maintenance ?? new List<string>()).Where(w => !string.IsNullOrWhiteSpace(w)).Select(w => w.Trim()).ToList();
             MaintenanceWindows.Parse(Maintenance, out var badWindows);
             if (badWindows.Count > 0)
