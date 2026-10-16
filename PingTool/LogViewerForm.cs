@@ -72,7 +72,9 @@ namespace PingTool
 
             timeline.Click += (_, _) =>
             {
-                using var dialog = new TimelineForm(entries, replay.Incidents.Incidents.ToList(), hosts, hosts[0]);
+                // The first target, if there is one: the reader of logs refuses a log with no ping, so there always is today; this window does not
+                // depend on that rule being kept somewhere else (an empty list gave an exception from the click, not a timeline).
+                using var dialog = new TimelineForm(entries, replay.Incidents.Incidents.ToList(), hosts, hosts.FirstOrDefault());
                 dialog.ShowDialog(this);
             };
             incidents.Click += (_, _) =>

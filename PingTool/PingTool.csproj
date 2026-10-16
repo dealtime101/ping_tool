@@ -543,8 +543,9 @@
          1.21.465 = the log of the session kept in memory is under a lock, so that writing, copying and exporting it from different threads cannot fail or part the entries from the count of those let go (PIN507.290)
          1.21.466 = an icon resource that is damaged inside no longer ends the start of the program with a Win32Exception: the generic icon is shown, and it is said as before (PIN507.298)
          1.21.467 = the name of a profile is kept and compared in the composed form of Unicode, so a name with an accented letter and the same with a letter and a combining accent are one profile (PIN507.311)
-         1.21.468 = a file of profiles that has the format, the version or the list twice is refused with the name of the key, instead of reading the first and dropping the rest in silence (PIN507.312) -->
-    <Version>1.21.468</Version>
+         1.21.468 = a file of profiles that has the format, the version or the list twice is refused with the name of the key, instead of reading the first and dropping the rest in silence (PIN507.312)
+         1.21.469 = the timeline button of the window of a log opened does not depend on the log having a target: the first target, if there is one (PIN507.316) -->
+    <Version>1.21.469</Version>
   </PropertyGroup>
 
   <ItemGroup>
