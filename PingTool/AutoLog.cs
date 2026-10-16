@@ -108,7 +108,13 @@ namespace PingTool
         // and what it has not finished is left (the process ends anyway). True when everything got out in time.
         public static bool FlushWithin(AutoLog? current, List<AutoLog> retired, TimeSpan limit)
         {
-            var work = Task.Run(() => { FlushRetired(retired); return current?.Flush() ?? true; });
+            // Both are tried whatever the first gives; a retired log that is still there afterwards could not get everything out.
+            var work = Task.Run(() =>
+            {
+                FlushRetired(retired);
+                bool currentOut = current?.Flush() ?? true;
+                return currentOut && retired.Count == 0;
+            });
             try { return work.Wait(limit) && work.Result; }
             catch (AggregateException) { return false; }
         }
