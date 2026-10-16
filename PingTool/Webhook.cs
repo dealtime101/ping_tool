@@ -32,11 +32,12 @@ namespace PingTool
             webhookCount > 0 && ignored == 0 && results.Count == webhookCount && results.All(r => r.Ok) ? HeadlessRunner.OkCode : HeadlessRunner.ErrorCode;
     }
 
-    internal enum WebhookFormat { Json, Slack, Discord, Ntfy }
+    internal enum WebhookFormat { Json, Slack, Discord, Ntfy, Teams }
 
-    // What each kind of service wants in the body. The format is read from the address (Slack, Discord and
-    // ntfy have well-known ones); anything else gets a small JSON that also carries a "text" field, which
-    // Teams (workflows), Mattermost and most other receivers accept as it is.
+    // What each kind of service wants in the body. The format is read from the address (Slack, Discord, ntfy
+    // and the Teams workflows of Power Automate have well-known ones); anything else gets a small JSON that also carries a "text" field,
+    // which Mattermost and most other receivers accept as it is. A Teams workflow made from the usual template does NOT: it posts
+    // what it finds in "attachments" (an Adaptive Card), so a Teams address gets the same JSON with that envelope added.
     internal static class WebhookPayload
     {
         public const int DiscordLimit = 2000;
@@ -69,8 +70,23 @@ namespace PingTool
             if ((host == "discord.com" || host.EndsWith(".discord.com", StringComparison.Ordinal) || host == "discordapp.com")
                 && url.AbsolutePath.StartsWith("/api/webhooks/", StringComparison.Ordinal)) return WebhookFormat.Discord;
             if (host == "ntfy.sh" || host.StartsWith("ntfy.", StringComparison.Ordinal)) return WebhookFormat.Ntfy;
+            // The address of a Teams workflow ("When a Teams webhook request is received"): Power Automate's logic apps host, or the
+            // Power Platform one that newer addresses use.
+            if (host.EndsWith(".logic.azure.com", StringComparison.Ordinal) || host.EndsWith(".powerplatform.com", StringComparison.Ordinal)) return WebhookFormat.Teams;
             return WebhookFormat.Json;
         }
+
+        // The fields every receiver of the generic format gets (and a Teams workflow that was changed to read them).
+        private static Dictionary<string, object?> GenericFields(WebhookEvent e, string version) => new()
+        {
+            ["text"] = e.Text,
+            ["host"] = e.Host,
+            ["event"] = EventName(e.Change),
+            ["outageSeconds"] = e.Outage is TimeSpan d ? (long?)Math.Max(0, (long)d.TotalSeconds) : null,
+            ["time"] = e.Time.ToString("o", CultureInfo.InvariantCulture),
+            ["source"] = "PingTool",
+            ["version"] = version,
+        };
 
         // Where a message went, WITHOUT the path or the query: a webhook address is a secret (whoever has it can post).
         public static string Label(Uri url) =>
@@ -119,17 +135,30 @@ namespace PingTool
                         _ => "green_circle",
                     });
                     break;
-                default:
-                    request.Content = Json(new
+                case WebhookFormat.Teams:
+                    // The usual template of a Teams workflow posts triggerBody()['attachments']: an Adaptive Card in a "message". The
+                    // generic fields stay beside it, for a workflow that was changed to read "text" (it worked with them before).
+                    var teams = GenericFields(e, version);
+                    teams["type"] = "message";
+                    teams["attachments"] = new[]
                     {
-                        text = e.Text,
-                        host = e.Host,
-                        @event = EventName(e.Change),
-                        outageSeconds = e.Outage is TimeSpan d ? (long?)Math.Max(0, (long)d.TotalSeconds) : null,
-                        time = e.Time.ToString("o", CultureInfo.InvariantCulture),
-                        source = "PingTool",
-                        version,
-                    });
+                        new Dictionary<string, object?>
+                        {
+                            ["contentType"] = "application/vnd.microsoft.card.adaptive",
+                            ["contentUrl"] = null,
+                            ["content"] = new Dictionary<string, object?>
+                            {
+                                ["$schema"] = "http://adaptivecards.io/schemas/adaptive-card.json",
+                                ["type"] = "AdaptiveCard",
+                                ["version"] = "1.4",
+                                ["body"] = new[] { new Dictionary<string, object?> { ["type"] = "TextBlock", ["text"] = e.Text, ["wrap"] = true } },
+                            },
+                        },
+                    };
+                    request.Content = Json(teams);
+                    break;
+                default:
+                    request.Content = Json(GenericFields(e, version));
                     break;
             }
 

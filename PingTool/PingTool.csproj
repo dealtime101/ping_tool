@@ -474,8 +474,9 @@
          1.21.396 = the progress of a trace gives the caller a copy of the hops known, not the list the trace goes on filling (PIN507.170; no change in what the window shows)
          1.21.397 = the top value of the axis of the timeline is written through the table of texts, as its clipped variant already was (PIN507.171)
          1.21.398 = the gap, the minimum height of the chart and the margins in the layout of the timeline window are scaled to the screen, not fixed pixels (PIN507.172)
-         1.21.399 = the webhook client and the #family=4/6 probe clients renew their connections every 5 minutes, so a receiver or a service that changed address is reached again without a restart (PIN507.173) -->
-    <Version>1.21.399</Version>
+         1.21.399 = the webhook client and the #family=4/6 probe clients renew their connections every 5 minutes, so a receiver or a service that changed address is reached again without a restart (PIN507.173)
+         1.21.400 = a Teams workflow address (logic.azure.com, powerplatform.com) gets the Adaptive Card its template reads, with the generic fields beside it; the comment and the README no longer say that "text" is enough (PIN507.175) -->
+    <Version>1.21.400</Version>
   </PropertyGroup>
 
   <ItemGroup>
