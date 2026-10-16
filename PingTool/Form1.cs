@@ -1815,7 +1815,9 @@ namespace PingTool
         protected override void OnMouseClick(MouseEventArgs e)
         {
             base.OnMouseClick(e);
-            if (!InLegend(e.Location) || series.Count <= legendRows) return;
+            // The left button turns the page. The others keep their own meaning (a right click is for a context menu, a middle click and a
+            // wheel click for the wheel): they must not move the legend.
+            if (e.Button != MouseButtons.Left || !InLegend(e.Location) || series.Count <= legendRows) return;
             legendOffset = GraphLayout.NextLegendOffset(series.Count, legendFirst, legendRows, forward: true);   // the next page, round to the first
             ForgetLegendTip();
             Invalidate();
