@@ -386,8 +386,9 @@
          1.21.308 = a log file counts as recovered only after its repair worked, so a failed repair is tried again over the whole file (PIN507.28)
          1.21.309 = in a trace, an unreachable report without an address is no longer given to another router that answered at that distance (PIN507.29)
          1.21.310 = a webhook queue that is full counts the dropped alerts on the sending thread and tells the subscribers from another one (PIN507.30)
-         1.21.311 = the web probe reads nothing beyond its search limit: a server that stops sending there no longer turns the result into a timeout (PIN507.31) -->
-    <Version>1.21.311</Version>
+         1.21.311 = the web probe reads nothing beyond its search limit: a server that stops sending there no longer turns the result into a timeout (PIN507.31)
+         1.21.312 = the diagnosis takes the gateway of a card taken for virtual when it is the one the system sends the Internet traffic through and no real card has a gateway (PIN507.32) -->
+    <Version>1.21.312</Version>
   </PropertyGroup>
 
   <ItemGroup>

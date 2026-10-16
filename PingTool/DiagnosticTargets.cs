@@ -40,6 +40,12 @@ namespace PingTool
             var usable = nics.Where(n => n.IsUp && !n.IsVirtualOrLoopback && n.Gateways.Any(IsUsableIPv4)).ToList();
             var nic = (routedFrom is null ? null : usable.FirstOrDefault(n => n.Addresses is not null && n.Addresses.Any(a => a.Equals(routedFrom))))
                 ?? usable.FirstOrDefault();
+            // No real card has a gateway, but the system does send the Internet traffic out by a card the heuristics took for virtual (the
+            // only card of a virtual machine whose description says "virtual", a PC that reaches the Internet through a tunnel adapter
+            // alone): that card IS the connection, and "no gateway" would be wrong. A real card with a gateway still comes first: with a
+            // VPN up, the router to test is the physical one, not the far end of the tunnel.
+            if (nic is null && routedFrom is not null)
+                nic = nics.FirstOrDefault(n => n.IsUp && n.Gateways.Any(IsUsableIPv4) && n.Addresses is not null && n.Addresses.Any(a => a.Equals(routedFrom)));
             if (nic is not null)
             {
                 gatewayFound = true;
