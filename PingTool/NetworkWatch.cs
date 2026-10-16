@@ -95,13 +95,17 @@ namespace PingTool
                     .Where(a => a.AddressFamily == AddressFamily.InterNetwork).Select(a => a.ToString()).OrderBy(a => a, StringComparer.Ordinal).ToList();
                 if (addresses.Count == 0) continue;
 
-                string gateway = props.GatewayAddresses.Select(g => g.Address).FirstOrDefault(g => g.AddressFamily == AddressFamily.InterNetwork
-                    && !g.Equals(System.Net.IPAddress.Any))?.ToString() ?? "";
-                states.Add(new NicState(nic.Name, string.Join(", ", addresses), gateway));
+                states.Add(new NicState(nic.Name, string.Join(", ", addresses), GatewaysText(props.GatewayAddresses.Select(g => g.Address))));
             }
 
             return states;
         }
+
+        // ALL the IPv4 gateways of a card, once each and in a fixed order (the order the system lists them in means nothing): a gateway that
+        // is added, removed or replaced is a change, the same set listed differently is not. 0.0.0.0 is no gateway. "" when there is none.
+        internal static string GatewaysText(IEnumerable<System.Net.IPAddress> gateways) =>
+            string.Join(", ", gateways.Where(g => g.AddressFamily == AddressFamily.InterNetwork && !g.Equals(System.Net.IPAddress.Any))
+                .Select(g => g.ToString()).Distinct(StringComparer.Ordinal).OrderBy(g => g, StringComparer.Ordinal));
 
         // null when nothing that matters changed; otherwise one line saying what.
         public static string? Describe(IReadOnlyList<NicState> before, IReadOnlyList<NicState> after)
@@ -110,16 +114,18 @@ namespace PingTool
             var a = after.GroupBy(n => n.Name, StringComparer.Ordinal).ToDictionary(g => g.Key, g => g.First(), StringComparer.Ordinal);
 
             static string Gw(string g) => g.Length == 0 ? "none" : g;
+            // "gateway 192.168.1.1", "gateways 192.168.1.1, 10.0.0.1": the word follows how many there are (on either side of a change).
+            static string Word(params string[] gateways) => gateways.Any(g => g.Contains(", ", StringComparison.Ordinal)) ? "gateways" : "gateway";
             var parts = new List<string>();
             foreach (string name in b.Keys.Union(a.Keys).OrderBy(n => n, StringComparer.Ordinal))
             {
                 bool had = b.TryGetValue(name, out var was), has = a.TryGetValue(name, out var now);
-                if (!had) parts.Add($"{name} connected ({now!.Addresses}, gateway {Gw(now.Gateway)})");
+                if (!had) parts.Add($"{name} connected ({now!.Addresses}, {Word(now.Gateway)} {Gw(now.Gateway)})");
                 else if (!has) parts.Add($"{name} disconnected");
                 else if (was!.Addresses != now!.Addresses || was.Gateway != now.Gateway)
                 {
                     string text = was.Addresses != now.Addresses ? $"{name}: {was.Addresses} -> {now.Addresses}" : $"{name}: {now.Addresses}";
-                    if (was.Gateway != now.Gateway) text += $" (gateway {Gw(was.Gateway)} -> {Gw(now.Gateway)})";
+                    if (was.Gateway != now.Gateway) text += $" ({Word(was.Gateway, now.Gateway)} {Gw(was.Gateway)} -> {Gw(now.Gateway)})";
                     parts.Add(text);
                 }
             }
