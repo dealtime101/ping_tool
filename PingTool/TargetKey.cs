@@ -28,6 +28,11 @@ namespace PingTool
             // ends the user information (a password may hold an unencoded one; the path and the query, after it, never count).
             int at = authority.LastIndexOf('@');
             string userInfo = at < 0 ? "" : authority[..(at + 1)], host = at < 0 ? authority : authority[(at + 1)..];
+            // The port of the scheme, written out, is the port it has anyway: https://site:443/x is https://site/x, http://site:80/x is
+            // http://site/x (only that pair: :80 on https is another port). The colon must belong to a port, not to an IPv6 address.
+            string defaultPort = scheme == "https" ? ":443" : ":80";
+            if (host.Length > defaultPort.Length && host.EndsWith(defaultPort, StringComparison.Ordinal) && host[^(defaultPort.Length + 1)] != ':')
+                host = host[..^defaultPort.Length];
             // An address with a host and nothing after it IS the root: https://site, https://site/ and https://site?x=1 / https://site/?x=1
             // are the same resource, and typing one next to the other must not make two targets with two histories. The path starts with
             // "/" in the key, whichever way it was written (a query or a fragment right after the host gets it in front).
