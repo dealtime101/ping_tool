@@ -484,8 +484,9 @@
          1.21.406 = the error for a profile of a file that cannot be read is in the words of the program, with the place, not the text of the JSON library (PIN507.188)
          1.21.407 = an IPv6 prefix shorter than /48 (a Teredo or 6to4 card) no longer makes the hosts of the Internet "on the link"; IPv4 keeps its 8 bits (PIN507.190)
          1.21.408 = a network card that cannot be read is left out and the cards after it are still read, instead of the whole list stopping at it (PIN507.191)
-         1.21.409 = after a sort in the incidents window the selected incident is brought back into view and given the focus (PIN507.192) -->
-    <Version>1.21.409</Version>
+         1.21.409 = after a sort in the incidents window the selected incident is brought back into view and given the focus (PIN507.192)
+         1.21.410 = the incidents window takes the system colours in a Windows high-contrast theme, like the timeline window, and follows a change of theme (PIN507.193) -->
+    <Version>1.21.410</Version>
   </PropertyGroup>
 
   <ItemGroup>

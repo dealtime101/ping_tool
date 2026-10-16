@@ -23,6 +23,9 @@ namespace PingTool
         public Color NoteText => highContrast ? SystemColors.ControlText : Color.Silver;
 
         public Color Back => highContrast ? SystemColors.Window : Color.FromArgb(40, 40, 40);
+        // The text of a box laid on Back (the route text of the incidents window, which shares the dark palette of this one): the colour of
+        // the system's text on its window in a high-contrast theme.
+        public Color BoxText => highContrast ? SystemColors.WindowText : Color.White;
         public Color Text => highContrast ? SystemColors.WindowText : Color.Silver;
         // GrayText is a disabled text and Highlight a selection background: a theme need not make them stand out from its window, so each
         // colour taken from the theme gives way to the text colour when its contrast with the window is under 3:1 (see GraphPalette.Readable).

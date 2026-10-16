@@ -5,6 +5,18 @@ namespace PingTool
     // The incident timeline, newest first. A snapshot: it does not refresh while open.
     internal sealed class IncidentsForm : Form
     {
+        // The colours: the dark palette of the timeline window, or the system's in a high-contrast theme, where the user has chosen the
+        // colours they can read (looked at again when the theme changes, see OnSystemColorsChanged).
+        private TimelinePalette palette = TimelinePalette.For(SystemInformation.HighContrast);
+        private Action? applyColors;
+
+        protected override void OnSystemColorsChanged(EventArgs e)
+        {
+            base.OnSystemColorsChanged(e);
+            palette = TimelinePalette.For(SystemInformation.HighContrast);
+            applyColors?.Invoke();
+        }
+
         public IncidentsForm(IReadOnlyList<Incident> incidents, string summary, DateTimeOffset now)
         {
             // Positions and sizes are written for 96 DPI: the form scales them to the screen, so that the text, which does grow
@@ -20,7 +32,7 @@ namespace PingTool
             MaximizeBox = true;
             MinimizeBox = false;
             ShowInTaskbar = false;
-            BackColor = Color.FromArgb(64, 64, 64);
+            BackColor = palette.FormBack;
 
             var culture = CultureInfo.CurrentCulture;
             string When(DateTimeOffset t) => t.ToLocalTime().ToString("G", culture);
@@ -145,8 +157,6 @@ namespace PingTool
                 ReadOnly = true,
                 ScrollBars = ScrollBars.Vertical,
                 Font = mono,
-                BackColor = Color.FromArgb(40, 40, 40),
-                ForeColor = Color.White,
                 Dock = DockStyle.Fill,
                 AccessibleName = "Route when the selected outage began",
                 AccessibleDescription = "The path to the host, hop by hop, captured when the selected outage began, and what changed from the healthy path.",
@@ -164,7 +174,6 @@ namespace PingTool
             {
                 Text = summary,
                 UseMnemonic = false,   // the sentence may name a host: a "&" in its address is a character
-                ForeColor = Color.White,
                 // As wide as the window and two lines high: the sentence wraps instead of running past the edge (a typical one is
                 // about 100 characters, as wide as the window at its minimum size; the longest the format makes is 119).
                 AutoSize = false,
@@ -176,7 +185,6 @@ namespace PingTool
             var lblNote = new Label
             {
                 Text = IncidentLog.DatingNote + " # = how many times this host had that kind of incident.",
-                ForeColor = Color.Silver,
                 AutoSize = false,
                 Location = new Point(10, 414),
                 Size = new Size(780, 34),
@@ -194,7 +202,6 @@ namespace PingTool
                 Size = new Size(880, 366),
                 SplitterDistance = 190,
                 Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
-                BackColor = Color.FromArgb(64, 64, 64),
                 Panel1MinSize = 80,
                 Panel2MinSize = 60,
             };
@@ -205,6 +212,16 @@ namespace PingTool
             Controls.Add(split);
             Controls.Add(lblNote);
             Controls.Add(close);
+
+            applyColors = () =>
+            {
+                BackColor = split.BackColor = palette.FormBack;
+                details.BackColor = palette.Back;
+                details.ForeColor = palette.BoxText;
+                lblSummary.ForeColor = palette.SummaryText;
+                lblNote.ForeColor = palette.NoteText;
+            };
+            applyColors();
         }
 
         private sealed class ItemSorter(int column, bool ascending, DateTimeOffset now) : System.Collections.IComparer
