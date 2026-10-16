@@ -97,7 +97,7 @@ namespace PingTool
             try
             {
                 var (other, otherEntries, error) = await Task.Run(() => MainForm.LoadLogs(paths));
-                if (other is null || otherEntries is null) { MessageBox.Show(error, "PingTool"); return; }
+                if (other is null || otherEntries is null) { ShowError(error ?? "The other log could not be read."); return; }
 
                 string otherName = paths.Length == 1 ? Path.GetFileName(paths[0]) : paths.Length.ToString(CultureInfo.CurrentCulture) + " log files";
                 var answer = MessageBox.Show(this,
@@ -117,13 +117,17 @@ namespace PingTool
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
-                MessageBox.Show("Could not write the file: " + ex.Message, "PingTool");
+                ShowError("Could not write the file: " + ex.Message);
             }
             finally
             {
                 Cursor = Cursors.Default;
             }
         }
+
+        // A failure is shown over THIS window, with the error icon: this window is a dialog that is not in the taskbar, and a box with no
+        // owner could open behind it, with nothing to say that it is about a failure.
+        private void ShowError(string text) => MessageBox.Show(this, text, "PingTool", MessageBoxButtons.OK, MessageBoxIcon.Error);
 
         private void SaveReport(List<LogEntry> entries)
         {
@@ -154,11 +158,11 @@ namespace PingTool
             }
             catch (IOException ex)
             {
-                MessageBox.Show("Could not write the file: " + ex.Message, "PingTool");
+                ShowError("Could not write the file: " + ex.Message);
             }
             catch (UnauthorizedAccessException ex)
             {
-                MessageBox.Show("Could not write the file: " + ex.Message, "PingTool");
+                ShowError("Could not write the file: " + ex.Message);
             }
         }
     }
