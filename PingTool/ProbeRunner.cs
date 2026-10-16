@@ -343,7 +343,7 @@ namespace PingTool
         // ONCE, by a decoder that keeps its state (a character cut in two by two reads is whole in the end), and searched together with the
         // last characters of the reads before it, so a text cut in two by two reads is found; the work is that of the page, whatever the
         // size of the pieces it comes in (decoding the whole again after each read took some two billion bytes of work for a page sent
-        // byte by byte). The encoding is chosen once, when the byte order mark can be known (3 bytes, or the end of the page).
+        // byte by byte). The encoding is chosen once, when the byte order mark can be known (up to 4 bytes, or the end of the page).
         // Truncated: the page goes on beyond the limit, and the text was not in what was read - "not found" then may simply mean
         // "further down", which the message must not call a maintenance page.
         internal static async Task<(bool Found, bool Truncated)> Search(Stream stream, string? charset, string expected, CancellationToken token, long? length = null)
@@ -377,11 +377,11 @@ namespace PingTool
             while (total < buffer.Length && (read = await stream.ReadAsync(buffer.AsMemory(total), token)) > 0)
             {
                 total += read;
-                if (decoder is null && total < 3) continue;   // a byte order mark takes up to 3 bytes: not known yet
+                if (decoder is null && MarkMayContinue(buffer.AsSpan(0, total))) continue;   // a byte order mark takes up to 4 bytes: not known yet
                 if (Feed()) return (true, false);
             }
 
-            if (decoder is null && total > 0 && Feed()) return (true, false);   // a page of less than 3 bytes
+            if (decoder is null && total > 0 && Feed()) return (true, false);   // a page that ended inside a possible mark (less than 4 bytes)
             return (false, PageGoesOn(total, buffer.Length, length));
         }
 
@@ -399,11 +399,26 @@ namespace PingTool
             return encoding.GetString(buffer, skip, count - skip);
         }
 
+        private static readonly byte[][] LongMarks = { new byte[] { 0xEF, 0xBB, 0xBF }, new byte[] { 0xFF, 0xFE, 0x00, 0x00 }, new byte[] { 0x00, 0x00, 0xFE, 0xFF } };
+
+        // The bytes received so far are the beginning of a longer byte order mark that is not complete yet (FF FE alone is UTF-16 or the
+        // start of the UTF-32 mark): the encoding cannot be chosen yet.
+        internal static bool MarkMayContinue(ReadOnlySpan<byte> head)
+        {
+            if (head.Length == 0) return false;
+            foreach (var mark in LongMarks)
+                if (head.Length < mark.Length && mark.AsSpan(0, head.Length).SequenceEqual(head)) return true;
+            return false;
+        }
+
         // The encoding of a page and how many bytes of its start are the byte order mark (not text).
         internal static (Encoding Encoding, int Skip) EncodingOf(byte[] buffer, int count, string? charset)
         {
             var bom = buffer.AsSpan(0, count);
             if (bom.StartsWith(new byte[] { 0xEF, 0xBB, 0xBF })) return (Encoding.UTF8, 3);
+            // The UTF-32 marks first: that of little-endian UTF-32 (FF FE 00 00) starts with the whole mark of UTF-16 little-endian.
+            if (bom.StartsWith(new byte[] { 0xFF, 0xFE, 0x00, 0x00 })) return (Encoding.UTF32, 4);
+            if (bom.StartsWith(new byte[] { 0x00, 0x00, 0xFE, 0xFF })) return (new UTF32Encoding(bigEndian: true, byteOrderMark: true), 4);
             if (bom.StartsWith(new byte[] { 0xFF, 0xFE })) return (Encoding.Unicode, 2);
             if (bom.StartsWith(new byte[] { 0xFE, 0xFF })) return (Encoding.BigEndianUnicode, 2);
 
