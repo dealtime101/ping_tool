@@ -148,13 +148,15 @@ namespace PingTool
             // checkpoint: the next one is tried when its time comes, and the final one at the end. It is said once. Not guarded, it
             // ended the periodic saves for the rest of the night and then took the final report and the exit code down with it.
             int checkpointProblemSaid = 0;
-            void SafeCheckpoint(ReportData data)
+            // False when the callback threw: for a checkpoint of the night the next one will try again; for the final one nobody will.
+            bool SafeCheckpoint(ReportData data)
             {
-                try { checkpoint!(data); }
+                try { checkpoint!(data); return true; }
                 catch (Exception ex) when (ex is not OperationCanceledException)
                 {
                     if (Interlocked.Exchange(ref checkpointProblemSaid, 1) == 0)
                         Console.Error.WriteLine("A report checkpoint could not be written, the next one will be tried: " + ex.GetType().Name + ": " + ex.Message);
+                    return false;
                 }
             }
 
@@ -177,13 +179,16 @@ namespace PingTool
             await Task.WhenAll(loops);
 
             var report = Build();
-            if (checkpoint is not null) SafeCheckpoint(report);
+            // The last report is the one that was asked for: when it cannot be written the run did not do its job, whatever it saw - a
+            // scheduled task must not read "no incident" and take an old report, or none, for the night's.
+            bool finalWritten = checkpoint is null || SafeCheckpoint(report);
 
             long sent = sessions.Sum(s => s.Stats.Sent);
             string summary = sent == 0
                 ? "No probe was made."
-                : $"{sent} probes on {sessions.Count} target(s) in {IncidentLog.FormatDuration(report.GeneratedAt - start)}. {report.IncidentSummary}";
-            int code = sent == 0 ? ErrorCode : incidents.Incidents.Count > 0 ? IncidentCode : OkCode;
+                : $"{sent} probes on {sessions.Count} target(s) in {IncidentLog.FormatDuration(report.GeneratedAt - start)}. {report.IncidentSummary}"
+                    + (finalWritten ? "" : " The final report could not be written.");
+            int code = sent == 0 || !finalWritten ? ErrorCode : incidents.Incidents.Count > 0 ? IncidentCode : OkCode;
             return new HeadlessResult(code, summary, report);
         }
     }

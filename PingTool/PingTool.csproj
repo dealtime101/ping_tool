@@ -390,8 +390,9 @@
          1.21.312 = the diagnosis takes the gateway of a card taken for virtual when it is the one the system sends the Internet traffic through and no real card has a gateway (PIN507.32)
          1.21.313 = a card with an IPv6 gateway and IPv4 DNS servers is an IPv6 connection: its gateway is found and the IPv6 references used (PIN507.33)
          1.21.314 = an outage is closed at the first ping that answers even when no Up came with it, so later failures cannot rewrite it (PIN507.34)
-         1.21.315 = the silence that makes a hole in a log is read from enough pings and never above six hours (PIN507.35) -->
-    <Version>1.21.315</Version>
+         1.21.315 = the silence that makes a hole in a log is read from enough pings and never above six hours (PIN507.35)
+         1.21.316 = a headless run whose final report cannot be written ends with the error code, not the code of what it saw (PIN507.36) -->
+    <Version>1.21.316</Version>
   </PropertyGroup>
 
   <ItemGroup>
