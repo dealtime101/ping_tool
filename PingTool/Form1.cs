@@ -217,9 +217,10 @@ namespace PingTool
             if (compact)
             {
                 // The compact window has a size of its own and cannot be dragged: remember the one the user had.
-                // A maximized window has no normal size of its own on screen: the one it will have when restored is its RestoreBounds.
+                // A maximized window has no normal size of its own on screen: the one it will have when restored is its RestoreBounds less the
+                // frame and the title bar, which the style of the window gives (not Size less ClientSize: a minimized window is only a title bar).
                 if (FormBorderStyle == FormBorderStyle.Sizable)
-                    normalClientSize = WindowState == FormWindowState.Normal ? ClientSize : WindowSizing.RestoredClient(RestoreBounds.Size, Size, ClientSize);
+                    normalClientSize = WindowState == FormWindowState.Normal ? ClientSize : WindowSizing.RestoredClient(RestoreBounds.Size, SizeFromClientSize(Size.Empty));
                 WindowState = FormWindowState.Normal;
                 MinimumSize = Size.Empty;
                 FormBorderStyle = FormBorderStyle.FixedSingle;

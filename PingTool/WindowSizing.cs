@@ -7,9 +7,12 @@ namespace PingTool
         public const int MaxClientWidth = 4000, MaxClientHeight = 3000;
 
         // The client size a maximized (or minimized) window will have when it is restored: its restore bounds (the outer size of the window
-        // as it was) less what the frame and the title bar take (outer size less client size, the same either way). Never below 1.
-        public static Size RestoredClient(Size restoreBounds, Size outer, Size client) =>
-            new(Math.Max(1, restoreBounds.Width - (outer.Width - client.Width)), Math.Max(1, restoreBounds.Height - (outer.Height - client.Height)));
+        // as it was) less what the frame and the title bar take. nonClient is that, given by the style of the window and its DPI (the outer
+        // size for a client area of nothing, Form.SizeFromClientSize(Size.Empty)): it can NOT be had from the size of the window as it is,
+        // for a minimized window is a title bar of its own (outer size minus client size is then the size of that bar, not of the frame
+        // of the window that will come back). Never below 1.
+        public static Size RestoredClient(Size restoreBounds, Size nonClient) =>
+            new(Math.Max(1, restoreBounds.Width - nonClient.Width), Math.Max(1, restoreBounds.Height - nonClient.Height));
 
         // The saved size (0 = never saved) as a size to open with, no smaller than `minimum`; null = use the default.
         public static Size? Restore(int savedWidth, int savedHeight, Size minimum)
