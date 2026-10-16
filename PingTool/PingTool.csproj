@@ -382,8 +382,9 @@
          1.21.304 = a repeat note of the crash log that could not be written is tried again at the next occurrence (PIN507.20)
          1.21.305 = a route traced during a run no longer replaces the reference of a run started while the trace was going on (PIN507.25)
          1.21.306 = closing the window no longer reports success when a retired log could not be written (PIN507.26)
-         1.21.307 = the cap on the retired logs counts the entries to give up under the lock of the queue (PIN507.27) -->
-    <Version>1.21.307</Version>
+         1.21.307 = the cap on the retired logs counts the entries to give up under the lock of the queue (PIN507.27)
+         1.21.308 = a log file counts as recovered only after its repair worked, so a failed repair is tried again over the whole file (PIN507.28) -->
+    <Version>1.21.308</Version>
   </PropertyGroup>
 
   <ItemGroup>

@@ -447,7 +447,10 @@ namespace PingTool
                         if (why is not null) lastError = why;
                     }
 
-                    CutPartialLine(path, deep: touched.Add(path));
+                    // The first time a file is written to, the whole of it is read (a row cut by a crash can sit inside a quoted field). The file
+                    // counts as done only once that worked: if reading or repairing it fails, the next try reads it whole again.
+                    CutPartialLine(path, deep: !touched.Contains(path));
+                    touched.Add(path);
                     // ReadWrite sharing lets a spreadsheet that does not lock the file read it meanwhile.
                     using var stream = new FileStream(path, FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
                     long start = stream.Length;
