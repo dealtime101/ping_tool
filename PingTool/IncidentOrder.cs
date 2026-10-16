@@ -31,7 +31,10 @@ namespace PingTool
             // number of the incident of that kind, which is never twice the same for one host: two different incidents are never equal,
             // so the sort (which does not keep the order it was given) puts them in the same order every time.
             if (c == 0) c = a.Kind.CompareTo(b.Kind);
-            return c != 0 ? c : a.Occurrence.CompareTo(b.Occurrence);
+            if (c == 0) c = a.Occurrence.CompareTo(b.Occurrence);
+            // The number is only unique for ONE host as written: "Serveur" and "serveur" are two hosts of the log, each with an incident 1 of the
+            // same kind at the same instant, which the comparison above (case ignored) would have found equal. The exact spelling decides last.
+            return c != 0 ? c : string.CompareOrdinal(a.Host, b.Host);
         }
 
         // A slowdown has no failed pings: it counts as none, so it sorts below every outage.
