@@ -54,16 +54,18 @@ namespace PingTool
             // CR LF written explicitly: the writer belongs to the caller, whose own line ending is none of our business.
             writer.Write(CsvHeader + "\r\n");
             // A log that let its oldest pings go says so IN the file (the window said it once, to whoever exported): whoever receives
-            // the file cannot tell a whole session from the end of one. A single-field row under the header, which the reader skips
-            // (PingLogReader.CommentMark) and a spreadsheet shows as a line of text; the columns stay the same.
+            // the file cannot tell a whole session from the end of one. A row under the header with the same five columns, the remark in
+            // the first and the other four empty, which the reader skips (PingLogReader.CommentMark) and a spreadsheet shows as a line of
+            // text; a tool that wants as many fields in every row as the header has them finds them.
             if (Dropped > 0) writer.Write(IncompleteRow(Dropped) + "\r\n");
             foreach (var e in entries) writer.Write(CsvLine(e) + "\r\n");
         }
 
         // The remark row for a log that let `dropped` of its oldest pings go (also the first row of the measures in a report archive).
+        // Five fields like every row (four empty ones after the remark). Files written before had the remark alone: the reader takes both.
         public static string IncompleteRow(long dropped) =>
             Field(CommentMark + " Incomplete: only the latest " + MaxEntries.ToString("N0", CultureInfo.InvariantCulture)
-                + " pings are in this file, the " + dropped.ToString("N0", CultureInfo.InvariantCulture) + " older ones were no longer kept.");
+                + " pings are in this file, the " + dropped.ToString("N0", CultureInfo.InvariantCulture) + " older ones were no longer kept.") + ",,,,";
 
         // The mark of a row that is a remark and not a ping.
         public const string CommentMark = "#";

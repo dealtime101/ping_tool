@@ -456,8 +456,9 @@
          1.21.378 = a quote inside a field of a log that does not begin with one is said to be a damaged line, as text after a closing quote already was (PIN507.135)
          1.21.379 = the error that explains a failure (a refused connection, a time limit, a secure-connection fault) is found however deep it is wrapped (PIN507.136)
          1.21.380 = the silence that breaks the line of the time graph is a named threshold, and the comment says what the code does: two and a half intervals (PIN507.137)
-         1.21.381 = the reason why the network cards could not be read comes with that reading, so a later failure never says the reason of an earlier one (PIN507.138) -->
-    <Version>1.21.381</Version>
+         1.21.381 = the reason why the network cards could not be read comes with that reading, so a later failure never says the reason of an earlier one (PIN507.138)
+         1.21.382 = the remark row of an incomplete log has the five fields of the header, the reader taking the old row with one field as well (PIN507.141) -->
+    <Version>1.21.382</Version>
   </PropertyGroup>
 
   <ItemGroup>
