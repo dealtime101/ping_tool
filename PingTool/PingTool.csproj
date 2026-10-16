@@ -495,8 +495,9 @@
          1.21.417 = the figures of a stretch of the trend are separated by a comma in English as they are in French, for the eye and for a screen reader (PIN507.202)
          1.21.418 = the line of the recent figures says "60 derniers pings" in French instead of "Derniers 60", with the singular for one ping; English as it was (PIN507.203)
          1.21.419 = a text of the table that has a place to fill, asked for with no argument, comes out with its key like one asked for with too few, instead of raw (PIN507.204)
-         1.21.420 = the detail of a socket error with no sentence of its own is its name and system number, not the message of the system in the language of the machine (PIN507.205) -->
-    <Version>1.21.420</Version>
+         1.21.420 = the detail of a socket error with no sentence of its own is its name and system number, not the message of the system in the language of the machine (PIN507.205)
+         1.21.421 = an invalid packet size or timeout is no longer reported as an invalid address (PIN507.206) -->
+    <Version>1.21.421</Version>
   </PropertyGroup>
 
   <ItemGroup>

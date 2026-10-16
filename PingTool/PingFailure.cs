@@ -112,6 +112,10 @@ namespace PingTool
                 // The callers filter Stop out before they get here (ProbeRunner.RunAsync rethrows it, StartPinging and the headless loop
                 // catch it). One that still arrives is named for what it is, not shown as a fault of the network named "Error".
                 _ when ex is OperationCanceledException => new("Stopped", "The probe was cancelled before it finished (Stop or close), not a failure of the host"),
+                // The parameter that was refused says which setting is wrong (Ping.SendPingAsync checks its buffer and its timeout as well as
+                // the name): calling every one of them an address sent the user to correct an address that was right.
+                _ when ex is ArgumentException { ParamName: "buffer" } => new("Bad size", "Invalid packet size: " + ex.Message),
+                _ when ex is ArgumentException { ParamName: "timeout" } => new("Bad time", "Invalid timeout: " + ex.Message),
                 _ when ex is ArgumentException => new("Bad addr", "Invalid address: " + ex.Message),
                 // Raised by SslStream itself, or wrapped by the HTTP layer: both levels, as for the socket error above.
                 _ when Find<System.Security.Authentication.AuthenticationException>(ex) is { } tls
