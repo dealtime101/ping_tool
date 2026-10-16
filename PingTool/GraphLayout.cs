@@ -36,6 +36,17 @@ namespace PingTool
             return rows <= 0 ? 0 : (first - 1) / rows * rows;
         }
 
+        // The row of the legend under the pointer, or -1: the legend is drawn against the right edge, each row as wide as its own text, so a
+        // short name leaves the curve free to its left. `rowLefts` = the left edge of each row as drawn (its sample of the curve included),
+        // `rowHeight` = the height of a row. A rectangle from the leftmost row down would answer (and show a tip, and turn the page) over the
+        // curve beside every row shorter than the longest.
+        public static int LegendHit(float x, float y, float rowHeight, IReadOnlyList<float> rowLefts)
+        {
+            if (rowHeight <= 0 || y < 0 || float.IsNaN(x) || float.IsNaN(y)) return -1;
+            int row = (int)(y / rowHeight);
+            return row < rowLefts.Count && x >= rowLefts[row] ? row : -1;
+        }
+
         // "page 2 of 3" for the legend as shown: what a screen reader is told, since the page is only ever a picture.
         public static (int Page, int Pages) LegendPage(int total, int first, int rows)
         {

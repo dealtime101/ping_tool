@@ -1652,7 +1652,7 @@ namespace PingTool
         private const int MaxSamples = HostSession.HistorySize;
         private const int MaxLegend = 5;
         private int legendOffset, legendFirst, legendRows;   // the page of the legend shown, as drawn last (for the click and the tooltip)
-        private float legendLeft;
+        private float[] legendRowLeft = Array.Empty<float>();   // the left edge of each row as drawn, the "more" row last: the zone of the pointer
         private string legendTipText = "";
         private readonly ToolTip legendTip = new();
         private IReadOnlyList<GraphSeries> series = Array.Empty<GraphSeries>();
@@ -1712,6 +1712,7 @@ namespace PingTool
             compare = false;
             series = history is null ? Array.Empty<GraphSeries>() : new[] { new GraphSeries("", Color.LimeGreen, history) };
             legendRows = 0;   // the legend as drawn last belongs to the old series: no tooltip from it until the repaint
+            legendRowLeft = Array.Empty<float>();
             Invalidate();
         }
 
@@ -1724,6 +1725,7 @@ namespace PingTool
             timeNow = now;
             this.interval = interval;
             legendRows = 0;   // see Show
+            legendRowLeft = Array.Empty<float>();
             Invalidate();
         }
 
@@ -1788,7 +1790,7 @@ namespace PingTool
             var (first, rows) = GraphLayout.LegendWindow(series.Count, legendOffset, MaxLegend);
             legendOffset = legendFirst = first;
             legendRows = rows;
-            legendLeft = Width;
+            var rowLefts = new List<float>();
             float y = 0;
             for (int i = first; i < first + rows; i++)
             {
@@ -1800,7 +1802,7 @@ namespace PingTool
                 g.DrawString(name, Font, brush, x, y);
                 using var sample = new Pen(color, 1.5f) { DashStyle = LinePatterns[palette.Dash(i)] };
                 g.DrawLine(sample, x - 22, y + Font.Height / 2f, x - 4, y + Font.Height / 2f);
-                legendLeft = Math.Min(legendLeft, x - 22);
+                rowLefts.Add(x - 22);
                 y += Font.Height;
             }
 
@@ -1810,16 +1812,19 @@ namespace PingTool
                 string more = Loc.T("graph.legend.more", first + 1, first + rows, series.Count);
                 float x = Width - g.MeasureString(more, Font).Width - 2;
                 g.DrawString(more, Font, grey, x, y);
-                legendLeft = Math.Min(legendLeft, x);
+                rowLefts.Add(x);
             }
+
+            legendRowLeft = rowLefts.ToArray();
         }
 
         // The name cut (with an ellipsis) until it fits `room` pixels: a character at a time, never through the two halves of an emoji.
         private string FitName(Graphics g, string name, float room) =>
             TextCut.Ellipsize(name, text => g.MeasureString(text, Font).Width <= room);
 
+        // On a row of the legend, as wide as its own text and its sample of the curve: beside a short name the curve is the curve.
         private bool InLegend(Point p) =>
-            compare && series.Count > 0 && p.X >= legendLeft && p.Y < (legendRows + (series.Count > legendRows ? 1 : 0)) * Font.Height;
+            compare && series.Count > 0 && GraphLayout.LegendHit(p.X, p.Y, Font.Height, legendRowLeft) >= 0;
 
         protected override void OnMouseClick(MouseEventArgs e)
         {
