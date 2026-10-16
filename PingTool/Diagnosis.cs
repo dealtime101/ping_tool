@@ -30,20 +30,35 @@ namespace PingTool
 
         private static IReadOnlyList<(IPAddress Address, int Prefix)> ReadCards()
         {
+            System.Net.NetworkInformation.NetworkInterface[] nics;
+            try { nics = System.Net.NetworkInformation.NetworkInterface.GetAllNetworkInterfaces(); }
+            catch (Exception ex) when (IsCardFault(ex)) { return Array.Empty<(IPAddress, int)>(); }   // no card can be listed: the ranges alone decide (as before)
+
+            return ReadFrom(nics.Select(nic => (Func<IReadOnlyList<(IPAddress, int)>>)(() => OneCard(nic))));
+        }
+
+        private static IReadOnlyList<(IPAddress, int)> OneCard(System.Net.NetworkInformation.NetworkInterface nic)
+        {
             var found = new List<(IPAddress, int)>();
-            try
+            if (nic.OperationalStatus != System.Net.NetworkInformation.OperationalStatus.Up
+                || nic.NetworkInterfaceType == System.Net.NetworkInformation.NetworkInterfaceType.Loopback) return found;
+            foreach (var u in nic.GetIPProperties().UnicastAddresses)
+                if (u.PrefixLength > 0) found.Add((u.Address, u.PrefixLength));
+            return found;
+        }
+
+        private static bool IsCardFault(Exception ex) =>
+            ex is System.Net.NetworkInformation.NetworkInformationException or InvalidOperationException or PlatformNotSupportedException;
+
+        // The networks of the cards, one card at a time: a card that cannot be read (a virtual driver, a card being removed) is left out and
+        // the others are still read. The whole list used to stop at the first one, and what was missing was kept for a minute (Lifetime).
+        internal static IReadOnlyList<(IPAddress Address, int Prefix)> ReadFrom(IEnumerable<Func<IReadOnlyList<(IPAddress, int)>>> cards)
+        {
+            var found = new List<(IPAddress, int)>();
+            foreach (var card in cards)
             {
-                foreach (var nic in System.Net.NetworkInformation.NetworkInterface.GetAllNetworkInterfaces())
-                {
-                    if (nic.OperationalStatus != System.Net.NetworkInformation.OperationalStatus.Up
-                        || nic.NetworkInterfaceType == System.Net.NetworkInformation.NetworkInterfaceType.Loopback) continue;
-                    foreach (var u in nic.GetIPProperties().UnicastAddresses)
-                        if (u.PrefixLength > 0) found.Add((u.Address, u.PrefixLength));
-                }
-            }
-            catch (Exception ex) when (ex is System.Net.NetworkInformation.NetworkInformationException or InvalidOperationException or PlatformNotSupportedException)
-            {
-                // Cards that cannot be read: nothing is known to be on the link, the address ranges alone decide (as before).
+                try { found.AddRange(card()); }
+                catch (Exception ex) when (IsCardFault(ex)) { }   // this card tells nothing; the next one may
             }
 
             return found;

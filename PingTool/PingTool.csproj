@@ -482,8 +482,9 @@
          1.21.404 = a web address with the port 0 is refused when it is typed, as tcp:// does, instead of failing at the connection (PIN507.185)
          1.21.405 = a profile of settings.json that is loaded with hosts beyond the limit, or with names and limits of targets it does not hold, left out says so at the start (PIN507.186)
          1.21.406 = the error for a profile of a file that cannot be read is in the words of the program, with the place, not the text of the JSON library (PIN507.188)
-         1.21.407 = an IPv6 prefix shorter than /48 (a Teredo or 6to4 card) no longer makes the hosts of the Internet "on the link"; IPv4 keeps its 8 bits (PIN507.190) -->
-    <Version>1.21.407</Version>
+         1.21.407 = an IPv6 prefix shorter than /48 (a Teredo or 6to4 card) no longer makes the hosts of the Internet "on the link"; IPv4 keeps its 8 bits (PIN507.190)
+         1.21.408 = a network card that cannot be read is left out and the cards after it are still read, instead of the whole list stopping at it (PIN507.191) -->
+    <Version>1.21.408</Version>
   </PropertyGroup>
 
   <ItemGroup>
