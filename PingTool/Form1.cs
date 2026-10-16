@@ -1533,11 +1533,19 @@ namespace PingTool
         private void OnNetworkAddressChanged(object? sender, EventArgs e) => NetworkSignal();
         private void OnNetworkAvailabilityChanged(object? sender, System.Net.NetworkInformation.NetworkAvailabilityEventArgs e) => NetworkSignal();
 
-        private void NetworkSignal() => PostToWindow(() =>
+        private void NetworkSignal()
         {
-            networkTimer.Stop();
-            networkTimer.Start();
-        });
+            // The networks the cards are on are kept for a minute (LocalNetworks.Lifetime); a change of address or of availability is exactly
+            // what makes them out of date, and until the minute was over a host of the new network would be called "routed" or "on the
+            // link" by the old one, in the diagnosis and the report. Forgotten here, on the system's thread (it takes its own lock): the
+            // next question reads the cards again.
+            LocalNetworks.Forget();
+            PostToWindow(() =>
+            {
+                networkTimer.Stop();
+                networkTimer.Start();
+            });
+        }
 
         // From any other thread (the webhook sender's, the system's): run `action` on the window's thread, unless the window is on its way out.
         // The handle can be destroyed between the check and BeginInvoke (the other thread cannot know), so BeginInvoke is guarded too, and
