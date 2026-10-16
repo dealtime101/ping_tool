@@ -37,7 +37,7 @@ namespace PingTool
             ["timeline.slowdown"] = ("slowdown from {0} ({1})", "ralentissement le {0} ({1})"),
             ["timeline.ongoing"] = ("still going on, {0}", "toujours en cours, {0}"),
             ["timeline.small"] = ("The window is too small to draw the chart: make it taller.", "La fenêtre est trop petite pour dessiner le graphique : agrandissez-la."),
-            ["timeline.network"] = ("Network changes of this PC (cyan lines): ", "Changements du réseau de ce PC (traits cyan) : "),
+            ["timeline.network"] = ("Network changes of this PC and notes (cyan lines): ", "Changements du réseau de ce PC et notes (traits cyan) : "),
             ["timeline.more"] = (" (+{0} more)", " (+{0} de plus)"),
             ["timeline.periods"] = ("Over the session, period by period: {0}.", "Au fil de la session, période par période : {0}."),
             ["timeline.period"] = ("from {0}: average {1} ms, {2}% lost", "dès {0} : moyenne {1} ms, {2} % perdus"),

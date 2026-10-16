@@ -212,7 +212,18 @@ namespace PingTool
             }
 
             // What happened on THIS side of the line: a cut that matches a Wi-Fi or VPN change may be local (a hint, not a proof).
-            var network = (d.NetworkEvents ?? Array.Empty<NetworkEvent>()).OrderBy(n => n.Time).ToList();
+            var allEvents = (d.NetworkEvents ?? Array.Empty<NetworkEvent>()).OrderBy(n => n.Time).ToList();
+            var notes = allEvents.Where(n => n.Note).ToList();
+            var network = allEvents.Where(n => !n.Note).ToList();
+            if (notes.Count > 0)
+            {
+                // Written by hand during the run: what was done, when, so that a change in the figures can be read against it.
+                h.AppendLine("<h2>Notes</h2>");
+                h.AppendLine("<table><tr><th>Time</th><th>Note</th></tr>");
+                foreach (var n in notes) h.AppendLine(c, $"<tr><td>{E(T(n.Time))}</td><td>{E(n.Text)}</td></tr>");
+                h.AppendLine("</table>");
+            }
+
             if (network.Count > 0)
             {
                 h.AppendLine("<h2>Changes of this PC's network</h2>");

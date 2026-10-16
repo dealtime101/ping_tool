@@ -173,7 +173,14 @@ namespace PingTool
             var hostMenu = new ContextMenuStrip();
             hostMenu.Items.Add("Trace route to this host").Click += (_, _) => TraceSelected();
             hostMenu.Items.Add("Name and limits of this host...").Click += (_, _) => EditSelectedTarget();
-            hostMenu.Opening += (_, e) => e.Cancel = selected is null;
+            var markItem = hostMenu.Items.Add("Mark an event...");
+            markItem.Click += (_, _) => MarkEvent();
+            // The host entries need a host; the note does not (it can apply to every target), but only a run has a session to keep it in.
+            hostMenu.Opening += (_, e) =>
+            {
+                foreach (ToolStripItem item in hostMenu.Items) item.Enabled = selected is not null || item == markItem;
+                markItem.Enabled = isRunning;
+            };
             lstHosts.ContextMenuStrip = hostMenu;
             FormClosing += (_, _) =>
             {
@@ -1255,6 +1262,15 @@ namespace PingTool
             foreach (ListViewItem item in lstHosts.Items) if (ReferenceEquals(item.Tag, session)) RenderRow(item);
             RenderSelected();
             SaveSettings();
+        }
+
+        // A note of something done by hand, kept with the events of the run (timeline, report). Not saved after the run: the events are not.
+        private void MarkEvent()
+        {
+            if (!isRunning) return;
+
+            using var dialog = new AnnotationForm(selected?.DisplayName);
+            if (dialog.ShowDialog(this) == DialogResult.OK && dialog.Result is { } note) networkEvents.Add(note);
         }
 
         private void TraceSelected()

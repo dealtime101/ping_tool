@@ -7,7 +7,24 @@ namespace PingTool
     // the address or the gateway), dated, so that a cut seen by the pings can be put next to what happened on this side. A move between
     // two access points of the same network that keeps the address and the gateway is not seen by the cards: the SSID, the BSSID and the
     // signal come from the native Wi-Fi interface of Windows, read by WifiWatch (PIN507.2), whose sentences join these events.
-    internal sealed record NetworkEvent(DateTimeOffset Time, string Text);
+    // Note: written by the user (Mark an event), not seen by the program; the report keeps the two apart.
+    internal sealed record NetworkEvent(DateTimeOffset Time, string Text, bool Note = false)
+    {
+        public const int MaxNoteLength = 120;
+
+        // The event for a note, or null when there is nothing to note: blank, or only control characters. Spaces are folded and control
+        // characters dropped (a line break would break the report's table row and the timeline's line), the text cut to MaxNoteLength;
+        // `target` (a name) starts the text when the note applies to one target only.
+        public static NetworkEvent? FromNote(string? note, DateTimeOffset time, string? target)
+        {
+            string clean = string.Join(' ', new string((note ?? "").Where(c => !char.IsControl(c) || char.IsWhiteSpace(c)).ToArray())
+                .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+            if (clean.Length > MaxNoteLength) clean = clean[..MaxNoteLength];
+            if (clean.Length == 0) return null;
+
+            return new NetworkEvent(time, target is null ? clean : target + ": " + clean, Note: true);
+        }
+    }
 
     // One network card that is up, as far as the events need it. Addresses = its IPv4 addresses, sorted, joined.
     internal sealed record NicState(string Name, string Addresses, string Gateway);
