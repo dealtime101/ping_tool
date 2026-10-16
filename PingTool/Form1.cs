@@ -126,9 +126,8 @@ namespace PingTool
                 webhooks.Failed += (label, reason) => PostToWindow(() => WebhookFailed(label, reason));
             }
 
-            // A settings file that could not be read is said once the window is up, with where it went.
-            if (settings.LoadProblem is string loadProblem)
-                Shown += (_, _) => MessageBox.Show(loadProblem, "PingTool");
+            // A settings file that could not be read is said once the window is up, with where it went (or in a balloon when started minimized).
+            if (settings.LoadProblem is string loadProblem) WarnAtLaunch(loadProblem);
 
             // Host column = what the other columns and the scroll bar leave (see ColumnFit).
             lstHosts.SizeChanged += (_, _) => FitHostColumns();
@@ -281,8 +280,15 @@ namespace PingTool
         // True until the first time the window is asked to show itself, when it was started with --minimized.
         private bool startHidden;
 
-        // What this launch has to say that a hidden window cannot (--minimized): shown as a balloon by SetVisibleCore.
-        private string? launchWarning;
+        // What this launch has to say (see LaunchWarnings): a box once the window is shown, and, started minimized, one balloon from
+        // SetVisibleCore, since the window (and so its boxes) does not come up then.
+        private readonly List<string> launchWarnings = new();
+
+        private void WarnAtLaunch(string text)
+        {
+            launchWarnings.Add(text);
+            Shown += (_, _) => MessageBox.Show(text, "PingTool");
+        }
 
         // Application.Run shows the main window once: with --minimized that one request is turned down, so the window never
         // appears (not even for a frame) and the notification icon is the only trace; double-clicking it shows the window for real.
@@ -295,7 +301,7 @@ namespace PingTool
                 value = false;
                 if (!IsHandleCreated) CreateHandle();
                 notifyIcon.Visible = true;
-                if (launchWarning is string warning) BeginInvoke(() => ShowBalloon(warning, ToolTipIcon.Warning));
+                if (launchWarnings.Count > 0) BeginInvoke(() => ShowBalloon(LaunchWarnings.Balloon(launchWarnings), ToolTipIcon.Warning));
                 if (startup.Start) BeginInvoke(() => { if (!isRunning) btnStartStop_Click(this, EventArgs.Empty); });
             }
 
@@ -369,15 +375,13 @@ namespace PingTool
             // Started minimized, no window is shown (see SetVisibleCore): the balloon is what can say it then.
             if (gatewayMissing)
             {
-                string noGateway = DiagnosticTargets.NoGatewayText;   // with the reason when a card could not be read, taken now: the box comes later
-                launchWarning = noGateway;
-                Shown += (_, _) => MessageBox.Show(noGateway, "PingTool");
+                WarnAtLaunch(DiagnosticTargets.NoGatewayText);   // with the reason when a card could not be read, taken now: the box comes later
             }
             // Same rule as typing an address: what the address box would refuse is left out, and said once the window is up.
             var validHosts = ProbeTarget.KeepValid(hostsOfThisLaunch.Distinct(TargetKey.Comparer), out int refused);
             foreach (var host in validHosts) AddHost(host);
             if (refused > 0)
-                Shown += (_, _) => MessageBox.Show($"{refused} address(es) from the settings file or the command line are not valid targets and were left out.", "PingTool");
+                WarnAtLaunch($"{refused} address(es) from the settings file or the command line are not valid targets and were left out.");
         }
 
         private void SaveSettings()
