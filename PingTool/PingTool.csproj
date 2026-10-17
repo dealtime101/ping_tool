@@ -569,8 +569,9 @@
          1.21.491 = a target that is one of this PC's own addresses is left out of the comparison of the targets, as a loopback one is: the PC answers it from its own stack (PIN507.373)
          1.21.492 = a log that finishes loading after its window was closed no longer opens a viewer or a box over it, in the main window and in the log viewer (PIN507.377)
          1.21.493 = in the run without a window the address that answered is kept for the host, as in the window: the report names it and the diagnosis can tell what is on the link (PIN507.380)
-         1.21.494 = a report of the run without a window holds copies of the incidents as they were when it was built, not the live ones that the probes go on changing (PIN507.381) -->
-    <Version>1.21.494</Version>
+         1.21.494 = a report of the run without a window holds copies of the incidents as they were when it was built, not the live ones that the probes go on changing (PIN507.381)
+         1.21.495 = #family=both adds the IPv4 and the IPv6 entries of a name at once, the certificate end date is watched on the #family= entries too, and the report lists the stretches when only one IP family answered (PIN507.6) -->
+    <Version>1.21.495</Version>
   </PropertyGroup>
 
   <ItemGroup>

@@ -69,8 +69,8 @@ namespace PingTool
         }
 
         // The clients of #family=4 and #family=6: they connect themselves, to an address of that family only, and the name stays the one in the
-        // URL for the Host header and the certificate. The end date of the certificate is not read on these (its callback is not handed the
-        // request): the plain target of the same name keeps watching it.
+        // URL for the Host header and the certificate. The end date of the certificate is kept by family and host (the callback of this kind
+        // of handler is handed the secure stream, not the request): see FamilyCertEnds and CertEndOf.
         private static readonly HttpClient Web4 = CreateFamilyClient(4), Web6 = CreateFamilyClient(6);
 
         private static HttpClient CreateFamilyClient(int family)
@@ -110,7 +110,16 @@ namespace PingTool
                     catch { socket.Dispose(); throw; }
                 },
             };
-            handler.SslOptions.RemoteCertificateValidationCallback = (_, _, _, errors) => errors == SslPolicyErrors.None;
+            handler.SslOptions.RemoteCertificateValidationCallback = (sender, certificate, _, errors) =>
+            {
+                if (certificate is not null && sender is System.Net.Security.SslStream stream && stream.TargetHostName is { Length: > 0 } name)
+                {
+                    DateTime end = certificate is X509Certificate2 ready ? ready.NotAfter : new X509Certificate2(certificate).NotAfter;
+                    FamilyCertEnds[(family, name.ToLowerInvariant())] = end.ToUniversalTime();
+                }
+
+                return errors == SslPolicyErrors.None;
+            };
             return handler;
         }
 
@@ -225,6 +234,18 @@ namespace PingTool
         // Where the certificate's end date of a request is kept while the request is in flight (see ValidateServerCertificate).
         private static readonly HttpRequestOptionsKey<DateTime> CertificateEnd = new("PingTool.CertificateEnd");
 
+        // The same for the #family= clients: by family and host name, written by their validation (each probe opens a new connection, so the
+        // value read after the answer is the one of that probe's own handshake; the two families never share an entry).
+        internal static readonly System.Collections.Concurrent.ConcurrentDictionary<(int Family, string Host), DateTime> FamilyCertEnds = new();
+
+        // The end date of the certificate this request was answered under, when the secure handshake took place.
+        private static bool CertEndOf(HttpRequestMessage request, ProbeTarget t, out DateTime end)
+        {
+            if (request.Options.TryGetValue(CertificateEnd, out end)) return true;
+            end = default;
+            return t.Family != 0 && t.Url is { Scheme: "https" } url && FamilyCertEnds.TryGetValue((t.Family, url.Host.ToLowerInvariant()), out end);
+        }
+
         // "404 Not Found", and just "599" when the server gave no phrase (HTTP/2 has none on the wire, and a status the framework does not
         // know has none to give): never "599 " with a space and nothing after it.
         internal static string StatusText(int code, string? reasonPhrase)
@@ -261,7 +282,7 @@ namespace PingTool
             {
                 response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, deadline.Token);
             }
-            catch (HttpRequestException ex) when (ExpiredCertificate(request, ex) is { } expired)
+            catch (HttpRequestException ex) when (ExpiredCertificate(request, ex, t) is { } expired)
             {
                 return new ProbeOutcome(-1, expired, null);
             }
@@ -284,7 +305,7 @@ namespace PingTool
                         {
                             following = await client.SendAsync(hop, HttpCompletionOption.ResponseHeadersRead, deadline.Token);
                         }
-                        catch (HttpRequestException ex) when (ExpiredCertificate(hop, ex) is { } expired)
+                        catch (HttpRequestException ex) when (ExpiredCertificate(hop, ex, t) is { } expired)
                         {
                             return new ProbeOutcome(-1, expired, null);
                         }
@@ -305,9 +326,10 @@ namespace PingTool
         // ValidateServerCertificate) before it said no, so the failure can name the cause instead of "the remote certificate is invalid
         // according to the validation procedure", which does not say that it is a matter of date, a thing a person can act on. Only when the
         // refusal comes from the secure layer and the date has passed; any other refusal (an untrusted issuer, a wrong name) keeps its own text.
-        internal static PingFailure? ExpiredCertificate(HttpRequestMessage request, Exception ex)
+        internal static PingFailure? ExpiredCertificate(HttpRequestMessage request, Exception ex, ProbeTarget? t = null)
         {
-            if (!request.Options.TryGetValue(CertificateEnd, out DateTime end)) return null;
+            DateTime end;
+            if (t is null ? !request.Options.TryGetValue(CertificateEnd, out end) : !CertEndOf(request, t, out end)) return null;
             for (Exception? e = ex; e is not null; e = e.InnerException)
                 if (e is System.Security.Authentication.AuthenticationException)
                     return CertWatch.Expired(request.RequestUri?.Host ?? "the server", end, DateTime.UtcNow) is { } text
@@ -360,7 +382,7 @@ namespace PingTool
             if (t.Json is { } wantedJson && body is not null && JsonProblem(body, bodyLength, bodyCut, wantedJson) is { } problem)
                 return new ProbeOutcome(-1, new PingFailure("JSON", problem), null);
 
-            string? warning = request.Options.TryGetValue(CertificateEnd, out DateTime end)
+            string? warning = CertEndOf(request, t, out DateTime end)
                 ? CertWatch.Warning(t.Host, end, DateTime.UtcNow, t.CertWarnDays) : null;
             return new ProbeOutcome(rtt, null, null, Warning: warning);
         }

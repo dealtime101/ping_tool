@@ -149,14 +149,23 @@ namespace PingTool
                             return false;
                         }
 
-                        if (!ProbeTarget.TryParse(arg, out _, out string error))
+                        // #family=both: the IPv4 and the IPv6 entries of the name, both.
+                        string[] wanted;
+                        string error;
+                        if (ProbeTarget.WantsPair(arg))
+                        {
+                            if (ProbeTarget.TryPair(arg, out var pair, out error)) wanted = pair;
+                            else { message = $"\"{arg}\": {error}"; return false; }
+                        }
+                        else if (ProbeTarget.TryParse(arg, out _, out error)) wanted = new[] { arg.Trim() };
+                        else
                         {
                             message = $"\"{arg}\": {error}";
                             return false;
                         }
 
-                        string host = arg.Trim();
-                        if (!hosts.Contains(host, TargetKey.Comparer)) hosts.Add(host);
+                        foreach (string host in wanted)
+                            if (!hosts.Contains(host, TargetKey.Comparer)) hosts.Add(host);
                         break;
                 }
             }

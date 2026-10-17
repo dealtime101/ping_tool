@@ -53,6 +53,43 @@ namespace PingTool
             return kept;
         }
 
+        // #family=both, typed in the address box: the two entries of a dual-stack service at once (the same address with #family=4 and
+        // with #family=6). It is a way of TYPING, never a stored address: what is kept and probed is the pair that comes out.
+        public static bool WantsPair(string? input) => FindBoth(input, out _, out _, out _);
+
+        private static bool FindBoth(string? input, out string text, out string[] parts, out int at)
+        {
+            text = (input ?? "").Trim();
+            parts = Array.Empty<string>();
+            at = -1;
+            int hash = text.IndexOf('#', StringComparison.Ordinal);
+            if (hash < 0) return false;
+            parts = text[(hash + 1)..].Split('&');
+            at = Array.FindIndex(parts, p => string.Equals(p, "family=both", StringComparison.OrdinalIgnoreCase));
+            return at >= 0;
+        }
+
+        // The two addresses of a #family=both request; false with the reason when it is not one, or when either would be refused.
+        public static bool TryPair(string? input, [NotNullWhen(true)] out string[]? pair, out string error)
+        {
+            pair = null;
+            error = "";
+            if (!FindBoth(input, out string text, out string[] parts, out int at)) { error = "There is no #family=both in this address."; return false; }
+
+            int hash = text.IndexOf('#', StringComparison.Ordinal);
+            string With(string family)
+            {
+                var copy = (string[])parts.Clone();
+                copy[at] = "family=" + family;
+                return text[..(hash + 1)] + string.Join("&", copy);
+            }
+
+            string v4 = With("4"), v6 = With("6");
+            if (!TryParse(v4, out _, out error) || !TryParse(v6, out _, out error)) return false;
+            pair = new[] { v4, v6 };
+            return true;
+        }
+
         public static bool TryParse(string? input, [NotNullWhen(true)] out ProbeTarget? target, out string error)
         {
             target = null;

@@ -146,6 +146,11 @@ namespace PingTool
             else
                 h.AppendLine(c, $"<p class=\"box{(d.Hosts.All(x => x.State == HostState.Up) ? " ok" : "")}\">{E(d.Diagnosis).Replace("\n", "<br />", StringComparison.Ordinal)}</p>");
 
+            // A name probed on both IP families (#family=4 and #family=6): when only one of them answered, and for how long.
+            var familyGaps = FamilyGaps.For(d.Hosts.Select(x => x.Address), d.Incidents, end);
+            if (familyGaps.Count > 0)
+                h.AppendLine(c, $"<p class=\"box\">{string.Join("<br />", familyGaps.Select(E))}</p>");
+
             h.AppendLine("<h2>Targets</h2>");
             h.AppendLine("<table><tr><th>Target</th><th>Address</th><th>State</th><th>Sent</th><th>Lost</th><th>Loss %</th>"
                 + "<th>Min ms</th><th>Avg ms</th><th>Max ms</th><th>Jitter ms</th><th>MOS</th><th>Limits</th></tr>");

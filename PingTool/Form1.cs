@@ -452,6 +452,14 @@ namespace PingTool
         private HostSession? AddHost(string address)
         {
             if (string.IsNullOrWhiteSpace(address)) return null;
+            // #family=both: the two entries of a dual-stack service (the IPv4 one and the IPv6 one), added together.
+            if (ProbeTarget.TryPair(address, out var pair, out _))
+            {
+                HostSession? second = null;
+                foreach (var one in pair) second = AddHost(one);
+                return second;
+            }
+
             var existing = sessions.Find(s => TargetKey.Same(s.Address, address));
             if (existing != null) return existing;
 
@@ -491,7 +499,8 @@ namespace PingTool
             {
                 string typed = cmbAddress.Text.Trim();
                 if (!IsValidTarget(typed)) return;
-                hosts.Add(typed);
+                if (ProbeTarget.TryPair(typed, out var typedPair, out _)) hosts.AddRange(typedPair);
+                else hosts.Add(typed);
             }
 
             if (ProfileBook.Find(settings.Profiles, name) is not null
@@ -736,6 +745,13 @@ namespace PingTool
         // False (with a message) when the text is not a valid target.
         private static bool IsValidTarget(string address)
         {
+            if (ProbeTarget.WantsPair(address))
+            {
+                if (ProbeTarget.TryPair(address, out _, out string pairProblem)) return true;
+                MessageBox.Show(pairProblem, "PingTool");
+                return false;
+            }
+
             if (ProbeTarget.TryParse(address, out _, out string problem)) return true;
             MessageBox.Show(problem, "PingTool");
             return false;

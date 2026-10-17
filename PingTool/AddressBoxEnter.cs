@@ -12,7 +12,7 @@ namespace PingTool
             if (text.Length == 0) return EnterOutcome.Start;       // nothing typed: the list as it is
             if (listIsEmpty) return EnterOutcome.Start;            // Start itself takes the typed address when the list is empty
             if (typedIsInList) return EnterOutcome.Start;          // already there
-            return ProbeTarget.TryParse(text, out _, out _) ? EnterOutcome.AddAndStart : EnterOutcome.Refuse;
+            return ProbeTarget.TryParse(text, out _, out _) || ProbeTarget.TryPair(text, out _, out _) ? EnterOutcome.AddAndStart : EnterOutcome.Refuse;
         }
     }
 }
