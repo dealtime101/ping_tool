@@ -103,18 +103,18 @@ namespace PingTool
                 if (other is null || otherEntries is null) { ShowError(error ?? Loc.T("ui.lv.otherfail")); return; }
 
                 string otherName = paths.Length == 1 ? Path.GetFileName(paths[0]) : Loc.T("ui.logfiles", paths.Length);
-                var answer = MessageBox.Show(this, Loc.T("ui.lv.which", sources, otherName),
-                    Loc.T("ui.lv.comparetitle"), MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question);
-                if (answer == DialogResult.Cancel) return;
+                // The order, the part of each log to take, the targets to pair by hand, the mask: asked together (ComparePeriodsForm).
+                using var ask = new ComparePeriodsForm(sources, replay.From, replay.To, replay.Sessions.Keys.ToList(), otherName, other.From, other.To, other.Sessions.Keys.ToList());
+                if (ask.ShowDialog(this) != DialogResult.OK || ask.Result is not { } choice) return;
 
-                var mine = PeriodComparison.Measure(sources, replay, entries);
-                var theirs = PeriodComparison.Measure(otherName, other, otherEntries);
-                string html = answer == DialogResult.Yes ? PeriodComparison.BuildHtml(mine, theirs, DateTimeOffset.Now) : PeriodComparison.BuildHtml(theirs, mine, DateTimeOffset.Now);
+                string? html = PeriodComparison.BuildFor(sources, entries, otherName, otherEntries, choice, DateTimeOffset.Now, out string? emptyLog, out var key);
+                if (html is null) { ShowError(Loc.T("ui.cmp.nothing", emptyLog ?? "")); return; }
 
                 using var save = new SaveFileDialog { Filter = Loc.T("ui.dlg.htmlfilter"), FileName = $"pingtool-comparison-{DateTime.Now:yyyyMMdd-HHmmss}.html" };
                 if (save.ShowDialog(this) != DialogResult.OK) return;
 
                 AtomicFile.WriteAllText(save.FileName, html);
+                ReportMaskingForm.ShowKey(this, key);   // what the pseudonyms stand for, to the sender only (nothing when the page is not masked)
                 FileOpener.OfferToOpen(this, "ui.saved.comparison", save.FileName);
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)

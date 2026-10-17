@@ -10,6 +10,18 @@ namespace PingTool
 
     internal sealed record PeriodFigures(string Name, DateTimeOffset From, DateTimeOffset To, int Pings, Dictionary<string, HostFigures> Hosts, HashSet<int> Hours);
 
+    // What the person chose to compare two logs (see ComparePeriodsForm): which one is the period before the change, the part of each log to take
+    // (null = the whole of it), the targets paired by hand (name in the other log -> name in the opened log), and whether the names are hidden.
+    internal sealed record ComparisonChoice(bool OpenedIsBefore, DateTimeOffset? OpenedFrom, DateTimeOffset? OpenedTo, DateTimeOffset? OtherFrom, DateTimeOffset? OtherTo,
+        IReadOnlyDictionary<string, string> OtherToOpened, bool Mask);
+
+    // A target paired by hand: the name both periods are compared under (Common), and what it is called in each log (a router that was replaced has
+    // another address after the change).
+    internal sealed record HostPair(string Common, string BeforeName, string AfterName);
+
+    // How the page is made: the targets paired by hand, and whether the names and addresses of the targets are replaced by target-1, target-2...
+    internal sealed record ComparisonOptions(IReadOnlyList<HostPair>? Pairs = null, bool Mask = false);
+
     // "Did the new router (the cable, the provider) help?": two periods of logs, side by side per target, with the gain or the loss in
     // words and the reasons why the comparison may mislead. Targets are paired by address; the logs do not record the probe settings or the
     // limits used, so both periods are read with the default ones.
@@ -17,6 +29,62 @@ namespace PingTool
     {
         public const int FewPings = 30;
         public static readonly TimeSpan ShortPeriod = TimeSpan.FromHours(1);
+
+        // The pings of a log within [from, to] (either end open): a part of a file, a night out of a week. A null end is the end of the log.
+        public static List<LogEntry> Within(IEnumerable<LogEntry> entries, DateTimeOffset? from, DateTimeOffset? to) =>
+            entries.Where(e => (from is null || e.Time >= from) && (to is null || e.Time <= to)).ToList();
+
+        // The same pings under other names (the pairs made by hand: the key is the name in this log, the value the name to compare under).
+        public static List<LogEntry> Rename(IEnumerable<LogEntry> entries, IReadOnlyDictionary<string, string> map)
+        {
+            var byKey = new Dictionary<string, string>(map, TargetKey.Comparer);
+            return entries.Select(e => byKey.TryGetValue(e.Host, out var to) ? e with { Host = to } : e).ToList();
+        }
+
+        // The page for what the person chose: the part of each log, the pairs made by hand, the order, the mask. Null (with the name of the log that has
+        // no ping left in its period) when a period is empty. `key` is what the pseudonyms stand for when the page is masked (empty otherwise).
+        public static string? BuildFor(string openedName, IReadOnlyList<LogEntry> opened, string otherName, IReadOnlyList<LogEntry> other, ComparisonChoice choice,
+            DateTimeOffset generated, out string? emptyName, out List<string> key)
+        {
+            emptyName = null;
+            key = new List<string>();
+            var mineEntries = Within(opened, choice.OpenedFrom, choice.OpenedTo);
+            if (mineEntries.Count == 0) { emptyName = openedName; return null; }
+            var otherEntries = Rename(Within(other, choice.OtherFrom, choice.OtherTo), choice.OtherToOpened);
+            if (otherEntries.Count == 0) { emptyName = otherName; return null; }
+
+            // The page is in English, whatever the language of the window: masked, the names of the logs (file names can say as much as an address) go too.
+            var mine = Measure(choice.Mask ? "the log you opened" : openedName, LogReplay.Run(mineEntries), mineEntries);
+            var theirs = Measure(choice.Mask ? "the other log" : otherName, LogReplay.Run(otherEntries), otherEntries);
+            var before = choice.OpenedIsBefore ? mine : theirs;
+            var after = choice.OpenedIsBefore ? theirs : mine;
+            // A pair counts when both of its sides have pings in the period chosen.
+            var pairs = choice.OtherToOpened
+                .Where(kv => mine.Hosts.ContainsKey(kv.Value) && theirs.Hosts.ContainsKey(kv.Value))
+                .Select(kv => new HostPair(kv.Value, choice.OpenedIsBefore ? kv.Value : kv.Key, choice.OpenedIsBefore ? kv.Key : kv.Value))
+                .OrderBy(p => p.Common, StringComparer.OrdinalIgnoreCase).ToList();
+            var options = new ComparisonOptions(pairs, choice.Mask);
+            if (choice.Mask) key = HostsOf(before, after, options).Select((n, i) => "target-" + (i + 1).ToString(CultureInfo.InvariantCulture) + " = " + n).ToList();
+            return BuildHtml(before, after, generated, options);
+        }
+
+        // The targets that only one of the two logs has (by address, as the comparison pairs them): what a person can pair by hand.
+        public static (List<string> OnlyFirst, List<string> OnlySecond) Unmatched(IEnumerable<string> first, IEnumerable<string> second)
+        {
+            var a = first.Distinct(TargetKey.Comparer).ToList();
+            var b = second.Distinct(TargetKey.Comparer).ToList();
+            return (a.Except(b, TargetKey.Comparer).OrderBy(x => x, StringComparer.OrdinalIgnoreCase).ToList(),
+                b.Except(a, TargetKey.Comparer).OrderBy(x => x, StringComparer.OrdinalIgnoreCase).ToList());
+        }
+
+        // Every target name that can appear on the page, in the order of its pseudonyms (target-1...): the names of both periods and what
+        // the pairs made by hand were called in each log. Also the key a person keeps when the page is masked.
+        public static List<string> HostsOf(PeriodFigures before, PeriodFigures after, ComparisonOptions? options)
+        {
+            var all = before.Hosts.Keys.Concat(after.Hosts.Keys)
+                .Concat((options?.Pairs ?? Array.Empty<HostPair>()).SelectMany(p => new[] { p.Common, p.BeforeName, p.AfterName }));
+            return all.Distinct(TargetKey.Comparer).OrderBy(x => x, StringComparer.OrdinalIgnoreCase).ToList();
+        }
 
         public static PeriodFigures Measure(string name, ReplayResult replay, IReadOnlyCollection<LogEntry> entries)
         {
@@ -45,8 +113,9 @@ namespace PingTool
 
         // The reasons to read the comparison with care, one sentence each. Empty only when nothing at all is doubtful (it never is: the
         // last one is always there).
-        public static List<string> Cautions(PeriodFigures before, PeriodFigures after)
+        public static List<string> Cautions(PeriodFigures before, PeriodFigures after, Func<string, string>? name = null, IReadOnlyList<HostPair>? pairs = null)
         {
+            string H(string host) => name is null ? host : name(host);
             var said = new List<string>();
             var c = CultureInfo.CurrentCulture;
             var lenB = before.To - before.From;
@@ -63,18 +132,22 @@ namespace PingTool
             if (union > 0 && shared < union / 2.0)
                 said.Add("The two periods were measured at different hours of the day (for instance a night and a working day): a connection that is busier at some hours is not comparable with itself at others.");
 
+            // What was paired by hand is said first: the comparison of two different addresses is the person's word, not the program's.
+            foreach (var p in pairs ?? Array.Empty<HostPair>())
+                said.Add($"{H(p.BeforeName)} (before) and {H(p.AfterName)} (after) are compared as one target, as you paired them: the logs cannot tell that they are the same device or path.");
+
             foreach (var host in before.Hosts.Keys.Except(after.Hosts.Keys, TargetKey.Comparer))
-                said.Add($"{host} is in the \"before\" log only: it is not compared.");
+                said.Add($"{H(host)} is in the \"before\" log only: it is not compared.");
             foreach (var host in after.Hosts.Keys.Except(before.Hosts.Keys, TargetKey.Comparer))
-                said.Add($"{host} is in the \"after\" log only: it is not compared.");
+                said.Add($"{H(host)} is in the \"after\" log only: it is not compared.");
 
             foreach (var (host, b) in before.Hosts)
             {
                 if (!after.Hosts.TryGetValue(host, out var a)) continue;
                 if (b.Pings < FewPings || a.Pings < FewPings)
-                    said.Add($"{host}: few pings (before: {b.Pings.ToString(c)}, after: {a.Pings.ToString(c)}); the percentiles and the loss mean little.");
+                    said.Add($"{H(host)}: few pings (before: {b.Pings.ToString(c)}, after: {a.Pings.ToString(c)}); the percentiles and the loss mean little.");
                 if (b.Gaps > TimeSpan.Zero || a.Gaps > TimeSpan.Zero)
-                    said.Add($"{host}: time with no measure (PingTool closed, the PC asleep) - before: {Len(b.Gaps)}, after: {Len(a.Gaps)}; an outage in those holes is not counted.");
+                    said.Add($"{H(host)}: time with no measure (PingTool closed, the PC asleep) - before: {Len(b.Gaps)}, after: {Len(a.Gaps)}; an outage in those holes is not counted.");
             }
 
             said.Add("The logs do not record the probe settings (interval, timeout, packet size) or the limits used, nor what was changed between the periods: "
@@ -91,9 +164,13 @@ namespace PingTool
             return a < b ? "better" : "worse";
         }
 
-        public static string BuildHtml(PeriodFigures before, PeriodFigures after, DateTimeOffset generated)
+        public static string BuildHtml(PeriodFigures before, PeriodFigures after, DateTimeOffset generated, ComparisonOptions? options = null)
         {
             var c = CultureInfo.CurrentCulture;
+            // Masked: every name and address of a target is its pseudonym (the same one everywhere on the page), in the order of HostsOf.
+            var names = HostsOf(before, after, options).Select((n, i) => (n, i)).ToDictionary(x => x.n, x => "target-" + (x.i + 1).ToString(CultureInfo.InvariantCulture), TargetKey.Comparer);
+            string Name(string host) => options?.Mask == true && names.TryGetValue(host, out var pseudonym) ? pseudonym : host;
+            var pairOf = (options?.Pairs ?? Array.Empty<HostPair>()).ToDictionary(p => p.Common, p => p, TargetKey.Comparer);
             string E(string s) => WebUtility.HtmlEncode(s);
             string N(double? v, string unit = "") => v is null ? "-" : v.Value.ToString("0.#", c) + unit;
             // Cut, never rounded up, to two decimals: 99.997 % with a real outage must not read "100 %" (as in the report).
@@ -107,7 +184,7 @@ namespace PingTool
                 + "table{border-collapse:collapse;width:100%;font-size:13px}th,td{border:1px solid #ccc;padding:4px 8px;text-align:left}th{background:#f0f0f0}td.n{text-align:right}"
                 + ".box{background:#fff4e5;border:1px solid #e0b060;padding:8px 12px}.better{color:#1a7f37;font-weight:600}.worse{color:#b00020;font-weight:600}.same{color:#555}.w{overflow-x:auto}small{color:#555}</style></head><body>");
             h.AppendLine("<h1>PingTool - comparison of two periods</h1>");
-            h.AppendLine(c, $"<p><small>Generated {E(generated.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss zzz", c))}. Targets are paired by address. Lower is better for every figure but availability.</small></p>");
+            h.AppendLine(c, $"<p><small>Generated {E(generated.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss zzz", c))}. Targets are paired by address{(pairOf.Count > 0 ? ", and by hand where said" : "")}. Lower is better for every figure but availability.</small></p>");
             h.AppendLine("<table><tr><th></th><th>Period</th></tr>");
             h.AppendLine($"<tr><th>Before: {E(before.Name)}</th><td>{E(Span(before))}</td></tr><tr><th>After: {E(after.Name)}</th><td>{E(Span(after))}</td></tr></table>");
 
@@ -118,7 +195,8 @@ namespace PingTool
             foreach (var (host, b) in paired)
             {
                 var a = after.Hosts[host];
-                tables.AppendLine(c, $"<h2>{E(host)}</h2><div class=\"w\"><table><tr><th>Figure</th><th>Before</th><th>After</th><th>Change</th></tr>");
+                string pairedNote = pairOf.TryGetValue(host, out var hand) ? $" (before: {Name(hand.BeforeName)}, after: {Name(hand.AfterName)}; paired by hand)" : "";
+                tables.AppendLine(c, $"<h2>{E(Name(host) + pairedNote)}</h2><div class=\"w\"><table><tr><th>Figure</th><th>Before</th><th>After</th><th>Change</th></tr>");
 
                 void Line(string name, string left, string right, string? verdict, string change, bool count = false)
                 {
@@ -158,10 +236,13 @@ namespace PingTool
                     + "(2 ms, 0.5 point of loss, 5 s of outage).</p>");
 
             h.AppendLine("<h2>Read with care</h2><div class=\"box\"><ul>");
-            foreach (string caution in Cautions(before, after)) h.AppendLine($"<li>{E(caution)}</li>");
+            foreach (string caution in Cautions(before, after, Name, options?.Pairs)) h.AppendLine($"<li>{E(caution)}</li>");
             h.AppendLine("</ul></div>");
             h.Append(tables);
-            h.AppendLine("<hr /><p><small>Generated by PingTool from its log files. The names of the targets are written as they are in the logs; this file is not masked.</small></p></body></html>");
+            h.AppendLine("<hr /><p><small>Generated by PingTool from its log files. "
+                + (options?.Mask == true ? "The names and addresses of the targets are replaced by target-1, target-2...: what they stand for is not in this file."
+                                         : "The names of the targets are written as they are in the logs; this file is not masked.")
+                + "</small></p></body></html>");
             return h.ToString();
         }
     }
