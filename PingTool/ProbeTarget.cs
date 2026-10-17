@@ -33,10 +33,7 @@ namespace PingTool
         public const int MaxCertWarnDays = 365;
         public const int MaxExpectLength = 200;
 
-        public const string Help =
-            "No prefix = ping.  tcp://host:port = open a TCP connection.  http://url or https://url = web request.  dns://name = name lookup.  " +
-            "Web options after #, joined by &: #contains=text (the page must hold it; spaces as %20) and #cert=days (https only: warn that many days before the certificate ends, 0 = never), " +
-            "for example https://example.com/#contains=Welcome&cert=30. Also #status=200 (the exact status), #final=host/path (where the redirects must end) and #json=path=value (a value in a JSON body). dns://name takes #server=ip,ip (resolvers to compare), #type=AAAA|MX|NS|TXT|CNAME, #same and #change.";
+        public static string Help => Loc.T("pt.help");
 
         // The addresses a file or the command line gave, minus those the address box would refuse (a hand-edited
         // settings.json, a mistyped argument): the same rule as typing them, and the count says how many were left out.
@@ -74,7 +71,7 @@ namespace PingTool
         {
             pair = null;
             error = "";
-            if (!FindBoth(input, out string text, out string[] parts, out int at)) { error = "There is no #family=both in this address."; return false; }
+            if (!FindBoth(input, out string text, out string[] parts, out int at)) { error = Loc.T("pt.nopair"); return false; }
 
             int hash = text.IndexOf('#', StringComparison.Ordinal);
             string With(string family)
@@ -95,7 +92,7 @@ namespace PingTool
             target = null;
             error = "";
             string text = (input ?? "").Trim();
-            if (text.Length == 0) { error = "Enter an address first, or add a host to the list."; return false; }
+            if (text.Length == 0) { error = Loc.T("pt.empty"); return false; }
 
             int sep = text.IndexOf("://", StringComparison.Ordinal);
             if (sep < 0)
@@ -105,8 +102,7 @@ namespace PingTool
                 if (text.Any(char.IsWhiteSpace) || text.Contains('/', StringComparison.Ordinal)
                     || (text.Contains(':', StringComparison.Ordinal) && !IPAddress.TryParse(text, out _)))
                 {
-                    error = "Without a prefix the address is pinged, so it must be just a host name or an IP address. " +
-                        "For a port use tcp://example.com:443, for a web page https://example.com/page";
+                    error = Loc.T("pt.noprefix");
                     return false;
                 }
 
@@ -114,7 +110,7 @@ namespace PingTool
                 // would only come back from the ping as a name that does not resolve, without saying it was never a name.
                 if (!IPAddress.TryParse(text, out _) && Uri.CheckHostName(text) == UriHostNameType.Unknown)
                 {
-                    error = "That is not a valid host name or IP address. Without a prefix the address is pinged, so it must be just a name such as example.com or an address such as 8.8.8.8 (no ?, @ or # parts).";
+                    error = Loc.T("pt.badname");
                     return false;
                 }
 
@@ -138,21 +134,21 @@ namespace PingTool
                         rest = rest[..tcpHash];
                         if (!fragment.StartsWith("family=", StringComparison.OrdinalIgnoreCase) || !TryFamily(fragment[7..], out tcpFamily, out error))
                         {
-                            if (error.Length == 0) error = "The only option after # of a tcp address is #family=4 or #family=6, for example tcp://example.com:443#family=6";
+                            if (error.Length == 0) error = Loc.T("pt.tcp.option");
                             return false;
                         }
                     }
 
                     if (!TryHostPort(rest.TrimEnd('/'), out string host, out int port))
                     {
-                        error = "tcp:// needs a host and a port from 1 to 65535, for example tcp://example.com:443"
-                            + (rest.StartsWith('[') ? " (brackets are only for an IPv6 address, for example tcp://[2001:db8::1]:443)" : "");
+                        error = Loc.T("pt.tcp.hostport")
+                            + (rest.StartsWith('[') ? Loc.T("pt.tcp.brackets") : "");
                         return false;
                     }
 
                     if (tcpFamily != 0 && IPAddress.TryParse(host, out _))
                     {
-                        error = "#family= needs a host name, not an IP address: an address has one family already.";
+                        error = Loc.T("pt.family.ip");
                         return false;
                     }
 
@@ -163,7 +159,7 @@ namespace PingTool
                 case "https":
                     if (!Uri.TryCreate(text, UriKind.Absolute, out var url) || url.Host.Length == 0)
                     {
-                        error = scheme + "://: that is not a valid web address, for example https://example.com/";
+                        error = Loc.T("pt.web.invalid", scheme);
                         return false;
                     }
 
@@ -171,7 +167,7 @@ namespace PingTool
                     // error that does not say the port was never one); above 65535 it refuses the address itself, above.
                     if (url.Port is < 1 or > 65535)
                     {
-                        error = scheme + "://: the port must be from 1 to 65535, for example https://example.com:8443/";
+                        error = Loc.T("pt.web.port", scheme);
                         return false;
                     }
 
@@ -181,7 +177,7 @@ namespace PingTool
                     // resolver and the certificate check want the bare address).
                     if (o.Family != 0 && url.HostNameType != UriHostNameType.Dns)
                     {
-                        error = "#family= needs a host name, not an IP address: an address has one family already.";
+                        error = Loc.T("pt.family.ip");
                         return false;
                     }
 
@@ -207,7 +203,7 @@ namespace PingTool
                     // is enough: every text that CheckHostName takes for an IPv4 or IPv6 address (brackets, %scope and short forms too) it parses too.
                     if (System.Net.IPAddress.TryParse(name, out _))
                     {
-                        error = "dns:// needs a name, not an IP address: an address is not looked up, so nothing would be tested. For example dns://example.com (to test an address, write it without a prefix to ping it).";
+                        error = Loc.T("pt.dns.ip");
                         return false;
                     }
 
@@ -216,7 +212,7 @@ namespace PingTool
                     if (name.Length == 0 || name.Contains(':', StringComparison.Ordinal) || name.Contains('/', StringComparison.Ordinal)
                         || Uri.CheckHostName(name) == UriHostNameType.Unknown)
                     {
-                        error = "dns:// needs just a name, for example dns://example.com";
+                        error = Loc.T("pt.dns.name");
                         return false;
                     }
 
@@ -224,8 +220,7 @@ namespace PingTool
                     return true;
 
                 default:
-                    error = string.Format(CultureInfo.CurrentCulture,
-                        "Unknown prefix \"{0}://\". Use tcp://, http://, https:// or dns://, or no prefix to ping.", scheme);
+                    error = Loc.T("pt.prefix", scheme);
                     return false;
             }
         }
@@ -239,7 +234,7 @@ namespace PingTool
         private static bool TryFamily(string value, out int family, out string error)
         {
             family = value == "4" ? 4 : value == "6" ? 6 : 0;
-            error = family == 0 ? "#family= needs 4 or 6, for example https://example.com/#family=6" : "";
+            error = family == 0 ? Loc.T("pt.family.value") : "";
             return family != 0;
         }
 
@@ -269,7 +264,7 @@ namespace PingTool
                     string decoded = Uri.UnescapeDataString(value);
                     if (decoded.Length == 0 || decoded.Length > MaxExpectLength || decoded.Any(char.IsControl))
                     {
-                        error = $"#{key}= needs a value of 1 to {MaxExpectLength} characters (write spaces as %20), for example https://example.com/#status=200";
+                        error = Loc.T("pt.web.expect", key, MaxExpectLength);
                         return false;
                     }
 
@@ -281,7 +276,7 @@ namespace PingTool
                     {
                         if (!int.TryParse(decoded, NumberStyles.None, CultureInfo.InvariantCulture, out int code) || code is < 100 or > 599)
                         {
-                            error = "#status= needs a status code from 100 to 599, for example https://example.com/#status=200";
+                            error = Loc.T("pt.web.status");
                             return false;
                         }
 
@@ -298,7 +293,7 @@ namespace PingTool
                         string path = at < 0 ? decoded : decoded[..at];
                         if (path.Length == 0 || path.Split('.').Any(s => s.Length == 0))
                         {
-                            error = "#json= needs a dotted path, optionally followed by =value, for example https://example.com/health#json=status=ok";
+                            error = Loc.T("pt.web.json");
                             return false;
                         }
 
@@ -316,7 +311,7 @@ namespace PingTool
                     string decoded = Uri.UnescapeDataString(value);
                     if (decoded.Length == 0 || decoded.Length > MaxExpectLength || decoded.Any(char.IsControl))
                     {
-                        error = $"#contains= needs a text of 1 to {MaxExpectLength} characters (write spaces as %20), for example https://example.com/#contains=Welcome";
+                        error = Loc.T("pt.web.contains", MaxExpectLength);
                         return false;
                     }
 
@@ -327,25 +322,25 @@ namespace PingTool
                     // An option that can never do anything is refused, like the unknown ones: a person who wrote it believes a certificate is watched.
                     if (!secure)
                     {
-                        error = "#cert= only applies to https:// addresses: an http:// address has no certificate to check. Use https://, or leave #cert= out.";
+                        error = Loc.T("pt.web.certhttp");
                         return false;
                     }
 
                     if (!int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out certDays) || certDays > MaxCertWarnDays)
                     {
-                        error = $"#cert= needs a number of days from 0 (never warn) to {MaxCertWarnDays}, for example https://example.com/#cert=30";
+                        error = Loc.T("pt.web.certnum", MaxCertWarnDays);
                         return false;
                     }
                 }
                 else if (key is "contains" or "cert" or "status" or "final" or "json" or "family")
                 {
                     // A known option, written a second time: not a typo to look for, the same one twice (and which one is kept is not a guess to make).
-                    error = $"#{key}= is given twice in the web address: use each option once, separated by & (#contains=text&cert=days).";
+                    error = Loc.T("pt.web.twice", key);
                     return false;
                 }
                 else
                 {
-                    error = "Unknown option after # in the web address: use #contains=text, #cert=days, #status=code, #final=host/path, #json=path=value or #family=4|6 (separated by &), each once.";
+                    error = Loc.T("pt.web.unknown");
                     return false;
                 }
             }
@@ -374,13 +369,13 @@ namespace PingTool
                 string value = eq < 0 ? "" : part[(eq + 1)..];
                 if (key is not ("server" or "type" or "same" or "change"))
                 {
-                    error = "Unknown option after # in the dns address: use #server=ip,ip, #type=A|AAAA|CNAME|MX|NS|TXT, #same and #change (separated by &), each once.";
+                    error = Loc.T("pt.dns.unknown");
                     return false;
                 }
 
                 if (!seen.Add(key))
                 {
-                    error = $"#{key} is given twice in the dns address: use each option once.";
+                    error = Loc.T("pt.dns.twice", key);
                     return false;
                 }
 
@@ -390,7 +385,7 @@ namespace PingTool
                     {
                         if (!IPAddress.TryParse(s.Trim(), out var ip) || servers.Count == DnsExpect.MaxServers)
                         {
-                            error = $"#server= needs 1 to {DnsExpect.MaxServers} IP addresses separated by commas (a name would need a lookup itself), for example dns://example.com#server=1.1.1.1,8.8.8.8";
+                            error = Loc.T("pt.dns.server", DnsExpect.MaxServers);
                             return false;
                         }
 
@@ -402,13 +397,13 @@ namespace PingTool
                     type = value.ToUpperInvariant();
                     if (!DnsExpect.Types.Contains(type))
                     {
-                        error = "#type= needs A, AAAA, CNAME, MX, NS or TXT, for example dns://example.com#type=AAAA";
+                        error = Loc.T("pt.dns.type");
                         return false;
                     }
                 }
                 else if (value.Length > 0)
                 {
-                    error = $"#{key} takes no value: write it alone, for example dns://example.com#server=1.1.1.1,8.8.8.8&{key}";
+                    error = Loc.T("pt.dns.novalue", key);
                     return false;
                 }
                 else if (key == "same") same = true;

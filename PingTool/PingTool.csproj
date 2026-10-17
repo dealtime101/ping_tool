@@ -572,8 +572,9 @@
          1.21.494 = a report of the run without a window holds copies of the incidents as they were when it was built, not the live ones that the probes go on changing (PIN507.381)
          1.21.495 = #family=both adds the IPv4 and the IPv6 entries of a name at once, the certificate end date is watched on the #family= entries too, and the report lists the stretches when only one IP family answered (PIN507.6)
          1.21.496 = a note of "Mark an event" is kept in the log files and the CSV export (a remark row), comes back with "Open a log", and a note for one target is a line on that target's timeline only (PIN507.8)
-         1.21.497 = the main window, the log viewer, the dialogs (mark an event, name and limits, schedule, hiding, incidents, route) and the boxes take their texts from the table, in the language of Windows: French or English; the unit of "Down after" is said; no "(s)" written (PIN507.254, .285, .286, .300, .327, .337, .338, .362) -->
-    <Version>1.21.497</Version>
+         1.21.497 = the main window, the log viewer, the dialogs (mark an event, name and limits, schedule, hiding, incidents, route) and the boxes take their texts from the table, in the language of Windows: French or English; the unit of "Down after" is said; no "(s)" written (PIN507.254, .285, .286, .300, .327, .337, .338, .362)
+         1.21.498 = the reasons given when an address, a profile name, a profiles file or the settings file is refused, the help of the address box and the message of "no gateway" follow the language of Windows too; counts agree (PIN507.337) -->
+    <Version>1.21.498</Version>
   </PropertyGroup>
 
   <ItemGroup>

@@ -15,7 +15,7 @@ namespace PingTool
         internal static string Language =>
             (ForcedLanguage ?? CultureInfo.CurrentUICulture.TwoLetterISOLanguageName) == "fr" ? "fr" : "en";
 
-        // The texts of the measures (here) and of the windows (LocUi.cs) are one table.
+        // The texts of the measures (here), of the windows (LocUi.cs) and of the refusals (LocParse.cs) are one table.
         internal static readonly IReadOnlyDictionary<string, (string En, string Fr)> Table = Merge(new Dictionary<string, (string, string)>
         {
             ["timeline.empty"] = ("No data yet: start pinging this host.", "Aucune donnée pour l'instant : lancez les pings sur cet hôte."),
@@ -110,14 +110,15 @@ namespace PingTool
             ["alert.degraded.mos.noavg"] = ("{0} is degraded: voice quality (MOS) {1:0.0} is under {2:0.0} ({3:0.#}% loss over the last {4} pings)", "{0} est dégradé : la qualité vocale (MOS) de {1:0.0} est sous {2:0.0} ({3:0.#} % de perte sur les {4} derniers pings)"),
             ["alert.degraded.mos"] = ("{0} is degraded: voice quality (MOS) {1:0.0} is under {2:0.0} ({3:0.#}% loss, average {4} ms over the last {5} pings)", "{0} est dégradé : la qualité vocale (MOS) de {1:0.0} est sous {2:0.0} ({3:0.#} % de perte, moyenne {4} ms sur les {5} derniers pings)"),
             ["alert.recovered"] = ("{0} is back to normal", "{0} est revenu à la normale"),
-        }, LocUi.Entries);
+        }, LocUi.Entries, LocParse.Entries);
 
-        // A key in both would be a mistake that a test would not see: the second silently replacing the first. It throws, at the first use.
-        private static Dictionary<string, (string En, string Fr)> Merge(Dictionary<string, (string, string)> first, IReadOnlyDictionary<string, (string En, string Fr)> second)
+        // A key in two would be a mistake that a test would not see: the second silently replacing the first. It throws, at the first use.
+        private static Dictionary<string, (string En, string Fr)> Merge(Dictionary<string, (string, string)> first, params IReadOnlyDictionary<string, (string En, string Fr)>[] others)
         {
-            var all = new Dictionary<string, (string En, string Fr)>(first.Count + second.Count);
+            var all = new Dictionary<string, (string En, string Fr)>(first.Count + others.Sum(o => o.Count));
             foreach (var (key, pair) in first) all.Add(key, pair);
-            foreach (var (key, pair) in second) all.Add(key, pair);
+            foreach (var other in others)
+                foreach (var (key, pair) in other) all.Add(key, pair);
             return all;
         }
 

@@ -99,7 +99,7 @@ namespace PingTool
         // Said wherever the diagnosis targets are built (the profile, --diagnose, --headless --diagnose): one wording. It says what is missing
         // (the router) and what is tested all the same; the DNS servers of the active card are in the list when the card has some, so
         // it does not say that the Internet references are all there is.
-        public const string NoGatewayMessage = "No network gateway was found (is the PC connected?). The router is not in the list: without it, the report cannot say whether the fault is on your side. The Internet references, and the DNS servers of the active network card when it has some, are tested all the same.";
+        public static string NoGatewayMessage => Loc.T("dg.nogateway");
 
         // The targets of the connection, and when no gateway was found the text to say so (the same message everywhere, with the reason when
         // part of the cards could not be read). The reason belongs to THIS discovery and comes back with it: it is not kept anywhere that
@@ -151,8 +151,7 @@ namespace PingTool
                 }
             }
 
-            problem = skipped == 0 ? null : string.Create(CultureInfo.InvariantCulture,
-                $"{skipped} network card(s) could not be read ({(why is { Length: > 80 } ? TextCut.Units(why, 77) + "..." : why)}): the gateway may be on one of them.");
+            problem = skipped == 0 ? null : Loc.Count("dg.cards", skipped, why is { Length: > 80 } ? TextCut.Units(why, 77) + "..." : why ?? "");
             return snapshots;
         }
 

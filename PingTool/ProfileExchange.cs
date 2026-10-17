@@ -86,7 +86,7 @@ namespace PingTool
             // characters is longer in bytes.
             if (json.Length > MaxFileBytes || System.Text.Encoding.UTF8.GetByteCount(json) > MaxFileBytes)
             {
-                error = "That file is too large to be a list of profiles.";
+                error = Loc.T("px.large");
                 return false;
             }
 
@@ -114,7 +114,7 @@ namespace PingTool
                     {
                         if (CountOf(root, key) > 1)
                         {
-                            error = $"This file has \"{key.ToLowerInvariant()}\" more than once: it is not clear which one counts. Keep one.";
+                            error = Loc.T("px.twice", key.ToLowerInvariant());
                             return false;
                         }
                     }
@@ -123,7 +123,7 @@ namespace PingTool
                     // means a file from somewhere else.
                     if (Find(root, "Format") is { } f && !(f.ValueKind == JsonValueKind.String && f.GetString() == FormatName))
                     {
-                        error = "This file is not a PingTool profiles file.";
+                        error = Loc.T("px.notformat");
                         return false;
                     }
 
@@ -131,20 +131,20 @@ namespace PingTool
                     {
                         if (!TryReadVersion(v, out int version))
                         {
-                            error = "This file has a version number that PingTool cannot read.";
+                            error = Loc.T("px.version.bad");
                             return false;
                         }
 
                         if (version > FormatVersion)
                         {
-                            error = "This file was made by a newer PingTool: update PingTool to read it.";
+                            error = Loc.T("px.version.new");
                             return false;
                         }
                     }
 
                     if (Find(root, "Profiles") is not { ValueKind: JsonValueKind.Array } p)
                     {
-                        error = "This file does not contain a list of profiles.";
+                        error = Loc.T("px.nolist");
                         return false;
                     }
 
@@ -153,7 +153,7 @@ namespace PingTool
                 }
                 else
                 {
-                    error = "This file does not contain a list of profiles.";
+                    error = Loc.T("px.nolist");
                     return false;
                 }
 
@@ -174,7 +174,7 @@ namespace PingTool
                         // In our own words, like the error of the file itself below: the text of the exception is the library's, written for a
                         // developer (type names, "could not be converted to System.Int32"), in the language of the runtime. The place says
                         // where to look.
-                        firstProblem ??= $"A profile in this file is not valid: a value is missing, or is not of the kind expected there (at {at}).";
+                        firstProblem ??= Loc.T("px.badprofile", at);
                     }
 
                     index++;
@@ -187,8 +187,8 @@ namespace PingTool
                 // editor shows it (the library counts from 0, and the position in BYTES of the UTF-8 text: turned into a column of
                 // characters from the line itself, so that an accent, an emoji or an ideogram before the fault does not shift it).
                 error = ex.LineNumber is long line && ex.BytePositionInLine is long position
-                    ? $"This file is not valid JSON: it breaks at line {(line + 1).ToString(System.Globalization.CultureInfo.InvariantCulture)}, position {(ColumnOf(json, line, position) + 1).ToString(System.Globalization.CultureInfo.InvariantCulture)}."
-                    : "This file is not valid JSON.";
+                    ? Loc.T("px.json.at", (line + 1).ToString(System.Globalization.CultureInfo.InvariantCulture), (ColumnOf(json, line, position) + 1).ToString(System.Globalization.CultureInfo.InvariantCulture))
+                    : Loc.T("px.json");
                 return false;
             }
 
@@ -217,7 +217,7 @@ namespace PingTool
             imported = new Imported(clean, (raw?.Count ?? 0) - clean.Count, targetsDropped);
             if (clean.Count == 0)
             {
-                error = firstProblem ?? "No usable profile in this file.";
+                error = firstProblem ?? Loc.T("px.none");
                 return false;
             }
 

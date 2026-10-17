@@ -123,10 +123,9 @@ namespace PingTool
                 string? kept = KeepAside(path);
                 return new Settings
                 {
-                    LoadProblem = $"The settings file could not be read ({Short(ex.Message)}). "
-                        + (kept is null ? "It could not be kept aside either: PingTool will not replace it without first keeping a copy (settings.json.unread-...). "
-                                        : $"It was kept as {kept} so that you can fix it. ")
-                        + "PingTool starts with its default settings.",
+                    LoadProblem = Loc.T("st.unread", Short(ex.Message))
+                        + (kept is null ? Loc.T("st.unread.nokeep") : Loc.T("st.unread.kept", kept))
+                        + Loc.T("st.unread.tail"),
                     mustKeepCopy = kept is null,
                 };
             }
@@ -136,9 +135,7 @@ namespace PingTool
                 System.Diagnostics.Debug.WriteLine($"Settings not loaded from {path}: {ex}");
                 return new Settings
                 {
-                    LoadProblem = $"The settings file could not be opened ({Short(ex.Message)}). The file was left as it is; "
-                        + "PingTool starts with its default settings. It will not replace the file without first keeping a copy of it "
-                        + "(settings.json.unread-...), and not at all while it cannot make that copy.",
+                    LoadProblem = Loc.T("st.open", Short(ex.Message)),
                     mustKeepCopy = true,
                 };
             }
@@ -241,13 +238,13 @@ namespace PingTool
             var good = raw.Where(w => WebhookPayload.TryParseUrl(w, out _)).Distinct(StringComparer.Ordinal).Take(MaxWebhooks).ToList();
             WebhooksIgnored = raw.Count - good.Count;
             if (good.Count < raw.Count)
-                AddProblem($"{raw.Count - good.Count} webhook address(es) in settings.json were ignored: only distinct http:// or https:// addresses are used (at most {MaxWebhooks}).");
+                AddProblem(Loc.Count("st.webhooks", raw.Count - good.Count, MaxWebhooks));
             Webhooks = good;
             CrashLog.KnowSecrets(good);   // an exception text must never carry one of them into crash.log
             Maintenance = (Maintenance ?? new List<string>()).Where(w => !string.IsNullOrWhiteSpace(w)).Select(w => w.Trim()).ToList();
             MaintenanceWindows.Parse(Maintenance, out var badWindows);
             if (badWindows.Count > 0)
-                AddProblem($"{badWindows.Count} maintenance window(s) in settings.json were ignored (write them like \"Mon-Fri 02:00-03:30\" or \"22:00-02:00\", at most {MaintenanceWindows.MaxWindows}): {string.Join("; ", badWindows.Take(3))}.");
+                AddProblem(Loc.Count("st.windows", badWindows.Count, MaintenanceWindows.MaxWindows, string.Join("; ", badWindows.Take(3))));
             ActiveProfile ??= "";
             Recent = (Recent ?? new List<string>())
                 .Where(a => !string.IsNullOrWhiteSpace(a)).Select(a => a.Trim())

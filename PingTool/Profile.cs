@@ -66,15 +66,15 @@ namespace PingTool
             name = Canonical(input) ?? (input ?? "").Trim();
             error = "";
 
-            if (Canonical(input) is null) error = "The name contains characters that are not valid text.";
-            else if (name.Length == 0) error = "Give the profile a name.";
+            if (Canonical(input) is null) error = Loc.T("pr.name.invalid");
+            else if (name.Length == 0) error = Loc.T("pr.name.empty");
             else if (string.Equals(name, DiagnosticTargets.ProfileName, StringComparison.OrdinalIgnoreCase))
-                error = "That name is reserved for the built-in diagnosis: choose another.";
-            else if (name.Length > MaxNameUnits) error = $"The name is limited to {MaxNameLength} characters.";
+                error = Loc.T("pr.name.reserved");
+            else if (name.Length > MaxNameUnits) error = Loc.T("pr.name.long", MaxNameLength);
             // The length is what the user sees, in characters as they are shown (a family emoji, three people joined by U+200D, is one), not in
             // UTF-16 units (that one is eight). Written in words, not with the emoji itself: the joiners in it are invisible in an editor.
-            else if (new StringInfo(name).LengthInTextElements > MaxNameLength) error = $"The name is limited to {MaxNameLength} characters.";
-            else if (HasInvisible(name)) error = "The name cannot contain control or invisible formatting characters.";
+            else if (new StringInfo(name).LengthInTextElements > MaxNameLength) error = Loc.T("pr.name.long", MaxNameLength);
+            else if (HasInvisible(name)) error = Loc.T("pr.name.invisible");
 
             return error.Length == 0;
         }
@@ -243,11 +243,11 @@ namespace PingTool
             var clean = new List<Profile>();
             foreach (var p in loaded ?? Enumerable.Empty<Profile?>())
             {
-                if (p is null) { leftOut?.Add("an empty entry"); continue; }
+                if (p is null) { leftOut?.Add(Loc.T("pr.left.empty")); continue; }
                 // A name of a hand-edited file may be of any size: it is refused before any of it is cut into characters (see MaxNameUnits).
                 if ((p.Name?.Length ?? 0) > MaxNameUnits)
                 {
-                    leftOut?.Add($"\"{Clip(p.Name!)}\": the name is limited to {MaxNameLength} characters");
+                    leftOut?.Add(Loc.T("pr.left.long", Clip(p.Name!), MaxNameLength));
                     continue;
                 }
 
@@ -255,19 +255,19 @@ namespace PingTool
                 p.Name = WithoutInvisibleFormat(p.Name ?? "");
                 if (!TryName(p.Name, out string name, out string why))
                 {
-                    leftOut?.Add($"\"{Clip(p.Name)}\": {why.TrimEnd('.')}");
+                    leftOut?.Add(Loc.T("pr.left.why", Clip(p.Name), why.TrimEnd('.')));
                     continue;
                 }
 
                 if (Find(clean, name) is not null)
                 {
-                    leftOut?.Add($"\"{Clip(name)}\": another profile already has that name");
+                    leftOut?.Add(Loc.T("pr.left.dup", Clip(name)));
                     continue;
                 }
 
                 if (clean.Count >= MaxProfiles)
                 {
-                    leftOut?.Add($"\"{Clip(name)}\": at most {MaxProfiles} profiles are kept");
+                    leftOut?.Add(Loc.T("pr.left.max", Clip(name), MaxProfiles));
                     continue;
                 }
 
@@ -295,9 +295,9 @@ namespace PingTool
                 if (trimmed is not null && (cutHosts > 0 || cutOptions > 0))
                 {
                     var parts = new List<string>();
-                    if (cutHosts > 0) parts.Add($"{cutHosts} host(s) beyond the limit of {ProfileExchange.MaxHostsPerProfile} per profile");
-                    if (cutOptions > 0) parts.Add($"{cutOptions} name(s) or limit(s) of targets that are not in the profile");
-                    trimmed.Add($"\"{Clip(name)}\": {string.Join(" and ", parts)}");
+                    if (cutHosts > 0) parts.Add(Loc.Count("pr.trim.hosts", cutHosts, ProfileExchange.MaxHostsPerProfile));
+                    if (cutOptions > 0) parts.Add(Loc.Count("pr.trim.options", cutOptions));
+                    trimmed.Add(Loc.T("pr.left.why", Clip(name), string.Join(Loc.T("pr.and"), parts)));
                 }
 
                 clean.Add(p);
@@ -308,12 +308,12 @@ namespace PingTool
 
         // The sentence for the profiles that were loaded but not whole (see Sanitize): how many, then the first reasons.
         public static string DescribeTrimmed(IReadOnlyList<string> trimmed) =>
-            $"{trimmed.Count} profile(s) in settings.json were loaded with part of their content left out: {string.Join("; ", trimmed.Take(3))}{(trimmed.Count > 3 ? $" (and {trimmed.Count - 3} more)" : "")}.";
+            Loc.Count("pr.described.trimmed", trimmed.Count, string.Join("; ", trimmed.Take(3)), trimmed.Count > 3 ? Loc.T("pr.more", trimmed.Count - 3) : "");
 
         private static string Clip(string text) => text.Length <= 20 ? text : TextCut.Units(text, 20) + "...";
 
         // The sentence for the start-up message: how many, then the first reasons (three at most, the rest counted).
         public static string DescribeLeftOut(IReadOnlyList<string> leftOut) =>
-            $"{leftOut.Count} profile(s) in settings.json were left out: {string.Join("; ", leftOut.Take(3))}{(leftOut.Count > 3 ? $" (and {leftOut.Count - 3} more)" : "")}.";
+            Loc.Count("pr.described.left", leftOut.Count, string.Join("; ", leftOut.Take(3)), leftOut.Count > 3 ? Loc.T("pr.more", leftOut.Count - 3) : "");
     }
 }
