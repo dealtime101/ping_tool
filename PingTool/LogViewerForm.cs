@@ -74,7 +74,7 @@ namespace PingTool
             {
                 // The first target, if there is one: the reader of logs refuses a log with no ping, so there always is today; this window does not
                 // depend on that rule being kept somewhere else (an empty list gave an exception from the click, not a timeline).
-                using var dialog = new TimelineForm(entries, replay.Incidents.Incidents.ToList(), hosts, hosts.FirstOrDefault());
+                using var dialog = new TimelineForm(entries, replay.Incidents.Incidents.ToList(), hosts, hosts.FirstOrDefault(), networkEvents: replay.Notes);
                 dialog.ShowDialog(this);
             };
             incidents.Click += (_, _) =>
@@ -143,7 +143,7 @@ namespace PingTool
                     s.Stats.LossPercent, s.Stats.Min, s.Stats.Avg, s.Stats.Max, s.Stats.Jitter, s.History.ToArray(), s.Stats.Hours, Mos: s.Mos)).ToList(),
                 Diagnosis.For(sessions.Select(s => s.ToTarget()).ToList()),
                 replay.Incidents.Summary(replay.To), replay.Incidents.Incidents.ToList(),
-                FromLogFile: true, PeriodEnd: replay.To);
+                FromLogFile: true, PeriodEnd: replay.To, NetworkEvents: replay.Notes);
 
             if (ReportMaskingForm.Ask(this, data) is not { } masking) return;
             var masked = ReportAnonymizer.Mask(data, masking);

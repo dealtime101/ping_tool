@@ -322,8 +322,11 @@ namespace PingTool
                 if (built == (host, columns)) break;
                 built = (host, columns);
                 var data = Timeline.Build(entries, host, columns);
-                chart.Show(data, incidents, networkEvents);
-                string? network = data.IsEmpty ? null : Timeline.DescribeNetwork(networkEvents, data.From, data.To);
+                // A note that applies to one target is a line on the timeline of that target only; the changes of the PC and the notes
+                // for all targets are on every timeline.
+                var forThisHost = networkEvents.Where(n => n.Target is null || TargetKey.Same(n.Target, host)).ToList();
+                chart.Show(data, incidents, forThisHost);
+                string? network = data.IsEmpty ? null : Timeline.DescribeNetwork(forThisHost, data.From, data.To);
                 summary.Text = Timeline.Describe(data) + (network is null ? "" : "\n" + network) + (droppedNote is null ? "" : "\n" + droppedNote);
                 layoutBottom?.Invoke();
             }

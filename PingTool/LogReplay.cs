@@ -18,9 +18,17 @@ namespace PingTool
             "This file has more than " + MaxEntries.ToString("N0", CultureInfo.CurrentCulture) + " pings: too many to be a PingTool log.";
 
         // Several files at once (one per host and day) are fine: the caller concatenates the entries.
-        public static bool TryParse(string csv, out List<LogEntry> entries, out string error)
+        public static bool TryParse(string csv, out List<LogEntry> entries, out string error) => TryParse(csv, out entries, out _, out error);
+
+        // The most notes of the person that one file may hold (they are few; a file with more is not asked to fill the memory).
+        public const int MaxNotes = 5000;
+
+        // notes: the notes of the person (Mark an event) that the file keeps as remark rows, in the order of the file; a remark that is not a
+        // well formed note is just a remark.
+        public static bool TryParse(string csv, out List<LogEntry> entries, out List<NetworkEvent> notes, out string error)
         {
             entries = new List<LogEntry>();
+            notes = new List<NetworkEvent>();
             error = "";
             // Row by row: a file that is far too big (or that is not a log at all) is refused at the limit, not after every row of it has
             // been turned into a list of strings.
@@ -42,7 +50,13 @@ namespace PingTool
                 // A remark of the export (the log was incomplete): the mark in the first field and nothing in the others - alone (files written
                 // before) or with the four empty fields that give it as many columns as the header. A ping never begins with the mark: its
                 // first field is a date.
-                if (r.Count >= 1 && r[0].StartsWith(PingLog.CommentMark, StringComparison.Ordinal) && r.Skip(1).All(f => f.Length == 0)) continue;
+                if (r.Count >= 1 && r[0].StartsWith(PingLog.CommentMark, StringComparison.Ordinal) && r.Skip(1).All(f => f.Length == 0))
+                {
+                    string notePrefix = PingLog.CommentMark + " " + NetworkEvent.RemarkTag;
+                    if (r[0].StartsWith(notePrefix, StringComparison.Ordinal) && notes.Count < MaxNotes && NetworkEvent.FromRemark(r[0][notePrefix.Length..]) is { } note)
+                        notes.Add(note);
+                    continue;
+                }
                 if (r.Count != 5) { error = $"Line {line}: expected 5 fields, found {r.Count}."; return false; }
                 if (!DateTimeOffset.TryParseExact(r[0], "yyyy-MM-dd'T'HH:mm:ss.fffzzz", CultureInfo.InvariantCulture, DateTimeStyles.None, out var time))
                 { error = $"Line {line}: the date \"{Clip(r[0])}\" is not in the log format."; return false; }
@@ -142,7 +156,9 @@ namespace PingTool
 
     // What a replay gives back: one session per host (statistics, last 180 pings, state), the incidents, the period.
     // DuplicatesRemoved = identical pings that were present more than once in what was loaded and counted once.
-    internal sealed record ReplayResult(Dictionary<string, HostSession> Sessions, IncidentLog Incidents, DateTimeOffset From, DateTimeOffset To, int DuplicatesRemoved = 0);
+    // Notes = the notes of the person that the files kept (Mark an event), the same one found in several files counted once.
+    internal sealed record ReplayResult(Dictionary<string, HostSession> Sessions, IncidentLog Incidents, DateTimeOffset From, DateTimeOffset To, int DuplicatesRemoved = 0,
+        IReadOnlyList<NetworkEvent>? Notes = null);
 
     internal static class LogReplay
     {

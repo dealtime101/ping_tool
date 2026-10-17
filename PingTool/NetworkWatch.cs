@@ -8,21 +8,58 @@ namespace PingTool
     // two access points of the same network that keeps the address and the gateway is not seen by the cards: the SSID, the BSSID and the
     // signal come from the native Wi-Fi interface of Windows, read by WifiWatch (PIN507.2), whose sentences join these events.
     // Note: written by the user (Mark an event), not seen by the program; the report keeps the two apart.
-    internal sealed record NetworkEvent(DateTimeOffset Time, string Text, bool Note = false)
+    // Target: for a note that applies to one target only, the address of that target (its name starts the Text); null = every target.
+    internal sealed record NetworkEvent(DateTimeOffset Time, string Text, bool Note = false, string? Target = null)
     {
         public const int MaxNoteLength = 120;
+
+        // A note is kept in the log file as a remark row (PingLog.CommentMark), which a reader that does not know notes skips: the time, the
+        // target and the text in one JSON object, so that whatever the text holds (commas, quotes, a "|") cannot be mistaken for the frame.
+        public const string RemarkTag = "note ";
+        private sealed record Remark(string T, string? S, string X);
+
+        public string ToRemark() => System.Text.Json.JsonSerializer.Serialize(
+            new Remark(Time.ToString("yyyy-MM-dd'T'HH:mm:ss.fffzzz", System.Globalization.CultureInfo.InvariantCulture), Target, Text));
+
+        // The note a remark row holds (the text after "# note "), or null when it is not a well formed one: a remark the reader cannot make
+        // sense of is simply a remark. The text is cleaned as a typed one is (a hand-edited file may hold anything).
+        public static NetworkEvent? FromRemark(string json)
+        {
+            try
+            {
+                var r = System.Text.Json.JsonSerializer.Deserialize<Remark>(json);
+                if (r is null || r.X is null || r.T is null) return null;
+                if (!DateTimeOffset.TryParseExact(r.T, "yyyy-MM-dd'T'HH:mm:ss.fffzzz", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var time)) return null;
+                // The text of a note already carries its target's name ("router: ..."): kept as it was written, cut as long as the longest.
+                string text = Fold(r.X);
+                if (text.Length == 0) return null;
+                if (text.Length > MaxNoteLength + MaxTargetLength + 2) text = TextCut.Units(text, MaxNoteLength + MaxTargetLength + 2);
+                string? target = r.S is { Length: > 0 } s ? (s.Length > MaxTargetLength ? TextCut.Units(s, MaxTargetLength) : s) : null;
+                return new NetworkEvent(time, text, Note: true, Target: target);
+            }
+            catch (System.Text.Json.JsonException)
+            {
+                return null;
+            }
+        }
+
+        public const int MaxTargetLength = 300;
+
+        // Spaces folded to one, control characters dropped.
+        private static string Fold(string? note) =>
+            string.Join(' ', new string((note ?? "").Where(c => !char.IsControl(c) || char.IsWhiteSpace(c)).ToArray())
+                .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
 
         // The event for a note, or null when there is nothing to note: blank, or only control characters. Spaces are folded and control
         // characters dropped (a line break would break the report's table row and the timeline's line), the text cut to MaxNoteLength;
         // `target` (a name) starts the text when the note applies to one target only.
-        public static NetworkEvent? FromNote(string? note, DateTimeOffset time, string? target)
+        public static NetworkEvent? FromNote(string? note, DateTimeOffset time, string? target, string? targetAddress = null)
         {
-            string clean = string.Join(' ', new string((note ?? "").Where(c => !char.IsControl(c) || char.IsWhiteSpace(c)).ToArray())
-                .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+            string clean = Fold(note);
             if (clean.Length > MaxNoteLength) clean = TextCut.Units(clean, MaxNoteLength);   // not through an emoji
             if (clean.Length == 0) return null;
 
-            return new NetworkEvent(time, target is null ? clean : target + ": " + clean, Note: true);
+            return new NetworkEvent(time, target is null ? clean : target + ": " + clean, Note: true, Target: target is null ? null : targetAddress ?? target);
         }
     }
 

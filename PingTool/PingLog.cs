@@ -60,7 +60,8 @@ namespace PingTool
 
         public const string CsvHeader = "timestamp,host,status,rtt_ms,detail";
 
-        public void WriteCsv(TextWriter writer)
+        // notes: the notes of the person, kept in the file as remark rows after the header (see NoteStatus).
+        public void WriteCsv(TextWriter writer, IEnumerable<NetworkEvent>? notes = null)
         {
             // One picture of the log for the whole file, taken now: the entries and the count of those let go go together (the remark under
             // the header must say how many are missing from THESE rows), and the queue is not walked while a slow writer is at work, where a
@@ -79,6 +80,7 @@ namespace PingTool
             // the first and the other four empty, which the reader skips (PingLogReader.CommentMark) and a spreadsheet shows as a line of
             // text; a tool that wants as many fields in every row as the header has them finds them.
             if (letGo > 0) writer.Write(IncompleteRow(letGo) + "\r\n");
+            foreach (var note in (notes ?? Array.Empty<NetworkEvent>()).Where(n => n.Note)) writer.Write(NoteRow(note.ToRemark()) + "\r\n");
             foreach (var e in snapshot) writer.Write(CsvLine(e) + "\r\n");
         }
 
@@ -94,8 +96,15 @@ namespace PingTool
         // The mark of a row that is a remark and not a ping.
         public const string CommentMark = "#";
 
+        // A note of the person ("Mark an event") kept in the file, as a remark row: "# note {json}" in the first field, the other four empty,
+        // so that a reader that does not know notes skips it like the other remarks. Queued for the automatic log as a LogEntry with this
+        // status (its Host says which file takes it, its Detail is the JSON of NetworkEvent.ToRemark): never a ping, never in the counts.
+        public const string NoteStatus = "#note";
+
+        public static string NoteRow(string json) => Field(CommentMark + " " + NetworkEvent.RemarkTag + json) + ",,,,";
+
         // One row, shared by the export and the automatic log so the two files read the same.
-        public static string CsvLine(LogEntry e) => string.Join(",",
+        public static string CsvLine(LogEntry e) => e.Status == NoteStatus ? NoteRow(e.Detail) : string.Join(",",
             e.Time.ToString("yyyy-MM-dd'T'HH:mm:ss.fffzzz", CultureInfo.InvariantCulture),
             Field(e.Host),
             Field(e.Status),

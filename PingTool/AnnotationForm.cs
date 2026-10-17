@@ -11,18 +11,21 @@ namespace PingTool
         private readonly DateTimePicker when;
         private readonly ComboBox scope;
         private readonly string? targetName;
+        private readonly string? targetAddress;
 
         public NetworkEvent? Result { get; private set; }
 
-        // `target`: the name of the selected host (the scope can then be limited to it), or null.
-        public AnnotationForm(string? target)
+        // `target`: the name of the selected host (the scope can then be limited to it), or null. `address`: its address, which is what the
+        // timeline of that host recognizes the note by.
+        public AnnotationForm(string? target, string? address = null)
         {
+            targetAddress = address;
             AutoScaleDimensions = new SizeF(96F, 96F);
             AutoScaleMode = AutoScaleMode.Dpi;
 
             targetName = target;
             Text = "PingTool - Mark an event";
-            ClientSize = new Size(380, 200);
+            ClientSize = new Size(380, 232);
             StartPosition = FormStartPosition.CenterParent;
             FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox = false;
@@ -51,19 +54,19 @@ namespace PingTool
 
             Controls.Add(new Label
             {
-                Text = "The note is kept with this run: it shows on the timeline and in the report, so that you can see whether what you did changed anything.",
-                ForeColor = Color.Silver, AutoSize = false, Location = new Point(12, 128), Size = new Size(356, 32), AccessibleName = "Where the note shows",
+                Text = "The note shows on the timeline and in the report, and is kept in the log files when \"Save the log\" is on, so that you can see whether what you did changed anything. For one target, only its timeline shows the line.",
+                ForeColor = Color.Silver, AutoSize = false, Location = new Point(12, 128), Size = new Size(356, 64), AccessibleName = "Where the note shows",
             });
 
-            var ok = new Button { Text = "OK", Location = new Point(190, 164), Size = new Size(84, 28) };
-            var cancel = new Button { Text = "Cancel", DialogResult = DialogResult.Cancel, Location = new Point(284, 164), Size = new Size(84, 28) };
+            var ok = new Button { Text = "OK", Location = new Point(190, 196), Size = new Size(84, 28) };
+            var cancel = new Button { Text = "Cancel", DialogResult = DialogResult.Cancel, Location = new Point(284, 196), Size = new Size(84, 28) };
             AcceptButton = ok;
             CancelButton = cancel;
             Controls.Add(ok);
             Controls.Add(cancel);
             ok.Click += (_, _) =>
             {
-                Result = NetworkEvent.FromNote(text.Text, new DateTimeOffset(when.Value), scope.SelectedIndex == 1 ? targetName : null);
+                Result = NetworkEvent.FromNote(text.Text, new DateTimeOffset(when.Value), scope.SelectedIndex == 1 ? targetName : null, scope.SelectedIndex == 1 ? targetAddress : null);
                 if (Result is null) { text.Focus(); return; }
                 DialogResult = DialogResult.OK;
             };

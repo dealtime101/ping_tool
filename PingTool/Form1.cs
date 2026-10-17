@@ -792,7 +792,7 @@ namespace PingTool
             {
                 // UTF-8 with BOM so Excel reads accented host names correctly.
                 using (var writer = new StreamWriter(dialog.FileName, false, new System.Text.UTF8Encoding(true)))
-                    log.WriteCsv(writer);
+                    log.WriteCsv(writer, networkEvents.ToList());   // the notes of the person go with the pings
 
                 // The file is not the whole session once the log has let its oldest pings go: say so.
                 if (log.DroppedNote is string dropped)
@@ -1340,8 +1340,21 @@ namespace PingTool
         {
             if (!isRunning) return;
 
-            using var dialog = new AnnotationForm(selected?.DisplayName);
-            if (dialog.ShowDialog(this) == DialogResult.OK && dialog.Result is { } note) networkEvents.Add(note);
+            using var dialog = new AnnotationForm(selected?.DisplayName, selected?.Address);
+            if (dialog.ShowDialog(this) != DialogResult.OK || dialog.Result is not { } note) return;
+
+            networkEvents.Add(note);
+            KeepNote(note);
+        }
+
+        // The note goes to the log files too (when "Save the log" is on): to the file of its target, or of every target when it applies to all,
+        // so that a night looked at again from the files still has it. Without the log files it lasts as long as the run, as it did.
+        private void KeepNote(NetworkEvent note)
+        {
+            if (autoLog is null) return;
+            var hosts = note.Target is null ? sessions.Select(s => s.Address) : new[] { note.Target };
+            foreach (string host in hosts.Distinct(TargetKey.Comparer))
+                autoLog.Add(new LogEntry(note.Time, host, PingLog.NoteStatus, null, note.ToRemark()));
         }
 
         private void TraceSelected()
@@ -1420,6 +1433,7 @@ namespace PingTool
         internal static (ReplayResult? Replay, List<LogEntry>? Entries, string? Error) LoadLogs(string[] paths)
         {
             var all = new List<LogEntry>();
+            var allNotes = new List<NetworkEvent>();
             foreach (string path in paths)
             {
                 string name = Path.GetFileName(path);
@@ -1434,12 +1448,15 @@ namespace PingTool
                     return (null, null, "Could not read " + name + ": " + ex.Message);
                 }
 
-                if (!PingLogReader.TryParse(text, out var part, out string error)) return (null, null, name + ": " + error);
+                if (!PingLogReader.TryParse(text, out var part, out var partNotes, out string error)) return (null, null, name + ": " + error);
                 all.AddRange(part);
+                allNotes.AddRange(partNotes);
                 if (all.Count > PingLogReader.MaxEntries) return (null, null, "These files hold too many pings to open together.");
             }
 
-            return (LogReplay.Run(all), all, null);
+            // A note written to the files of several targets (it applies to all of them) is one note.
+            var notes = allNotes.Distinct().Take(PingLogReader.MaxNotes).ToList();
+            return (LogReplay.Run(all) with { Notes = notes }, all, null);
         }
 
         private void UpdateIncidentButton() =>
