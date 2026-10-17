@@ -74,18 +74,19 @@ namespace PingTool
             // each settings box comes right after its label in tab order (that is how a screen reader names it), and its
             // AccessibleName says it outright so that a later reordering cannot break it.
             InitializeComponent();
+            LocalizeWindow();   // the texts of the designer are the English ones; the language of Windows decides what is shown
             Icon = AppIcon.Load();   // the title bar, Alt+Tab and the taskbar
             Text = AppVersion.Title(null);
             toolTip.SetToolTip(cmbAddress, ProbeTarget.Help);
             // The label before it (tab order) is only a hint to a screen reader, which names a box by what it is told: said outright, as for
             // the other boxes of the window.
-            cmbAddress.AccessibleName = "Address of the target to monitor";
-            cmbAddress.AccessibleDescription = "A host name or an IP address to ping, or an address starting with tcp://, http://, https:// or dns:// to test a port, a web page or a name lookup.";
-            // The label is short (the column is narrow): the unit and what happens are said here, and in the accessible name.
-            const string downHelp = "Number of consecutive failed pings after which the host is reported down.";
+            cmbAddress.AccessibleName = Loc.T("ui.an.address");
+            cmbAddress.AccessibleDescription = Loc.T("ui.an.address.desc");
+            // The label is short (the column is narrow): what happens is said here, and in the accessible name.
+            string downHelp = Loc.T("ui.tip.downafter");
             toolTip.SetToolTip(lblDownAfter, downHelp);
             toolTip.SetToolTip(numDownAfter, downHelp);
-            toolTip.SetToolTip(cboProfile, "Profile = the target list and the monitoring settings (interval, timeout, size, limits, alerts, the names and limits of the targets), under a name. Pick one to load it; type a name and press Save to keep the current setup. The window mode and \"Save the log to disk\" are not part of it.");
+            toolTip.SetToolTip(cboProfile, Loc.T("ui.tip.profile"));
             FormClosed += (_, _) =>
             {
                 notifyIcon.Dispose();
@@ -176,11 +177,11 @@ namespace PingTool
 
             // Right-click (or the menu key) on a host: where does the path to it stop?
             var hostMenu = new ContextMenuStrip();
-            hostMenu.Items.Add("Trace route to this host").Click += (_, _) => TraceSelected();
-            hostMenu.Items.Add("Name and limits of this host...").Click += (_, _) => EditSelectedTarget();
-            var markItem = hostMenu.Items.Add("Mark an event...");
+            hostMenu.Items.Add(Loc.T("ui.menu.trace")).Click += (_, _) => TraceSelected();
+            hostMenu.Items.Add(Loc.T("ui.menu.options")).Click += (_, _) => EditSelectedTarget();
+            var markItem = hostMenu.Items.Add(Loc.T("ui.menu.mark"));
             markItem.Click += (_, _) => MarkEvent();
-            var scheduleItem = hostMenu.Items.Add("Schedule a measurement...");
+            var scheduleItem = hostMenu.Items.Add(Loc.T("ui.menu.schedule"));
             scheduleItem.Click += (_, _) => ScheduleMeasurement();
             // The host entries need a host; the note does not (it can apply to every target), but only a run has a session to keep it in;
             // scheduling needs neither.
@@ -313,6 +314,51 @@ namespace PingTool
         // SetVisibleCore, since the window (and so its boxes) does not come up then.
         private readonly List<string> launchWarnings = new();
 
+        // The texts of the main window in the language of Windows. The designer wrote the English ones; they are set again here from the
+        // table (English comes out as it was: a test compares the two), the accelerator keys with them.
+        private void LocalizeWindow()
+        {
+            lblAddress.Text = Loc.T("ui.addr");
+            btnStartStop.Text = Loc.T("ui.start");
+            lblInterval.Text = Loc.T("ui.interval");
+            lblTimeout.Text = Loc.T("ui.timeout");
+            lblSize.Text = Loc.T("ui.size");
+            lblSlow.Text = Loc.T("ui.slow");
+            lblLoss.Text = Loc.T("ui.loss");
+            lblMos.Text = Loc.T("ui.mos");
+            lblDownAfter.Text = Loc.T("ui.downafter");
+            chkSaveLog.Text = Loc.T("ui.savelog");
+            chkGroup.Text = Loc.T("ui.group");
+            chkAlert.Text = Loc.T("ui.alert");
+            colHost.Text = Loc.T("ui.col.host");
+            colLast.Text = Loc.T("ui.col.last");
+            colAvg.Text = Loc.T("ui.col.avg");
+            colLoss.Text = Loc.T("ui.col.loss");
+            colMos.Text = Loc.T("ui.col.mos");
+            btnAddHost.Text = Loc.T("ui.btn.add");
+            btnRemoveHost.Text = Loc.T("ui.btn.remove");
+            btnExport.Text = Loc.T("ui.btn.export");
+            btnIncidents.Text = Loc.T("ui.btn.incidents", 0);
+            btnReport.Text = Loc.T("ui.btn.report");
+            btnTimeline.Text = Loc.T("ui.btn.timeline");
+            btnOpenLog.Text = Loc.T("ui.btn.openlog");
+            btnImportProfiles.Text = Loc.T("ui.btn.importprof");
+            btnExportProfiles.Text = Loc.T("ui.btn.exportprof");
+            chkCompact.Text = Loc.T("ui.compact");
+            chkCompare.Text = Loc.T("ui.compare");
+            btnSaveProfile.Text = Loc.T("ui.save");
+            btnDeleteProfile.Text = Loc.T("ui.delete");
+            numInterval.AccessibleName = Loc.T("ui.an.interval");
+            numTimeout.AccessibleName = Loc.T("ui.an.timeout");
+            numSize.AccessibleName = Loc.T("ui.an.size");
+            numSlow.AccessibleName = Loc.T("ui.an.slow");
+            numLoss.AccessibleName = Loc.T("ui.an.loss");
+            numMos.AccessibleName = Loc.T("ui.an.mos");
+            numDownAfter.AccessibleName = Loc.T("ui.an.downafter");
+            lstHosts.AccessibleName = Loc.T("ui.an.hosts");
+            cboProfile.AccessibleName = Loc.T("ui.an.profile");
+        }
+
         private void WarnAtLaunch(string text)
         {
             launchWarnings.Add(text);
@@ -373,13 +419,12 @@ namespace PingTool
             chkGroup.Checked = settings.AlertGroupSeconds > 0;
             alertGrouper.WindowSeconds = chkGroup.Checked ? groupSeconds : 0;
             chkGroup.CheckedChanged += (_, _) => alertGrouper.WindowSeconds = chkGroup.Checked ? groupSeconds : 0;
-            toolTip.SetToolTip(chkGroup, $"When several targets go down (or come back) within {groupSeconds} s of each other, one balloon, sound and webhook message tells them together. Each keeps its own incident. Change the {groupSeconds} s with AlertGroupSeconds in settings.json.");
-            toolTip.SetToolTip(numMos, "A host also counts as degraded when the voice quality (MOS, 1 to 4.5) of its last 10 pings falls below this. 0 = not used. About 4 is good, under 3.6 callers notice.");
+            toolTip.SetToolTip(chkGroup, Loc.T("ui.tip.group", groupSeconds));
+            toolTip.SetToolTip(numMos, Loc.T("ui.tip.mos"));
             numDownAfter.Value = Math.Clamp(settings.DownAfter, (int)numDownAfter.Minimum, (int)numDownAfter.Maximum);
             chkAlert.Checked = settings.Alert;
             chkSaveLog.Checked = settings.SaveLog;
-            toolTip.SetToolTip(chkSaveLog, "Every ping is appended to a CSV file per host and per day, in " +
-                (settings.LogFolder.Length > 0 ? settings.LogFolder : AutoLog.DefaultFolder) + ". Choose before Start.");
+            toolTip.SetToolTip(chkSaveLog, Loc.T("ui.tip.savelog", settings.LogFolder.Length > 0 ? settings.LogFolder : AutoLog.DefaultFolder));
             chkCompact.Checked = settings.Compact;
             RefreshProfileList();
             cboProfile.Text = settings.ActiveProfile;
@@ -410,7 +455,7 @@ namespace PingTool
             var validHosts = ProbeTarget.KeepValid(hostsOfThisLaunch.Distinct(TargetKey.Comparer), out int refused);
             foreach (var host in validHosts) AddHost(host);
             if (refused > 0)
-                WarnAtLaunch($"{refused} address(es) from the settings file or the command line are not valid targets and were left out.");
+                WarnAtLaunch(Loc.Count("ui.msg.refused", refused));
         }
 
         private void SaveSettings()
@@ -504,7 +549,7 @@ namespace PingTool
             }
 
             if (ProfileBook.Find(settings.Profiles, name) is not null
-                && MessageBox.Show($"Replace the profile \"{name}\"?", "PingTool", MessageBoxButtons.YesNo) != DialogResult.Yes)
+                && MessageBox.Show(Loc.T("ui.msg.replaceprofile", name), "PingTool", MessageBoxButtons.YesNo) != DialogResult.Yes)
                 return;
 
             var profile = new Profile
@@ -526,7 +571,7 @@ namespace PingTool
 
             if (!ProfileBook.Upsert(settings.Profiles, profile))
             {
-                MessageBox.Show($"At most {ProfileBook.MaxProfiles} profiles: delete one first.", "PingTool");
+                MessageBox.Show(Loc.T("ui.msg.maxprofiles", ProfileBook.MaxProfiles), "PingTool");
                 return;
             }
 
@@ -541,11 +586,11 @@ namespace PingTool
             var profile = ProfileBook.Find(settings.Profiles, cboProfile.Text);
             if (profile is null)
             {
-                MessageBox.Show("Pick the profile to delete in the list.", "PingTool");
+                MessageBox.Show(Loc.T("ui.msg.pickdelete"), "PingTool");
                 return;
             }
 
-            if (MessageBox.Show($"Delete the profile \"{profile.Name}\"?", "PingTool", MessageBoxButtons.YesNo) != DialogResult.Yes) return;
+            if (MessageBox.Show(Loc.T("ui.msg.deleteprofile", profile.Name), "PingTool", MessageBoxButtons.YesNo) != DialogResult.Yes) return;
 
             ProfileBook.Remove(settings.Profiles, profile.Name);
             settings.ActiveProfile = "";
@@ -559,13 +604,13 @@ namespace PingTool
         {
             if (settings.Profiles.Count == 0)
             {
-                MessageBox.Show("No profile saved yet: set up the targets and settings, then Save a profile first.", "PingTool");
+                MessageBox.Show(Loc.T("ui.msg.noprofile"), "PingTool");
                 return;
             }
 
             using var dialog = new SaveFileDialog
             {
-                Filter = "PingTool profiles (*.json)|*.json",
+                Filter = Loc.T("ui.dlg.profilesfilter"),
                 FileName = "PingTool-profiles.json",
                 DefaultExt = "json",
                 OverwritePrompt = true,
@@ -575,15 +620,15 @@ namespace PingTool
             try
             {
                 AtomicFile.WriteAllText(dialog.FileName, ProfileExchange.Export(settings.Profiles));
-                MessageBox.Show($"{settings.Profiles.Count} profile(s) written to {dialog.FileName}.", "PingTool");
+                MessageBox.Show(Loc.Count("ui.msg.profileswritten", settings.Profiles.Count, dialog.FileName), "PingTool");
             }
             catch (IOException ex)
             {
-                MessageBox.Show("Could not write the file: " + ex.Message, "PingTool");
+                MessageBox.Show(Loc.T("ui.msg.writefail", ex.Message), "PingTool");
             }
             catch (UnauthorizedAccessException ex)
             {
-                MessageBox.Show("Could not write the file: " + ex.Message, "PingTool");
+                MessageBox.Show(Loc.T("ui.msg.writefail", ex.Message), "PingTool");
             }
         }
 
@@ -593,7 +638,7 @@ namespace PingTool
         {
             if (isRunning) return;
 
-            using var dialog = new OpenFileDialog { Filter = "PingTool profiles (*.json)|*.json|All files (*.*)|*.*" };
+            using var dialog = new OpenFileDialog { Filter = Loc.T("ui.dlg.profilesfilter.all") };
             if (dialog.ShowDialog(this) != DialogResult.OK) return;
 
             string text;
@@ -601,7 +646,7 @@ namespace PingTool
             {
                 if (new FileInfo(dialog.FileName).Length > ProfileExchange.MaxFileBytes)
                 {
-                    MessageBox.Show("That file is too large to be a list of profiles.", "PingTool");
+                    MessageBox.Show(Loc.T("ui.msg.profilestoolarge"), "PingTool");
                     return;
                 }
 
@@ -609,12 +654,12 @@ namespace PingTool
             }
             catch (IOException ex)
             {
-                MessageBox.Show("Could not read the file: " + ex.Message, "PingTool");
+                MessageBox.Show(Loc.T("ui.msg.readfail", ex.Message), "PingTool");
                 return;
             }
             catch (UnauthorizedAccessException ex)
             {
-                MessageBox.Show("Could not read the file: " + ex.Message, "PingTool");
+                MessageBox.Show(Loc.T("ui.msg.readfail", ex.Message), "PingTool");
                 return;
             }
 
@@ -626,10 +671,10 @@ namespace PingTool
 
             var replaced = ProfileExchange.Replaced(settings.Profiles, imported.Profiles);
             string left = imported.ProfilesDropped + imported.TargetsDropped > 0
-                ? $"\n\nLeft out as unusable: {imported.ProfilesDropped} profile(s), {imported.TargetsDropped} target(s)."
+                ? Loc.T("ui.msg.leftout", Loc.Count("ui.n.profile", imported.ProfilesDropped), Loc.Count("ui.n.target", imported.TargetsDropped))
                 : "";
-            string question = $"Import {imported.Profiles.Count} profile(s)?"
-                + (replaced.Count > 0 ? "\n\nThese of yours will be REPLACED: " + string.Join(", ", replaced) + "." : "")
+            string question = Loc.Count("ui.msg.import", imported.Profiles.Count)
+                + (replaced.Count > 0 ? Loc.T("ui.msg.replaced", string.Join(", ", replaced)) : "")
                 + left;
             if (MessageBox.Show(question, "PingTool", MessageBoxButtons.YesNo) != DialogResult.Yes) return;
 
@@ -637,7 +682,7 @@ namespace PingTool
             RefreshProfileList();
             SaveSettings();
             if (notFitting > 0)
-                MessageBox.Show($"{notFitting} profile(s) did not fit: at most {ProfileBook.MaxProfiles} profiles, delete some first.", "PingTool");
+                MessageBox.Show(Loc.Count("ui.msg.notfit", notFitting, ProfileBook.MaxProfiles), "PingTool");
         }
 
         // Targets = default gateway, DNS servers and Internet references (see DiagnosticTargets); every other setting stays as it is.
@@ -675,10 +720,10 @@ namespace PingTool
             bool figures = log.Count > 0;
             if (!unsavedList && !figures) return true;
 
-            string lost = unsavedList && figures ? "the current target list (not saved as a profile) and the figures of this run"
-                : unsavedList ? "the current target list, which is not saved as a profile"
-                : "the figures of this run";
-            if (MessageBox.Show($"Applying this profile replaces {lost}. Continue?", "PingTool",
+            string lost = unsavedList && figures ? Loc.T("ui.msg.lost.both")
+                : unsavedList ? Loc.T("ui.msg.lost.list")
+                : Loc.T("ui.msg.lost.figures");
+            if (MessageBox.Show(Loc.T("ui.msg.applyloses", lost), "PingTool",
                     MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button2) == DialogResult.Yes) return true;
 
             cboProfile.Text = settings.ActiveProfile;
@@ -739,7 +784,7 @@ namespace PingTool
             SaveSettings();
 
             if (skipped > 0)
-                MessageBox.Show($"{skipped} address(es) of this profile are not valid and were skipped.", "PingTool");
+                MessageBox.Show(Loc.Count("ui.msg.profileskipped", skipped), "PingTool");
         }
 
         // False (with a message) when the text is not a valid target.
@@ -777,13 +822,13 @@ namespace PingTool
         {
             if (log.Count == 0)
             {
-                MessageBox.Show("Nothing to export yet: start pinging first.", "PingTool");
+                MessageBox.Show(Loc.T("ui.msg.noexport"), "PingTool");
                 return;
             }
 
             using var dialog = new SaveFileDialog
             {
-                Filter = "CSV file (*.csv)|*.csv",
+                Filter = Loc.T("ui.dlg.csvfilter"),
                 FileName = $"pingtool-{DateTime.Now:yyyyMMdd-HHmmss}.csv",
             };
             if (dialog.ShowDialog(this) != DialogResult.OK) return;
@@ -796,17 +841,16 @@ namespace PingTool
 
                 // The file is not the whole session once the log has let its oldest pings go: say so.
                 if (log.DroppedNote is string dropped)
-                    MessageBox.Show("Exported, but incomplete.\n\n" + dropped + "\nThe file starts at "
-                        + log.Entries.First().Time.ToLocalTime().ToString("G", CultureInfo.CurrentCulture)
-                        + $".\n\nTick \"{chkSaveLog.Text.Replace("&", "", StringComparison.Ordinal)}\" before Start to keep everything.", "PingTool");   // the label as it is on screen: without the & that marks the key
+                    MessageBox.Show(Loc.T("ui.msg.incomplete", dropped, log.Entries.First().Time.ToLocalTime().ToString("G", CultureInfo.CurrentCulture),
+                        chkSaveLog.Text.Replace("&", "", StringComparison.Ordinal)), "PingTool");   // the label as it is on screen: without the & that marks the key
             }
             catch (IOException ex)
             {
-                MessageBox.Show("Could not write the file: " + ex.Message, "PingTool");
+                MessageBox.Show(Loc.T("ui.msg.writefail", ex.Message), "PingTool");
             }
             catch (UnauthorizedAccessException ex)
             {
-                MessageBox.Show("Could not write the file: " + ex.Message, "PingTool");
+                MessageBox.Show(Loc.T("ui.msg.writefail", ex.Message), "PingTool");
             }
         }
 
@@ -839,7 +883,7 @@ namespace PingTool
                 isRunning = true;
                 hasRun = true;
                 alertGrouper.Reset();
-                btnStartStop.Text = "&Stop";   // the same key as Start: one button, one key
+                btnStartStop.Text = Loc.T("ui.stop");   // the same key as Start: one button, one key
                 SetSettingsEnabled(false);
                 ShowRunState();
 
@@ -925,10 +969,9 @@ namespace PingTool
                     IsValidTarget(typed);   // says why; nothing starts on a list that leaves out what was typed
                     return false;
                 case EnterOutcome.AddAndStart:
-                    string watched = string.Join(", ", sessions.Take(3).Select(s => s.DisplayName)) + (sessions.Count > 3 ? $" and {sessions.Count - 3} more" : "");
+                    string watched = string.Join(", ", sessions.Take(3).Select(s => s.DisplayName)) + (sessions.Count > 3 ? Loc.Count("ui.and.more", sessions.Count - 3) : "");
                     var answer = MessageBox.Show(this,
-                        $"The address box says \"{typed}\", which is not in the list that will be monitored ({watched}).\r\n\r\n"
-                        + "Yes: add it to the list and start\r\nNo: start the list as it is\r\nCancel: do not start",
+                        Loc.T("ui.start.ask", typed, watched),
                         "PingTool", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question);
                     if (answer == DialogResult.Cancel) return false;
                     if (answer == DialogResult.Yes) AddHost(typed);
@@ -1017,7 +1060,7 @@ namespace PingTool
             if (closing) return;
             isRunning = false;
             wifiTimer.Stop();
-            btnStartStop.Text = "&Start";
+            btnStartStop.Text = Loc.T("ui.start");
             SetSettingsEnabled(true);
             ShowRunState();
             RenderSelected();
@@ -1026,7 +1069,7 @@ namespace PingTool
         // Word and colour: the value on screen is only live while "Running".
         private void ShowRunState()
         {
-            lblState.Text = isRunning ? "Running" : hasRun ? "Stopped" : "";
+            lblState.Text = isRunning ? Loc.T("ui.state.running") : hasRun ? Loc.T("ui.state.stopped") : "";
             lblState.ForeColor = UiColors.Themed(isRunning ? Color.LimeGreen : Color.Silver, highContrast);
         }
 
@@ -1206,7 +1249,7 @@ namespace PingTool
         {
             if (sessions.All(s => s.Last is null))
             {
-                MessageBox.Show("Nothing to report yet: start pinging first.", "PingTool");
+                MessageBox.Show(Loc.T("ui.msg.noreport"), "PingTool");
                 return;
             }
 
@@ -1230,7 +1273,7 @@ namespace PingTool
             using var dialog = new SaveFileDialog
             {
                 // The archive holds the report, the measures (every ping) and the probe settings, all under the same pseudonyms.
-                Filter = "HTML report (*.html)|*.html|Archive: report, measures and probe settings (*.zip)|*.zip",
+                Filter = Loc.T("ui.dlg.reportfilter"),
                 FileName = $"pingtool-report-{DateTime.Now:yyyyMMdd-HHmmss}.html",
             };
             if (dialog.ShowDialog(this) != DialogResult.OK) return;
@@ -1250,11 +1293,11 @@ namespace PingTool
                 if (closing || IsDisposed) return;
 
                 ReportMaskingForm.ShowKey(this, masked.Key);
-                FileOpener.OfferToOpen(this, "The report", saved);   // where it is, and the offer to open it
+                FileOpener.OfferToOpen(this, "ui.saved.report", saved);   // where it is, and the offer to open it
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
-                if (!closing && !IsDisposed) MessageBox.Show("Could not write the file: " + ex.Message, "PingTool");
+                if (!closing && !IsDisposed) MessageBox.Show(Loc.T("ui.msg.writefail", ex.Message), "PingTool");
             }
             finally
             {
@@ -1362,7 +1405,7 @@ namespace PingTool
             if (selected is null) return;
             if (selected.Ip is not { } ip)
             {
-                MessageBox.Show("No address yet for " + selected.Address + ": start pinging first, so that it is resolved.", "PingTool");
+                MessageBox.Show(Loc.T("ui.msg.noaddress", selected.Address), "PingTool");
                 return;
             }
 
@@ -1377,7 +1420,7 @@ namespace PingTool
             var hosts = sessions.Select(s => s.Address).Where(a => snapshot.Any(x => x.Host == a)).ToList();
             if (hosts.Count == 0)
             {
-                MessageBox.Show("Nothing to show yet: start pinging first.", "PingTool");
+                MessageBox.Show(Loc.T("ui.msg.noshow"), "PingTool");
                 return;
             }
 
@@ -1393,7 +1436,7 @@ namespace PingTool
         {
             using var dialog = new OpenFileDialog
             {
-                Filter = "PingTool log (*.csv)|*.csv|All files (*.*)|*.*",
+                Filter = Loc.T("ui.dlg.logfilter"),
                 Multiselect = true,
                 InitialDirectory = Directory.Exists(settings.LogFolder.Length > 0 ? settings.LogFolder : AutoLog.DefaultFolder)
                     ? (settings.LogFolder.Length > 0 ? settings.LogFolder : AutoLog.DefaultFolder) : "",
@@ -1417,7 +1460,7 @@ namespace PingTool
                 }
 
                 using var viewer = new LogViewerForm(replay, entries,
-                    paths.Length == 1 ? Path.GetFileName(paths[0]) : paths.Length.ToString(CultureInfo.CurrentCulture) + " log files");
+                    paths.Length == 1 ? Path.GetFileName(paths[0]) : Loc.T("ui.logfiles", paths.Length));
                 viewer.ShowDialog(this);
             }
             finally
@@ -1440,18 +1483,18 @@ namespace PingTool
                 string text;
                 try
                 {
-                    if (new FileInfo(path).Length > MaxLogFileBytes) return (null, null, name + " is too large to be a PingTool log.");
+                    if (new FileInfo(path).Length > MaxLogFileBytes) return (null, null, Loc.T("ui.log.toolarge", name));
                     text = File.ReadAllText(path);
                 }
                 catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
                 {
-                    return (null, null, "Could not read " + name + ": " + ex.Message);
+                    return (null, null, Loc.T("ui.log.readfail", name, ex.Message));
                 }
 
                 if (!PingLogReader.TryParse(text, out var part, out var partNotes, out string error)) return (null, null, name + ": " + error);
                 all.AddRange(part);
                 allNotes.AddRange(partNotes);
-                if (all.Count > PingLogReader.MaxEntries) return (null, null, "These files hold too many pings to open together.");
+                if (all.Count > PingLogReader.MaxEntries) return (null, null, Loc.T("ui.log.toomany"));
             }
 
             // A note written to the files of several targets (it applies to all of them) is one note.
@@ -1460,7 +1503,7 @@ namespace PingTool
         }
 
         private void UpdateIncidentButton() =>
-            btnIncidents.Text = "Incidents (" + incidents.Incidents.Count.ToString(CultureInfo.CurrentCulture) + ")";
+            btnIncidents.Text = Loc.T("ui.btn.incidents", incidents.Incidents.Count.ToString(CultureInfo.CurrentCulture));
 
         private void btnIncidents_Click(object? sender, EventArgs e)
         {
@@ -1679,7 +1722,7 @@ namespace PingTool
         private void WebhookFailed(string label, string reason)
         {
             if (closing || !webhookWarned.Add(label)) return;
-            ShowBalloon($"Alert not delivered to the webhook {label}: {reason}", ToolTipIcon.Warning);
+            ShowBalloon(Loc.T("ui.webhook.fail", label, reason), ToolTipIcon.Warning);
         }
 
         // The icon exists to carry the balloon. Once the balloon has had its time it goes away again,
@@ -1704,9 +1747,9 @@ namespace PingTool
         {
             string ms(double? v) => v is null ? "-" : v.Value.ToString("0.#", CultureInfo.CurrentCulture);
             var stats = selected?.Stats ?? new SessionStats();
+            string lossText = stats.LossPercent is null ? "-" : Loc.T("ui.stats.loss", ms(stats.LossPercent), stats.Lost, stats.Sent);
             lblStats.Text =
-                $"Min {ms(stats.Min)} / Avg {ms(stats.Avg)} / Max {ms(stats.Max)} ms\n" +
-                $"Jitter {ms(stats.Jitter)} ms | Loss {(stats.LossPercent is null ? "-" : ms(stats.LossPercent) + $"% ({stats.Lost}/{stats.Sent})")}\n" +
+                Loc.T("ui.stats", ms(stats.Min), ms(stats.Avg), ms(stats.Max), ms(stats.Jitter), lossText) + "\n" +
                 (selected?.IpText ?? "-") + "\n" +
                 RecentStats.From(selected?.History ?? new Queue<long>()).Describe();
         }
@@ -1747,7 +1790,7 @@ namespace PingTool
         {
             DoubleBuffered = true;
             BackColor = palette.Back;
-            AccessibleName = "Latency graph";
+            AccessibleName = Loc.T("ui.an.graph");
             AccessibleRole = AccessibleRole.Chart;
         }
 

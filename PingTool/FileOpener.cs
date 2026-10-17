@@ -7,12 +7,14 @@ namespace PingTool
     {
         // What the box says after a file was written: where it is, and the offer to open it - nothing else tells the user the
         // file exists (the report is for a provider or a colleague: it is usually looked at at once).
-        public static string SavedMessage(string what, string path) => $"{what} saved:\n{path}\n\nOpen it now?";
+        // savedKey = the key of the sentence for what was written ("ui.saved.report", "ui.saved.comparison"): a sentence of its own for each,
+        // since the agreement of the words with the thing differs from one language to another.
+        public static string SavedMessage(string savedKey, string path) => Loc.T(savedKey, path);
 
         // Writing succeeded: say where, offer to open with the program Windows associates with the file.
-        public static void OfferToOpen(IWin32Window owner, string what, string path)
+        public static void OfferToOpen(IWin32Window owner, string savedKey, string path)
         {
-            if (MessageBox.Show(owner, SavedMessage(what, path), "PingTool", MessageBoxButtons.YesNo, MessageBoxIcon.Information) != DialogResult.Yes) return;
+            if (MessageBox.Show(owner, SavedMessage(savedKey, path), "PingTool", MessageBoxButtons.YesNo, MessageBoxIcon.Information) != DialogResult.Yes) return;
 
             try
             {
@@ -20,7 +22,7 @@ namespace PingTool
             }
             catch (Exception ex) when (OpenFailure.Is(ex))
             {
-                MessageBox.Show(owner, "Could not open the file: " + ex.Message + "\n\nIt is saved at " + path, "PingTool", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show(owner, Loc.T("ui.openfail", ex.Message, path), "PingTool", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
         }
     }

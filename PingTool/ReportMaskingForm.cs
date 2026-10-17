@@ -16,8 +16,8 @@ namespace PingTool
             AutoScaleDimensions = new SizeF(96F, 96F);
             AutoScaleMode = AutoScaleMode.Dpi;
 
-            Text = "PingTool - Save the report";
-            ClientSize = new Size(420, 252);
+            Text = Loc.T("ui.mask.title");
+            ClientSize = new Size(420, 268);
             StartPosition = FormStartPosition.CenterParent;
             FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox = false;
@@ -27,24 +27,23 @@ namespace PingTool
 
             Controls.Add(new Label
             {
-                Text = "Hide from the reader of this report (a provider, a forum, a colleague). The same pseudonym stands for the same target or address "
-                    + "everywhere, so incidents and routes stay linked. Nothing ticked = the full report.",
-                ForeColor = Color.White, AutoSize = false, Location = new Point(12, 10), Size = new Size(396, 62), AccessibleName = "What hiding does",
+                Text = Loc.T("ui.mask.intro"),
+                ForeColor = Color.White, AutoSize = false, Location = new Point(12, 10), Size = new Size(396, 62), AccessibleName = Loc.T("ui.mask.intro.an"),
             });
 
-            targets = Box("Target &names and addresses (target-1, target-2...)", 82);
-            ips = Box("&IP addresses, in the routes and the network changes too", 110);
-            cards = Box("Names of the network &cards, Wi-Fi networks, access points", 138);
-            computer = Box("The &computer name", 166);
+            targets = Box(Loc.T("ui.mask.targets"), 82);
+            ips = Box(Loc.T("ui.mask.ips"), 110);
+            cards = Box(Loc.T("ui.mask.cards"), 138);
+            computer = Box(Loc.T("ui.mask.computer"), 166);
 
             Controls.Add(new Label
             {
-                Text = "After saving, the pseudonyms and what they stand for are shown to you only: they are not in the file.",
-                ForeColor = Color.Silver, AutoSize = false, Location = new Point(12, 194), Size = new Size(396, 18), AccessibleName = "Where the key is",
+                Text = Loc.T("ui.mask.key"),
+                ForeColor = Color.Silver, AutoSize = false, Location = new Point(12, 194), Size = new Size(396, 34), AccessibleName = Loc.T("ui.mask.key.an"),
             });
 
-            var ok = new Button { Text = "Save...", DialogResult = DialogResult.OK, Location = new Point(230, 214), Size = new Size(84, 28) };
-            var cancel = new Button { Text = "Cancel", DialogResult = DialogResult.Cancel, Location = new Point(324, 214), Size = new Size(84, 28) };
+            var ok = new Button { Text = Loc.T("ui.mask.save"), DialogResult = DialogResult.OK, Location = new Point(230, 230), Size = new Size(84, 28) };
+            var cancel = new Button { Text = Loc.T("ui.cancel"), DialogResult = DialogResult.Cancel, Location = new Point(324, 230), Size = new Size(84, 28) };
             AcceptButton = ok;
             CancelButton = cancel;
             Controls.Add(ok);
@@ -52,7 +51,7 @@ namespace PingTool
             ok.Click += (_, _) => Result = Current();
 
             // What the reader will get, before anything is saved: the report with the boxes as they are now, in the browser.
-            var preview = new Button { Text = "&Preview", Location = new Point(12, 214), Size = new Size(96, 28), AccessibleName = "Preview the report with these choices" };
+            var preview = new Button { Text = Loc.T("ui.mask.preview"), Location = new Point(12, 230), Size = new Size(110, 28), AccessibleName = Loc.T("ui.mask.preview.an") };
             preview.Click += (_, _) => ShowPreview();
             Controls.Add(preview);
 
@@ -80,7 +79,7 @@ namespace PingTool
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception or InvalidOperationException)
             {
-                MessageBox.Show(this, "Could not show the preview: " + ex.Message, "PingTool");
+                MessageBox.Show(this, Loc.T("ui.mask.previewfail", ex.Message), "PingTool");
             }
         }
 
@@ -103,7 +102,7 @@ namespace PingTool
         public static void ShowKey(IWin32Window owner, IReadOnlyList<string> key)
         {
             if (key.Count == 0) return;
-            MessageBox.Show(owner, "What the pseudonyms of the report stand for (keep this: it is not in the file):\n\n" + string.Join("\n", key), "PingTool");
+            MessageBox.Show(owner, Loc.T("ui.mask.keybox", string.Join("\n", key)), "PingTool");
         }
     }
 }

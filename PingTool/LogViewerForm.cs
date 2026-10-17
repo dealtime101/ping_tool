@@ -18,7 +18,7 @@ namespace PingTool
             AutoScaleDimensions = new SizeF(96F, 96F);
             AutoScaleMode = AutoScaleMode.Dpi;
 
-            Text = "PingTool - Log";
+            Text = Loc.T("ui.lv.title");
             ClientSize = new Size(560, 250);
             StartPosition = FormStartPosition.CenterParent;
             FormBorderStyle = FormBorderStyle.FixedDialog;
@@ -33,12 +33,10 @@ namespace PingTool
             string text = string.Join("\n", new[]
             {
                 sources,
-                $"{When(replay.From)} to {When(replay.To)} ({IncidentLog.FormatDuration(replay.To - replay.From)})",
-                $"{entries.Count.ToString("N0", c)} pings on {hosts.Count.ToString(c)} target(s): {string.Join(", ", hosts.Take(4))}{(hosts.Count > 4 ? ", ..." : "")}",
+                Loc.T("ui.lv.span", When(replay.From), When(replay.To), IncidentLog.FormatDuration(replay.To - replay.From)),
+                Loc.T("ui.lv.counts", entries.Count.ToString("N0", c), Loc.Count("ui.n.target", hosts.Count), string.Join(", ", hosts.Take(4)), hosts.Count > 4 ? ", ..." : ""),
                 replay.Incidents.Summary(replay.To),
-                "Incidents are detected again from the pings with the default limits (slow above "
-                    + HostMonitor.DefaultLatencyMs.ToString(c) + " ms, loss at least " + HostMonitor.DefaultLossPercent.ToString(c) + " %, down after "
-                    + HostMonitor.DefaultDownAfter.ToString(c) + " failures): the log does not record the ones used at the time.",
+                Loc.T("ui.lv.limits", HostMonitor.DefaultLatencyMs.ToString(c), HostMonitor.DefaultLossPercent.ToString(c), HostMonitor.DefaultDownAfter.ToString(c)),
             });
             // A read-only box that scrolls, not a label of a fixed height: the sources can be several long paths, and the sentence on the
             // limits comes last, so a label cut the end off with no way to read it. (A TextBox breaks lines on CR LF only.)
@@ -53,14 +51,14 @@ namespace PingTool
                 ForeColor = Color.White,
                 Location = new Point(12, 12),
                 Size = new Size(536, 150),
-                AccessibleName = "The log that was opened",
+                AccessibleName = Loc.T("ui.lv.an"),
             };
 
-            var timeline = new Button { Text = "Session timeline...", Location = new Point(12, 176), Size = new Size(170, 28) };
-            var incidents = new Button { Text = "Incidents...", Location = new Point(190, 176), Size = new Size(170, 28) };
-            var report = new Button { Text = "Save report (HTML)...", Location = new Point(368, 176), Size = new Size(180, 28) };
-            var compare = new Button { Text = "Compare with another log...", Location = new Point(12, 212), Size = new Size(220, 28) };
-            var close = new Button { Text = "Close", DialogResult = DialogResult.Cancel, Location = new Point(458, 212), Size = new Size(90, 28) };
+            var timeline = new Button { Text = Loc.T("ui.lv.timeline"), Location = new Point(12, 176), Size = new Size(170, 28) };
+            var incidents = new Button { Text = Loc.T("ui.lv.incidents"), Location = new Point(190, 176), Size = new Size(170, 28) };
+            var report = new Button { Text = Loc.T("ui.lv.report"), Location = new Point(368, 176), Size = new Size(180, 28) };
+            var compare = new Button { Text = Loc.T("ui.lv.compare"), Location = new Point(12, 212), Size = new Size(240, 28) };
+            var close = new Button { Text = Loc.T("ui.lv.close"), DialogResult = DialogResult.Cancel, Location = new Point(458, 212), Size = new Size(90, 28) };
             CancelButton = close;
 
             compare.Click += async (_, _) =>
@@ -91,7 +89,7 @@ namespace PingTool
         // provider). The page opens in the browser like the report; see PeriodComparison for what it says and what it warns about.
         private async Task CompareWith(List<LogEntry> entries, string sources)
         {
-            using var open = new OpenFileDialog { Filter = "PingTool log (*.csv)|*.csv|All files (*.*)|*.*", Multiselect = true, Title = "The other log, to compare with " + sources };
+            using var open = new OpenFileDialog { Filter = Loc.T("ui.dlg.logfilter"), Multiselect = true, Title = Loc.T("ui.lv.othertitle", sources) };
             if (open.ShowDialog(this) != DialogResult.OK) return;
 
             string[] paths = open.FileNames;
@@ -102,27 +100,26 @@ namespace PingTool
                 // This window can be closed (and disposed by whoever opened it) while the other log is read: nothing is shown over it then.
                 if (IsDisposed) return;
 
-                if (other is null || otherEntries is null) { ShowError(error ?? "The other log could not be read."); return; }
+                if (other is null || otherEntries is null) { ShowError(error ?? Loc.T("ui.lv.otherfail")); return; }
 
-                string otherName = paths.Length == 1 ? Path.GetFileName(paths[0]) : paths.Length.ToString(CultureInfo.CurrentCulture) + " log files";
-                var answer = MessageBox.Show(this,
-                    $"Which one is the period BEFORE the change?\r\n\r\nYes: the log you opened ({sources}) is before, {otherName} is after.\r\nNo: {otherName} is before, the log you opened is after.",
-                    "PingTool - compare two periods", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question);
+                string otherName = paths.Length == 1 ? Path.GetFileName(paths[0]) : Loc.T("ui.logfiles", paths.Length);
+                var answer = MessageBox.Show(this, Loc.T("ui.lv.which", sources, otherName),
+                    Loc.T("ui.lv.comparetitle"), MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question);
                 if (answer == DialogResult.Cancel) return;
 
                 var mine = PeriodComparison.Measure(sources, replay, entries);
                 var theirs = PeriodComparison.Measure(otherName, other, otherEntries);
                 string html = answer == DialogResult.Yes ? PeriodComparison.BuildHtml(mine, theirs, DateTimeOffset.Now) : PeriodComparison.BuildHtml(theirs, mine, DateTimeOffset.Now);
 
-                using var save = new SaveFileDialog { Filter = "HTML page (*.html)|*.html", FileName = $"pingtool-comparison-{DateTime.Now:yyyyMMdd-HHmmss}.html" };
+                using var save = new SaveFileDialog { Filter = Loc.T("ui.dlg.htmlfilter"), FileName = $"pingtool-comparison-{DateTime.Now:yyyyMMdd-HHmmss}.html" };
                 if (save.ShowDialog(this) != DialogResult.OK) return;
 
                 AtomicFile.WriteAllText(save.FileName, html);
-                FileOpener.OfferToOpen(this, "The comparison", save.FileName);
+                FileOpener.OfferToOpen(this, "ui.saved.comparison", save.FileName);
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
-                ShowError("Could not write the file: " + ex.Message);
+                ShowError(Loc.T("ui.msg.writefail", ex.Message));
             }
             finally
             {
@@ -150,7 +147,7 @@ namespace PingTool
 
             using var dialog = new SaveFileDialog
             {
-                Filter = "HTML report (*.html)|*.html|Archive: report, measures and probe settings (*.zip)|*.zip",
+                Filter = Loc.T("ui.dlg.reportfilter"),
                 FileName = $"pingtool-report-{replay.From.ToLocalTime():yyyyMMdd-HHmmss}.html",
             };
             if (dialog.ShowDialog(this) != DialogResult.OK) return;
@@ -159,15 +156,15 @@ namespace PingTool
             {
                 string saved = ReportArchive.Save(dialog.FileName, dialog.FilterIndex == 2, masked.Data, ReportAnonymizer.MaskEntries(masked, entries));
                 ReportMaskingForm.ShowKey(this, masked.Key);
-                FileOpener.OfferToOpen(this, "The report", saved);   // where it is, and the offer to open it
+                FileOpener.OfferToOpen(this, "ui.saved.report", saved);   // where it is, and the offer to open it
             }
             catch (IOException ex)
             {
-                ShowError("Could not write the file: " + ex.Message);
+                ShowError(Loc.T("ui.msg.writefail", ex.Message));
             }
             catch (UnauthorizedAccessException ex)
             {
-                ShowError("Could not write the file: " + ex.Message);
+                ShowError(Loc.T("ui.msg.writefail", ex.Message));
             }
         }
     }

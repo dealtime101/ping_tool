@@ -286,12 +286,15 @@
             //
             // lblDownAfter
             //
-            lblDownAfter.AutoSize = true;
+            // Two lines, so that the unit fits in the narrow column: "Down after" over "(pings)" (the label of the next column is at 125).
+            lblDownAfter.AutoSize = false;
             lblDownAfter.ForeColor = Color.White;
-            lblDownAfter.Location = new Point(225, 417);
+            lblDownAfter.Location = new Point(225, 405);
+            lblDownAfter.Size = new Size(75, 30);
+            lblDownAfter.TextAlign = ContentAlignment.BottomLeft;
             lblDownAfter.Name = "lblDownAfter";
             lblDownAfter.TabIndex = 18;
-            lblDownAfter.Text = "Dow&n after";
+            lblDownAfter.Text = "Dow&n after (pings)";
             //
             // numDownAfter
             //
@@ -493,16 +496,16 @@
             //
             cboProfile.Location = new Point(300, 20);
             cboProfile.Name = "cboProfile";
-            cboProfile.Size = new Size(190, 23);
+            cboProfile.Size = new Size(126, 23);
             cboProfile.AccessibleName = "Monitoring profile";
             cboProfile.TabIndex = 25;
             cboProfile.SelectionChangeCommitted += cboProfile_SelectionChangeCommitted;
             //
             // btnSaveProfile
             //
-            btnSaveProfile.Location = new Point(495, 19);
+            btnSaveProfile.Location = new Point(430, 19);
             btnSaveProfile.Name = "btnSaveProfile";
-            btnSaveProfile.Size = new Size(50, 25);
+            btnSaveProfile.Size = new Size(84, 25);
             btnSaveProfile.TabIndex = 26;
             btnSaveProfile.Text = "Save";
             btnSaveProfile.UseVisualStyleBackColor = true;
@@ -510,9 +513,9 @@
             //
             // btnDeleteProfile
             //
-            btnDeleteProfile.Location = new Point(550, 19);
+            btnDeleteProfile.Location = new Point(519, 19);
             btnDeleteProfile.Name = "btnDeleteProfile";
-            btnDeleteProfile.Size = new Size(50, 25);
+            btnDeleteProfile.Size = new Size(81, 25);
             btnDeleteProfile.TabIndex = 27;
             btnDeleteProfile.Text = "Delete";
             btnDeleteProfile.UseVisualStyleBackColor = true;

@@ -5,7 +5,7 @@ namespace PingTool
     // "Stopped: last value, no longer live".
     internal static class ResultHint
     {
-        public const string Stopped = "Stopped: last value, no longer live";
+        public static string Stopped => Loc.T("ui.stopped");
 
         // ping = the last result shown (null = nothing measured yet in this run); stopped = a run happened and is over.
         public static string For(long? ping, PingFailure? failure, bool stopped) =>

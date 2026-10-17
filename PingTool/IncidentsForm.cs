@@ -24,7 +24,7 @@ namespace PingTool
             AutoScaleDimensions = new SizeF(96F, 96F);
             AutoScaleMode = AutoScaleMode.Dpi;
 
-            Text = "PingTool - Incidents";
+            Text = Loc.T("ui.in.title");
             ClientSize = new Size(900, 480);
             MinimumSize = SizeFromClientSize(new Size(640, 360));
             StartPosition = FormStartPosition.CenterParent;
@@ -45,18 +45,18 @@ namespace PingTool
                 HideSelection = false,   // the chosen incident stays marked while the route below has the focus (it is what the route belongs to)
                 GridLines = true,
                 Dock = DockStyle.Fill,
-                AccessibleName = "Incidents",
-                AccessibleDescription = "The outages and slowdowns of this run, newest first. Select one to read the route captured when it began. To sort, click a column title or press Control and the number of the column, 1 to 8; the same again reverses the order.",
+                AccessibleName = Loc.T("ui.in.an"),
+                AccessibleDescription = Loc.T("ui.in.desc"),
             };
             // Column widths are not scaled by the form: written for 96 DPI too, and scaled here.
             int W(int at100) => DpiScale.Scale(new Size(at100, 0), DeviceDpi).Width;
-            list.Columns.Add("Host", W(120));
-            list.Columns.Add("Type", W(70));
-            list.Columns.Add("Start", W(130));
-            list.Columns.Add("End", W(130));
-            list.Columns.Add("Duration", W(80));
-            list.Columns.Add("Failed", W(58));
-            var causeColumn = list.Columns.Add("Cause / detail", W(100));
+            list.Columns.Add(Loc.T("ui.in.col.host"), W(120));
+            list.Columns.Add(Loc.T("ui.in.col.type"), W(70));
+            list.Columns.Add(Loc.T("ui.in.col.start"), W(130));
+            list.Columns.Add(Loc.T("ui.in.col.end"), W(130));
+            list.Columns.Add(Loc.T("ui.in.col.duration"), W(80));
+            list.Columns.Add(Loc.T("ui.in.col.failed"), W(58));
+            var causeColumn = list.Columns.Add(Loc.T("ui.in.col.cause"), W(100));
             list.Columns.Add("#", W(36));
 
             // "Cause / detail" is the most informative column: it takes everything the others leave, now and whenever the list
@@ -134,9 +134,9 @@ namespace PingTool
                 rows.Add(new ListViewItem(new[]
                 {
                     i.Host,
-                    outage ? "Outage" : "Slowdown",
+                    Loc.T(outage ? "ui.in.outage" : "ui.in.slowdown"),
                     When(i.Start),
-                    i.End is null ? "ongoing" : When(i.End.Value),
+                    i.End is null ? Loc.T("ui.in.ongoing") : When(i.End.Value),
                     IncidentLog.FormatDuration(i.Duration(now)),
                     outage ? i.FailedPings.ToString(culture) : "-",
                     detail,
@@ -158,8 +158,8 @@ namespace PingTool
                 ScrollBars = ScrollBars.Vertical,
                 Font = mono,
                 Dock = DockStyle.Fill,
-                AccessibleName = "Route when the selected outage began",
-                AccessibleDescription = "The path to the host, hop by hop, captured when the selected outage began, and what changed from the healthy path.",
+                AccessibleName = Loc.T("ui.in.route.an"),
+                AccessibleDescription = Loc.T("ui.in.route.desc"),
             };
             details.Disposed += (_, _) => mono.Dispose();
             void ShowDetails() => details.Text = list.Items.Count == 0 ? IncidentLog.NoIncidentDetail
@@ -184,14 +184,14 @@ namespace PingTool
 
             var lblNote = new Label
             {
-                Text = IncidentLog.DatingNote + " # = how many times this host had that kind of incident.",
+                Text = Loc.T("ui.in.footer", HostMonitor.WindowSize),   // the dating rule of the report (IncidentLog.DatingNote), with the legend of the # column
                 AutoSize = false,
                 Location = new Point(10, 414),
                 Size = new Size(780, 34),
                 Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
             };
 
-            var close = new Button { Text = "Close", DialogResult = DialogResult.Cancel, Location = new Point(800, 418), Size = new Size(90, 28), Anchor = AnchorStyles.Bottom | AnchorStyles.Right };
+            var close = new Button { Text = Loc.T("ui.close"), DialogResult = DialogResult.Cancel, Location = new Point(800, 418), Size = new Size(90, 28), Anchor = AnchorStyles.Bottom | AnchorStyles.Right };
             CancelButton = close;
 
             // The list and the route text share the height: more incidents or a longer route, drag the bar (or enlarge the window).
@@ -239,10 +239,10 @@ namespace PingTool
             string head = IncidentLog.DetailLine(i, CultureInfo.CurrentCulture) + "\r\n\r\n";
 
             if (i.Kind == IncidentKind.Slowdown)
-                return head + "A slowdown has no route capture: the host still answers, only slowly.";
+                return head + Loc.T("ui.in.noroute.slowdown");
 
             return head + (i.Path is null
-                ? "No route was captured for this outage: the host's address was not known yet, the run was stopped first, or the trace is still running."
+                ? Loc.T("ui.in.noroute.outage")
                 // A multi-line TextBox only breaks lines on CR LF: the route text uses a bare LF.
                 : i.PathText().Replace("\r\n", "\n", StringComparison.Ordinal).Replace("\n", "\r\n", StringComparison.Ordinal));
         }

@@ -15,7 +15,8 @@ namespace PingTool
         internal static string Language =>
             (ForcedLanguage ?? CultureInfo.CurrentUICulture.TwoLetterISOLanguageName) == "fr" ? "fr" : "en";
 
-        internal static readonly IReadOnlyDictionary<string, (string En, string Fr)> Table = new Dictionary<string, (string, string)>
+        // The texts of the measures (here) and of the windows (LocUi.cs) are one table.
+        internal static readonly IReadOnlyDictionary<string, (string En, string Fr)> Table = Merge(new Dictionary<string, (string, string)>
         {
             ["timeline.empty"] = ("No data yet: start pinging this host.", "Aucune donnée pour l'instant : lancez les pings sur cet hôte."),
             // {3} and {4} are phrases made with the count.* keys, which agree with the number (1 ping, 2 pings; French: 0 or 1 perdu, 2 perdus).
@@ -109,7 +110,16 @@ namespace PingTool
             ["alert.degraded.mos.noavg"] = ("{0} is degraded: voice quality (MOS) {1:0.0} is under {2:0.0} ({3:0.#}% loss over the last {4} pings)", "{0} est dégradé : la qualité vocale (MOS) de {1:0.0} est sous {2:0.0} ({3:0.#} % de perte sur les {4} derniers pings)"),
             ["alert.degraded.mos"] = ("{0} is degraded: voice quality (MOS) {1:0.0} is under {2:0.0} ({3:0.#}% loss, average {4} ms over the last {5} pings)", "{0} est dégradé : la qualité vocale (MOS) de {1:0.0} est sous {2:0.0} ({3:0.#} % de perte, moyenne {4} ms sur les {5} derniers pings)"),
             ["alert.recovered"] = ("{0} is back to normal", "{0} est revenu à la normale"),
-        };
+        }, LocUi.Entries);
+
+        // A key in both would be a mistake that a test would not see: the second silently replacing the first. It throws, at the first use.
+        private static Dictionary<string, (string En, string Fr)> Merge(Dictionary<string, (string, string)> first, IReadOnlyDictionary<string, (string En, string Fr)> second)
+        {
+            var all = new Dictionary<string, (string En, string Fr)>(first.Count + second.Count);
+            foreach (var (key, pair) in first) all.Add(key, pair);
+            foreach (var (key, pair) in second) all.Add(key, pair);
+            return all;
+        }
 
         // "1 ping" / "5 pings", "0 perdu" / "1 perdu" / "2 perdus": the count with the word that agrees with it (the rule of each language
         // lives in the table: English has one form for "lost", French splits at 2).
@@ -118,6 +128,11 @@ namespace PingTool
         // "Last 60" / "60 derniers pings": the window of the recent figures, the count first in French and the adjective in agreement with it.
         internal static string Window(long n) => T(n >= 2 ? "stats.window.many" : "stats.window.one", n.ToString(CultureInfo.CurrentCulture));
         internal static string Lost(long n) => T(n >= 2 ? "count.lost.many" : "count.lost.one", n.ToString(CultureInfo.CurrentCulture));
+
+        // A text with a count: the key + ".one" or + ".many", by the rule of the language (English: one for 1; French: one for 0 and 1), the count
+        // as {0} and the other arguments after it. A written "(s)" says nothing in a language where more than the ending changes.
+        internal static string Count(string key, long n, params object[] args) =>
+            T(key + ((Language == "fr" ? n >= 2 : n != 1) ? ".many" : ".one"), new object[] { n.ToString(CultureInfo.CurrentCulture) }.Concat(args).ToArray());
 
         // True when the text has a place to fill, "{0}" or "{3:0.#}": a brace that opens a number. "{{" and "}}" are the braces themselves.
         internal static bool HasPlace(string text) =>

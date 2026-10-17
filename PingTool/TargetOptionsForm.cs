@@ -16,8 +16,8 @@ namespace PingTool
             AutoScaleDimensions = new SizeF(96F, 96F);
             AutoScaleMode = AutoScaleMode.Dpi;
 
-            Text = "PingTool - Name and limits";
-            ClientSize = new Size(380, 314);
+            Text = Loc.T("ui.to.title");
+            ClientSize = new Size(380, 330);
             StartPosition = FormStartPosition.CenterParent;
             FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox = false;
@@ -29,46 +29,47 @@ namespace PingTool
             // both), instead of being cut off flat: the person must be able to tell which target this is.
             // UseMnemonic = false: an address is shown as it is. With the default, the "&" of a URL (?a=1&b=2) is taken for the mark of a keyboard
             // shortcut and dropped, so the target does not read as the one the person chose.
-            Controls.Add(new Label { Text = address, UseMnemonic = false, ForeColor = Color.Silver, AutoSize = false, AutoEllipsis = true, Location = new Point(12, 10), Size = new Size(356, 18), AccessibleName = "Address of the target: " + address });
+            Controls.Add(new Label { Text = address, UseMnemonic = false, ForeColor = Color.Silver, AutoSize = false, AutoEllipsis = true, Location = new Point(12, 10), Size = new Size(356, 18), AccessibleName = Loc.T("ui.to.address.an", address) });
             // The & makes the next letter an access key. Two kinds, and they do not do the same: Alt+N (name) and Alt+V (service) belong to
             // a LABEL, which takes the focus to the box that follows it; Alt+S, Alt+L and Alt+D (the three limits) belong to the CHECK BOX
             // "own value" of the row (see Row), so the key ticks or unticks it, which enables the number beside it (the own value is kept in
-            // memory while unticked, so pressing it twice loses nothing). Five different letters, so that no key means two things.
-            Controls.Add(new Label { Text = "&Name (shown in the list, the alerts and the report)", ForeColor = Color.White, AutoSize = true, Location = new Point(12, 36) });
+            // memory while unticked, so pressing it twice loses nothing). Five different letters, so that no key means two things (in
+            // each language: the French ones are N, V, L, P and R).
+            Controls.Add(new Label { Text = Loc.T("ui.to.name"), ForeColor = Color.White, AutoSize = true, Location = new Point(12, 36) });
             label = new TextBox
             {
                 Location = new Point(12, 56), Size = new Size(356, 23), MaxLength = TargetOptions.MaxLabelLength,
-                Text = current?.Label ?? "", AccessibleName = "Name of the target",
+                Text = current?.Label ?? "", AccessibleName = Loc.T("ui.to.name.an"),
             };
             Controls.Add(label);
 
             // Targets with the same service are diagnosed together, whatever their host names (see ServiceDiagnosis): left empty, the
             // targets of one host name are the service.
-            Controls.Add(new Label { Text = "Ser&vice (targets with the same one are diagnosed together)", ForeColor = Color.White, AutoSize = true, Location = new Point(12, 86) });
+            Controls.Add(new Label { Text = Loc.T("ui.to.service"), ForeColor = Color.White, AutoSize = true, Location = new Point(12, 86) });
             service = new TextBox
             {
                 Location = new Point(12, 106), Size = new Size(356, 23), MaxLength = TargetOptions.MaxLabelLength,
-                Text = current?.Service ?? "", AccessibleName = "Service this target belongs to",
+                Text = current?.Service ?? "", AccessibleName = Loc.T("ui.to.service.an"),
             };
             Controls.Add(service);
 
             limits = new[]
             {
-                Row(0, "&Slow above (ms)", Limits.DegradedLatencyMs, current?.SlowMs, globalSlow),
-                Row(1, "&Loss at least (%)", Limits.DegradedLossPercent, current?.LossPercent, globalLoss),
-                Row(2, "&Down after (failures)", Limits.DownAfter, current?.DownAfter, globalDown),
+                Row(0, Loc.T("ui.to.slow"), Limits.DegradedLatencyMs, current?.SlowMs, globalSlow),
+                Row(1, Loc.T("ui.to.loss"), Limits.DegradedLossPercent, current?.LossPercent, globalLoss),
+                Row(2, Loc.T("ui.to.down"), Limits.DownAfter, current?.DownAfter, globalDown),
             };
 
             // Said where the limits are, not only in the code: a limit changed during a run shows no change, and looks as if it was not saved.
             Controls.Add(new Label
             {
-                Text = "The name and the service change at once. The limits apply from the next Start: the run in progress keeps the ones it began with.",
-                ForeColor = Color.Silver, AutoSize = false, Location = new Point(12, 234), Size = new Size(356, 32),
-                AccessibleName = "When the limits apply",
+                Text = Loc.T("ui.to.help"),
+                ForeColor = Color.Silver, AutoSize = false, Location = new Point(12, 234), Size = new Size(356, 48),
+                AccessibleName = Loc.T("ui.to.help.an"),
             });
 
-            var ok = new Button { Text = "OK", DialogResult = DialogResult.OK, Location = new Point(190, 274), Size = new Size(84, 28) };
-            var cancel = new Button { Text = "Cancel", DialogResult = DialogResult.Cancel, Location = new Point(284, 274), Size = new Size(84, 28) };
+            var ok = new Button { Text = Loc.T("ui.ok"), DialogResult = DialogResult.OK, Location = new Point(190, 290), Size = new Size(84, 28) };
+            var cancel = new Button { Text = Loc.T("ui.cancel"), DialogResult = DialogResult.Cancel, Location = new Point(284, 290), Size = new Size(84, 28) };
             AcceptButton = ok;
             CancelButton = cancel;
             Controls.Add(ok);
@@ -86,7 +87,7 @@ namespace PingTool
         {
             int y = 142 + index * 30;
             string plain = text.Replace("&", "", StringComparison.Ordinal);   // what a screen reader says: without the access key mark
-            var box = new CheckBox { Text = text, ForeColor = Color.White, AutoSize = true, Location = new Point(12, y + 2), Checked = own is not null, AccessibleName = plain + ": own value" };
+            var box = new CheckBox { Text = text, ForeColor = Color.White, AutoSize = true, Location = new Point(12, y + 2), Checked = own is not null, AccessibleName = Loc.T("ui.to.own.an", plain) };
             var number = new NumericUpDown
             {
                 Minimum = range.Min, Maximum = range.Max, Location = new Point(250, y), Size = new Size(118, 23),

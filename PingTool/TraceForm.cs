@@ -16,7 +16,7 @@ namespace PingTool
             AutoScaleDimensions = new SizeF(96F, 96F);
             AutoScaleMode = AutoScaleMode.Dpi;
 
-            Text = "PingTool - Route to " + session.Address;
+            Text = Loc.T("ui.tr.title", session.Address);
             ClientSize = new Size(560, 330);
             MinimumSize = SizeFromClientSize(new Size(400, 200));
             StartPosition = FormStartPosition.CenterParent;
@@ -39,11 +39,11 @@ namespace PingTool
                 Location = new Point(10, 10),
                 Size = new Size(540, 276),
                 Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
-                AccessibleName = "Route to the host",
-                Text = "Tracing the route to " + session.Address + " (" + ip + ")...",
+                AccessibleName = Loc.T("ui.tr.an"),
+                Text = Loc.T("ui.tr.tracing", session.Address, ip),
             };
             output.Disposed += (_, _) => mono.Dispose();
-            var close = new Button { Text = "Close", Location = new Point(470, 294), Size = new Size(80, 28), DialogResult = DialogResult.Cancel,
+            var close = new Button { Text = Loc.T("ui.close"), Location = new Point(470, 294), Size = new Size(80, 28), DialogResult = DialogResult.Cancel,
                 Anchor = AnchorStyles.Bottom | AnchorStyles.Right };
             CancelButton = close;
             Controls.Add(output);
@@ -70,7 +70,7 @@ namespace PingTool
             if (IsDisposed) return;
             hopsSeen = hops.Count;
             var partial = new PathCapture { Host = session.Address, Target = ip, Time = DateTimeOffset.Now, Hops = hops };
-            ReplaceKeepingView("Tracing the route to " + session.Address + " (" + ip + "), " + hops.Count + " hop(s) so far...\r\n"
+            ReplaceKeepingView(Loc.Count("ui.tr.progress", hops.Count, session.Address, ip) + "\r\n"
                 + string.Join("\r\n", partial.HopLines()));
         }
 

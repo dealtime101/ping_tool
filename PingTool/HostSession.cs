@@ -144,7 +144,7 @@ namespace PingTool
         public void SetUnresolved()
         {
             Ip = null;
-            IpText = "not resolved";
+            IpText = Loc.T("ui.notresolved");
         }
 
         // What the comparison reads: only a host that has been pinged this run has data.
