@@ -58,6 +58,15 @@ namespace PingTool
                 return code;   // 0 only when every webhook answered (a script can rely on it)
             }
 
+            // What PingTool reads of the Wi-Fi, to be put next to "netsh wlan show interfaces": the check of the offsets on a real card.
+            if (startup.WifiCheck)
+            {
+                var reading = WifiWatch.Read();
+                MessageBox.Show(WifiWatch.Describe(reading), Loc.T("ui.wifi.title"), MessageBoxButtons.OK,
+                    reading.State is null && reading.Unavailable is not null ? MessageBoxIcon.Warning : MessageBoxIcon.Information);
+                return reading.State is null && reading.Unavailable is not null ? 1 : 0;
+            }
+
             Application.Run(new MainForm(startup));
             return 0;
         }

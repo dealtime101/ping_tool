@@ -105,6 +105,13 @@ namespace PingTool
             }
         }
 
+        // What --wifi-check shows: what PingTool reads of the Wi-Fi connection, in the form netsh gives it, so that a person can put the two side by side
+        // (netsh wlan show interfaces: SSID, BSSID, Signal). The way to find out whether the offsets above are right on a real card.
+        public static string Describe(WifiReading reading) =>
+            reading.State is { } s
+                ? Loc.T("ui.wifi.read", s.Ssid, s.Bssid, s.Quality)
+                : reading.Unavailable ?? Loc.T("ui.wifi.none");
+
         private static WifiReading Unavailable(int code) =>
             new(null, "Wi-Fi details (network name, access point, signal) could not be read: Windows error " + code.ToString(System.Globalization.CultureInfo.InvariantCulture)
                 + ". They are not recorded until they can be.");

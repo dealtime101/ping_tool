@@ -125,6 +125,7 @@ PingTool.exe --start --minimized 8.8.8.8 router.lan tcp://example.com:443
 | `--hide <what>` | with `--report`: hide `targets`, `ips`, `cards`, `computer` (comma list) or `all` from the report; the key of the pseudonyms goes to the error output |
 | `--diagnose` | monitor the default gateway, the DNS servers and a few Internet references |
 | `--test-webhooks` | send a test alert to the webhooks of `settings.json`, show the result and exit |
+| `--wifi-check` | show what PingTool reads of the Wi-Fi connection (network, access point, signal) and exit: put it next to `netsh wlan show interfaces` to check the reading on a laptop |
 | `--help` | show the options |
 
 Targets are written as in the address box and replace the saved list **for that launch only**; what the command line imposes is not saved, so a shortcut never overwrites the list built in the window. A mistyped option or target is reported in a box and nothing starts. To monitor from logon, put a shortcut with these arguments in the Startup folder (`shell:startup`).

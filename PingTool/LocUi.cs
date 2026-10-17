@@ -150,6 +150,12 @@ namespace PingTool
             ["ui.lv.comparetitle"] = ("PingTool - compare two periods", "PingTool - comparer deux périodes"),
             ["ui.dlg.htmlfilter"] = ("HTML page (*.html)|*.html", "Page HTML (*.html)|*.html"),
 
+            // ---- --wifi-check
+            ["ui.wifi.title"] = ("PingTool - Wi-Fi check", "PingTool - Contrôle du Wi-Fi"),
+            ["ui.wifi.read"] = ("What PingTool reads of the Wi-Fi connection:\n\nNetwork (SSID): {0}\nAccess point (BSSID): {1}\nSignal: {2} %\n\nCompare with the output of: netsh wlan show interfaces\n(SSID, BSSID and Signal must be the same; the signal can differ by a few points between two readings).",
+                "Ce que PingTool lit de la connexion Wi-Fi :\n\nRéseau (SSID) : {0}\nPoint d'accès (BSSID) : {1}\nSignal : {2} %\n\nComparez avec la sortie de : netsh wlan show interfaces\n(SSID, BSSID et Signal doivent être les mêmes ; le signal peut différer de quelques points entre deux lectures)."),
+            ["ui.wifi.none"] = ("Not connected to a Wi-Fi network (or no Wi-Fi on this PC): there is nothing to read.", "Pas connecté à un réseau Wi-Fi (ou pas de Wi-Fi sur ce PC) : il n'y a rien à lire."),
+
             // ---- compare two periods
             ["ui.cmp.which"] = ("Which period is BEFORE the change?", "Laquelle est la période AVANT le changement ?"),
             ["ui.cmp.before.opened"] = ("The log you opened ({0})", "Le journal que vous avez ouvert ({0})"),

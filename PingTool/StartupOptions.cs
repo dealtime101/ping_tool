@@ -7,7 +7,7 @@ namespace PingTool
     // Hosts and --interval are for THIS launch only: they win over the saved settings, which stay as
     // they were (a shortcut must not overwrite the list the user built in the window).
     internal sealed record StartupOptions(IReadOnlyList<string> Hosts, bool Start, bool Minimized, int? IntervalMs, bool TestWebhooks = false, bool Diagnose = false,
-        bool Headless = false, TimeSpan? Duration = null, string? ReportPath = null, ReportMasking? Hide = null, string? ProfileName = null)
+        bool Headless = false, TimeSpan? Duration = null, string? ReportPath = null, ReportMasking? Hide = null, string? ProfileName = null, bool WifiCheck = false)
     {
         public static readonly TimeSpan MinDuration = TimeSpan.FromSeconds(5);
         public static readonly TimeSpan MaxDuration = TimeSpan.FromDays(30);
@@ -47,6 +47,7 @@ namespace PingTool
             "  --hide <what>      with --report: hide from the reader of the report targets, ips, cards, computer (a comma list, or all); the key goes to the error output\r\n" +
             "  --diagnose         monitor the default gateway, the DNS servers and a few Internet references (to see where a fault is)\r\n" +
             "  --test-webhooks    send a test alert to the webhooks of settings.json, show the result and exit\r\n" +
+            "  --wifi-check       show what PingTool reads of the Wi-Fi connection (network, access point, signal) and exit, to compare with netsh wlan show interfaces\r\n" +
             "  --help             show this text\r\n\r\n" +
             "Targets are those of the address box: host, tcp://host:port, http(s)://url, dns://name.\r\n" +
             "Given targets replace the saved list for this launch only.";
@@ -57,7 +58,7 @@ namespace PingTool
             options = None;
             message = "";
             var hosts = new List<string>();
-            bool start = false, minimized = false, testWebhooks = false, diagnose = false, headless = false;
+            bool start = false, minimized = false, testWebhooks = false, diagnose = false, headless = false, wifiCheck = false;
             int? interval = null;
             TimeSpan? duration = null;
             string? reportPath = null;
@@ -78,7 +79,7 @@ namespace PingTool
 
                 // A switch takes no value, and "--start=false" is REFUSED (not read as "off"): accepted, it would be easy to take for
                 // "off" what the program reads as written, that is ON. A switch is on when written, off when left out.
-                if (inline is not null && name.ToLowerInvariant() is "--start" or "--minimized" or "--test-webhooks" or "--diagnose" or "--headless" or "--help")
+                if (inline is not null && name.ToLowerInvariant() is "--start" or "--minimized" or "--test-webhooks" or "--wifi-check" or "--diagnose" or "--headless" or "--help")
                 {
                     message = $"{name} takes no value: write it to switch it on, leave it out to switch it off.";
                     return false;
@@ -89,6 +90,7 @@ namespace PingTool
                     case "--start": start = true; break;
                     case "--minimized": minimized = true; break;
                     case "--test-webhooks": testWebhooks = true; break;
+                    case "--wifi-check": wifiCheck = true; break;
                     case "--diagnose": diagnose = true; break;
                     case "--headless": headless = true; break;
                     case "--duration":
@@ -184,12 +186,13 @@ namespace PingTool
 
             // No window, so nothing to start from, to minimise or to test in a box: which of the modes should win would be a guess (the run
             // without a window did, and the others were dropped without a word).
-            if (headless && (start || minimized || testWebhooks))
+            if (headless && (start || minimized || testWebhooks || wifiCheck))
             {
                 var ignored = new List<string>();
                 if (start) ignored.Add("--start");
                 if (minimized) ignored.Add("--minimized");
                 if (testWebhooks) ignored.Add("--test-webhooks");
+                if (wifiCheck) ignored.Add("--wifi-check");
                 message = $"{string.Join(", ", ignored)} cannot be used with --headless: there is no window. Use --headless on its own for the run without a window, and {(ignored.Count == 1 ? "that option" : "those options")} for the window.";
                 return false;
             }
@@ -206,7 +209,7 @@ namespace PingTool
                 return false;
             }
 
-            options = new StartupOptions(hosts, start, minimized, interval, testWebhooks, diagnose, headless, duration, reportPath, hide, profileName);
+            options = new StartupOptions(hosts, start, minimized, interval, testWebhooks, diagnose, headless, duration, reportPath, hide, profileName, wifiCheck);
             return true;
         }
     }
