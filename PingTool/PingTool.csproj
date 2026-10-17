@@ -575,8 +575,9 @@
          1.21.497 = the main window, the log viewer, the dialogs (mark an event, name and limits, schedule, hiding, incidents, route) and the boxes take their texts from the table, in the language of Windows: French or English; the unit of "Down after" is said; no "(s)" written (PIN507.254, .285, .286, .300, .327, .337, .338, .362)
          1.21.498 = the reasons given when an address, a profile name, a profiles file or the settings file is refused, the help of the address box and the message of "no gateway" follow the language of Windows too; counts agree (PIN507.337)
          1.21.499 = the comparison of two logs asks, in one window, which is before, a part of each log, the targets to pair by hand and whether to hide the names (PIN507.9)
-         1.21.500 = the wifi-check option shows what PingTool reads of the Wi-Fi connection, to compare with netsh on a laptop (PIN507.2) -->
-    <Version>1.21.500</Version>
+         1.21.500 = the wifi-check option shows what PingTool reads of the Wi-Fi connection, to compare with netsh on a laptop (PIN507.2)
+         1.21.501 = in the compact window the figures under the big result are centred (asked for) -->
+    <Version>1.21.501</Version>
   </PropertyGroup>
 
   <ItemGroup>

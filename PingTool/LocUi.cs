@@ -36,7 +36,7 @@ namespace PingTool
             ["ui.btn.openlog"] = ("Open a log...", "Ouvrir un journal..."),
             ["ui.btn.importprof"] = ("Import pro&files...", "Importer des pro&fils..."),
             ["ui.btn.exportprof"] = ("Export profiles...", "Exporter les profils..."),
-            ["ui.compact"] = ("&Compact (on top)", "&Compact (au premier plan)"),
+            ["ui.compact"] = ("&Compact (on top)", "&Compact (devant)"),
             ["ui.compare"] = ("Compare all &hosts on one graph", "Comparer tous les &hôtes sur un graphique"),
             ["ui.save"] = ("Save", "Enregistrer"),
             ["ui.delete"] = ("Delete", "Supprimer"),

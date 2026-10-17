@@ -232,8 +232,18 @@ namespace PingTool
                 FormBorderStyle = FormBorderStyle.FixedSingle;
                 MaximizeBox = false;
                 ClientSize = DpiScale.Scale(CompactSize, DeviceDpi);
+                // The figures under the big result are centred in the compact window, as the result and the button above them are: the label takes
+                // the whole width and the rest of the height, and centres each line.
+                lblStats.AutoSize = false;
+                lblStats.TextAlign = ContentAlignment.TopCenter;
+                lblStats.SetBounds(0, lblStats.Top, ClientSize.Width, Math.Max(0, ClientSize.Height - lblStats.Top));
                 return;
             }
+
+            // The full window: the figures at the left, as the designer put them, the size of their text.
+            lblStats.TextAlign = ContentAlignment.TopLeft;
+            lblStats.AutoSize = true;
+            lblStats.Left = DpiScale.Scale(new Size(30, 0), DeviceDpi).Width;
 
             // Back to the full window: resizable, never smaller than what its controls need, at the size it had before
             // compact mode, or the size saved at the last close, or the default.
